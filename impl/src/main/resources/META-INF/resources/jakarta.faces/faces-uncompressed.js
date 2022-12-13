@@ -1135,29 +1135,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          * @ignore
          */
         const doEval = function doEval(element) {
-
-            // should be equal to Node.textContent
-            // let src = '';
-            // for ( const node of element.childNodes ) {
-            //     src += node.nodeValue;
-            // }
-
-            // const nodeText = element.textContent;
-
-            // We have to wrap the call in an anon function because of a firefox bug, where this is incorrectly set
-            // We need to explicitly call window.eval because of a Chrome peculiarity
-
-            // const fn = function() {
-            //     window.eval.call(window, src);
-            // };
-            // fn();
-
-            /**
-             * @ignore
-             */
-            // switch to an async IIFE?
-            // TODO: async requires Safari 10... it was released on 2017... it's ok?
-            // async
+            // async IIFE
             (async () => {
                 const src = element ? element.textContent : undefined;
                 if (src) window.eval.call(window, src);
