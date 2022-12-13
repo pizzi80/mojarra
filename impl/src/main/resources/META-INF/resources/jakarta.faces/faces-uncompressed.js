@@ -216,13 +216,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                 if (context.render.indexOf("@all") !== -1 ) {
                     add(document);
                 } else {
-                    const clientIds = context.render.split(SPACE);  // [ form1:input1, form1:input2, form2:input1 ]
-
-                    // for (let i=0; i < clientIds.length; i++) {
-                    //     if (clientIds.hasOwnProperty(i)) {
-                    //         add(document.getElementById(clientIds[i]));
-                    //     }
-                    // }
+                    const clientIds = context.render.split(SPACE);
                     for ( const clientId of clientIds )
                         add(document.getElementById(clientId));
                 }
