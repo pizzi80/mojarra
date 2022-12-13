@@ -3117,7 +3117,6 @@ mojarra.cljs = function cljs(f, pvp, t) {
     input.type = 'submit';
     f.appendChild(input);
     input.click();
-    //f.removeChild(input);
     input.remove();
 
     f.target = ft;
