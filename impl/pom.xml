@@ -237,7 +237,8 @@
                             </includes>
                             <outputFilename>#{path}/faces.js</outputFilename>
                             <skipMerge>true</skipMerge>
-                            <closureLanguageOut>ECMASCRIPT5_STRICT</closureLanguageOut>
+<!--                        <closureLanguageIn>ECMASCRIPT5_STRICT</closureLanguageIn> default ECMASCRIPT_NEXT -->
+                            <closureLanguageOut>NO_TRANSPILE</closureLanguageOut> <!-- ECMASCRIPT5_STRICT -->
                         </configuration>
                     </execution>
                 </executions>
