@@ -1232,13 +1232,13 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          */
         const AjaxEngine = function AjaxEngine(context) {
 
-            const req = {};                  // Request Object
+            const req = {};                // Request Object
             req.url = null;                // Request URL
-            req.context = context;              // Context of request and response
+            req.context = context;         // Context of request and response
             req.context.sourceid = null;   // Source of this request
             req.context.onerror = null;    // Error handler for request
             req.context.onevent = null;    // Event handler for request
-            req.context.namingContainerId = null;   // If UIViewRoot is an instance of NamingContainer this represents its ID.
+            req.context.namingContainerId = null;       // If UIViewRoot is an instance of NamingContainer this represents its ID.
             req.context.namingContainerPrefix = null;   // If UIViewRoot is an instance of NamingContainer this represents its ID suffixed with separator character, else an empty string.
             req.xmlReq = null;             // XMLHttpRequest Object
             req.async = true;              // Default - Asynchronous
@@ -1313,15 +1313,15 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
              * request parameters.
              * @ignore
              */
-            req.setupArguments = function (args) {
-                for (const i in args) {
-                    if (args.hasOwnProperty(i)) {
-                        if (typeof req[i] === 'undefined') {
+            req.setupArguments = function(args) {
+                for (const i of Object.keys(args) ) {
+                    //if (args.hasOwnProperty(i)) {
+                        if (typeof req[i] === UDEF) {
                             req.parameters[i] = args[i];
                         } else {
                             req[i] = args[i];
                         }
-                    }
+                    //}
                 }
             };
 
@@ -1335,6 +1335,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                     // if there is already a request on the queue waiting to be processed..
                     // just queue this request
                     // TODO: add support for async ajax requests
+                    // https://github.com/eclipse-ee4j/mojarra/issues/4946
                     if (!req.que.isEmpty()) {
                         if (!req.fromQueue) {
                             req.que.enqueue(req);
@@ -1357,16 +1358,15 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                     const formData = isMultiPart ? new FormData(context.form) : undefined;
 
                     // Add parameters encoded or multipart
-                    for (const i in req.parameters) {
-                        if (req.parameters.hasOwnProperty(i)) {
-                            if ( isMultiPart ) {
-                                // add parameter to FormData
-                                formData.append(i,req.parameters[i]);
-                            } else {
-                                // add encoded request query string to queryString for POST
-                                if (req.queryString.length > 0) req.queryString += "&";
-                                req.queryString += encodeURIComponent(i) + "=" + encodeURIComponent(req.parameters[i]);
-                            }
+                    for ( const i of Object.keys(req.parameters) ) {
+                        // if is multipart request -> add parameter to FormData
+                        if ( isMultiPart ) {
+                            formData.append(i,req.parameters[i]);
+                        }
+                        // else is a normal post request -> add encoded request query string to queryString for POST
+                        else {
+                            if (req.queryString.length > 0) req.queryString += "&";
+                            req.queryString += encodeURIComponent(i) + "=" + encodeURIComponent(req.parameters[i]);
                         }
                     }
 
@@ -1476,11 +1476,11 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                 sent = true;
             }
 
-            for (const i in errorListeners) {
-                if (errorListeners.hasOwnProperty(i)) {
-                    errorListeners[i].call(null, data);
+            for (const data of errorListeners) {
+                //if (errorListeners.hasOwnProperty(i)) {
+                    data.call(null, data);
                     sent = true;
-                }
+                //}
             }
 
             if (!sent && faces.getProjectStage() === "Development") {
@@ -1518,10 +1518,10 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                 context.onevent.call(null, data);
             }
 
-            for (const i in eventListeners) {
-                if (eventListeners.hasOwnProperty(i)) {
-                    eventListeners[i].call(null, data);
-                }
+            for (const data of eventListeners) { //
+                //if (eventListeners.hasOwnProperty(i)) {
+                    data.call(null, data); // Todo: tricky, can be improved?
+                //}
             }
         };
 
@@ -2080,10 +2080,10 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
 
                 // copy all params to args
                 const params = options.params || {};
-                for (let property in params) {
-                    if (params.hasOwnProperty(property)) {
+                for (const property of Object.keys(params) ) {
+                    //if (params.hasOwnProperty(property)) {
                         args[namingContainerPrefix + property] = params[property];
-                    }
+                    //}
                 }
 
                 // remove non-passthrough options
@@ -2096,10 +2096,10 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                 delete options.params;
 
                 // copy all other options to args (for backwards compatibility on issue 4115)
-                for (const property in options) {
-                    if (options.hasOwnProperty(property)) {
+                for (const property of Object.keys(options) ) {
+                    //if (options.hasOwnProperty(property)) {
                         args[namingContainerPrefix + property] = options[property];
-                    }
+                    //}
                 }
 
                 args[namingContainerPrefix + "jakarta.faces.partial.ajax"] = "true";
@@ -3061,7 +3061,6 @@ mojarra.dpf = function dpf(f) {
     if (adp !== null) {
         for ( const param of adp ) {
             param.remove();
-            //f.removeChild(input);
         }
     }
 };
@@ -3081,15 +3080,15 @@ mojarra.apf = function apf(f, pvp) {
     const adp = [];
     f.adp = adp;
     let i = 0;
-    for (const k in pvp) {
-        if (pvp.hasOwnProperty(k)) {
+    for (const k of Object.keys(pvp) ) {
+        //if (pvp.hasOwnProperty(k)) {
             const p = document.createElement("input");
             p.type = "hidden";
             p.name = k;
             p.value = pvp[k];
             f.appendChild(p);
             adp[i++] = p;
-        }
+        //}
     }
 };
 
