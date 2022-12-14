@@ -43,6 +43,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
     const VIEW_STATE_PARAM = "jakarta.faces.ViewState";
     const CLIENT_WINDOW_PARAM = "jakarta.faces.ClientWindow";
     const ALWAYS_EXECUTE_IDS = [ VIEW_STATE_PARAM , CLIENT_WINDOW_PARAM ];
+    const ENCODED_URL_PARAM = "jakarta.faces.encodedURL";
 
     /**
      * experimental: do partial submit during ajax request
@@ -66,7 +67,15 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
      * @ignore
      */
     const getElementByName = function(element, name) {
-        return element.querySelector("[name='" + name + "']");
+        return element.querySelector("[name='"+name+"']");
+    }
+
+    /**
+     * get the input element inside a form identified by name attribute
+     * @ignore
+     */
+    const getFormInputElementByName = function(form, inputElementName) {
+        return inputElementName in form ? form[inputElementName] : getElementByName(form,inputElementName);
     }
 
     /**
@@ -161,12 +170,13 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          * Find instance of passed String via getElementById
          * @ignore
          */
-        const $ = function $() {
-            const results = [];
-            for ( const element of arguments ) {
-                results.push( (typeof element == 'string') ? document.getElementById(element) : element );
-            }
-            return results.length > 1 ? results : results[0];
+        const $ = function $( elementOrId ) {
+            // const results = [];
+            // for ( const element of arguments ) {
+            //     results.push( (typeof element == 'string') ? document.getElementById(element) : element );
+            // }
+            // return results.length > 1 ? results : results[0];
+            return typeof elementOrId == 'string' ? document.getElementById(elementOrId) : elementOrId;
         };
 
         /**
@@ -605,7 +615,6 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
         const deleteChildren = function deleteChildren(node) {
             if (node)
                 while (node.lastElementChild)
-                    //node.removeChild(node.lastElementChild);
                     node.lastElementChild.remove();
         };
 
@@ -674,6 +683,9 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
         // enumerate additional input element attributes
         const inputElementProperties = [ 'name', 'value', 'size', 'maxLength', 'src', 'alt', 'useMap', 'tabIndex', 'accessKey', 'accept', 'type' ];
 
+        // core + input element properties
+        const coreAndInputElementProperties = coreElementProperties.concat(inputElementProperties);
+
         // enumerate additional boolean input attributes
         const inputElementBooleanProperties = [ 'checked', 'disabled', 'readOnly' ];
 
@@ -688,13 +700,11 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
         const cloneAttributes = function cloneAttributes(target, source) {
 
             const isInputElement = target.nodeName.toLowerCase() === 'input';
-            const propertyNames = isInputElement ? coreElementProperties.concat(inputElementProperties) : coreElementProperties;
+            const propertyNames = isInputElement ? coreAndInputElementProperties : coreElementProperties;
             const isXML = !source.ownerDocument.contentType || source.ownerDocument.contentType === 'text/xml';
 
-            for (let i=0 ; i < propertyNames.length; i++) {
-                const propertyName = propertyNames[i];
+            for (const propertyName of propertyNames ) {
                 const attributeName = propertyToAttribute(propertyName);
-
                 const sourceValue = isXML ? source.getAttribute(attributeName) : source[propertyName];
                 const targetValue = target[propertyName];
 
@@ -704,22 +714,22 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             }
 
             const booleanPropertyNames = isInputElement ? inputElementBooleanProperties : [];
-            for (let i=0 ; i < booleanPropertyNames.length; i++) {
-                const booleanPropertyName = booleanPropertyNames[i];
+            for ( const booleanPropertyName of booleanPropertyNames ) {
                 const newBooleanValue = source[booleanPropertyName];
-                const oldBooleanValue = target[booleanPropertyName];
-                if (oldBooleanValue !== newBooleanValue) { // TODO: why check equality? ... just assign the value...?
+                //const oldBooleanValue = target[booleanPropertyName];
+                // TODO: why check equality? ... just assign the value...?
+                //if (oldBooleanValue !== newBooleanValue) {
                     target[booleanPropertyName] = newBooleanValue;
-                }
+                //}
             }
 
             //'style' attribute special case | TODO: why check equality? ... just do setAttribute....
             if ( source.hasAttribute('style') ) {
                 const sourceStyle = source.getAttribute('style');
-                const targetStyle = target.getAttribute('style');
-                if (sourceStyle !== targetStyle) {
+                //const targetStyle = target.getAttribute('style');
+                //if (sourceStyle !== targetStyle) {
                     target.setAttribute('style', sourceStyle);
-                }
+                //}
             } else if ( target.hasAttribute('style') ) {
                 target.removeAttribute('style');
             }
@@ -809,19 +819,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          * @ignore
          */
         const getEncodedUrlElement = function getEncodedUrlElement(form) {
-            const encodedUrlElement = form['jakarta.faces.encodedURL'];
-
-            if (encodedUrlElement) {
-                return encodedUrlElement;
-            } else {
-                for ( const formElement of form.elements ) {
-                    if (formElement.name && contains(formElement.name,'jakarta.faces.encodedURL') ) {
-                        return formElement;
-                    }
-                }
-            }
-
-            return undefined;
+            return getFormInputElementByName(form,ENCODED_URL_PARAM);
         };
 
         /**
@@ -859,21 +857,8 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          * @ignore
          */
         const getHiddenStateField = function getHiddenStateField(form, hiddenStateFieldName, namingContainerPrefix) {
-            namingContainerPrefix = namingContainerPrefix || EMPTY;
-            const field = form[namingContainerPrefix + hiddenStateFieldName];
-
-            if (field) {
-                return field;
-            }
-            else {
-                for ( const formElement of form.elements ) {
-                    if (formElement.name && contains(formElement.name, hiddenStateFieldName) ) {
-                        return formElement;
-                    }
-                }
-            }
-
-            return undefined;
+            const fullHiddenStateFieldName = namingContainerPrefix ? namingContainerPrefix+hiddenStateFieldName : hiddenStateFieldName;
+            return getFormInputElementByName( form , fullHiddenStateFieldName );
         };
 
         /**
@@ -1315,13 +1300,11 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
              */
             req.setupArguments = function(args) {
                 for (const i of Object.keys(args) ) {
-                    //if (args.hasOwnProperty(i)) {
-                        if (typeof req[i] === UDEF) {
-                            req.parameters[i] = args[i];
-                        } else {
-                            req[i] = args[i];
-                        }
-                    //}
+                    if (typeof req[i] === UDEF) {
+                        req.parameters[i] = args[i];
+                    } else {
+                        req[i] = args[i];
+                    }
                 }
             };
 
@@ -1477,10 +1460,8 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             }
 
             for (const data of errorListeners) {
-                //if (errorListeners.hasOwnProperty(i)) {
-                    data.call(null, data);
-                    sent = true;
-                //}
+                data.call(null, data);
+                sent = true;
             }
 
             if (!sent && faces.getProjectStage() === "Development") {
@@ -1519,9 +1500,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             }
 
             for (const data of eventListeners) { //
-                //if (eventListeners.hasOwnProperty(i)) {
-                    data.call(null, data); // Todo: tricky, can be improved?
-                //}
+                data.call(null, data); // Todo: tricky, can be improved?
             }
         };
 
@@ -1979,7 +1958,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                 }
 
                 // do a partial submit only if it is enabled and:
-                // 1) option.execute is not defined (<f:ajax />)
+                // 1) option.execute is not defined, eg. <f:ajax />
                 // 2) if it is defined it should not contain @form or @all
                 const doPartialSubmit = PARTIAL_SUBMIT_ENABLED && ( !options.execute || ( !contains(options.execute,"@form") && !contains(options.execute,"@all") ) );
 
@@ -2081,9 +2060,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                 // copy all params to args
                 const params = options.params || {};
                 for (const property of Object.keys(params) ) {
-                    //if (params.hasOwnProperty(property)) {
-                        args[namingContainerPrefix + property] = params[property];
-                    //}
+                    args[namingContainerPrefix + property] = params[property];
                 }
 
                 // remove non-passthrough options
@@ -2097,18 +2074,15 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
 
                 // copy all other options to args (for backwards compatibility on issue 4115)
                 for (const property of Object.keys(options) ) {
-                    //if (options.hasOwnProperty(property)) {
-                        args[namingContainerPrefix + property] = options[property];
-                    //}
+                    args[namingContainerPrefix + property] = options[property];
                 }
 
                 args[namingContainerPrefix + "jakarta.faces.partial.ajax"] = "true";
                 args["method"] = "POST";
 
                 // Determine the posting url
-
                 const encodedUrlField = getEncodedUrlElement(form);
-                if (typeof encodedUrlField == 'undefined') {
+                if ( isNull(encodedUrlField) ) {
                     args["url"] = form.action;
                 } else {
                     args["url"] = encodedUrlField.value;
@@ -2672,8 +2646,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          * @ignore
          */
         const getWindowIdElement = function(form) {
-            const windowIdElement = form[CLIENT_WINDOW_PARAM];
-            return windowIdElement ? windowIdElement : form.querySelector("input[name="+CLIENT_WINDOW_PARAM+"]");
+            return getFormInputElementByName(form,CLIENT_WINDOW_PARAM);
         };
 
         const fetchWindowIdFromForms = function(forms) {
@@ -3081,14 +3054,12 @@ mojarra.apf = function apf(f, pvp) {
     f.adp = adp;
     let i = 0;
     for (const k of Object.keys(pvp) ) {
-        //if (pvp.hasOwnProperty(k)) {
-            const p = document.createElement("input");
-            p.type = "hidden";
-            p.name = k;
-            p.value = pvp[k];
-            f.appendChild(p);
-            adp[i++] = p;
-        //}
+        const p = document.createElement("input");
+        p.type = "hidden";
+        p.name = k;
+        p.value = pvp[k];
+        f.appendChild(p);
+        adp[i++] = p;
     }
 };
 
