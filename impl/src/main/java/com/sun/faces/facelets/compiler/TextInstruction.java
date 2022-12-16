@@ -42,7 +42,7 @@ final class TextInstruction implements Instruction {
         try {
             ELContext elContext = context.getELContext();
             txt.writeText(out, elContext);
-            // out.writeText(txt.toString(elContext), null);
+            //out.writeText(txt.toString(elContext), null);
         } catch (ELException e) {
             throw new ELException(alias + ": " + e.getMessage(), e.getCause());
         } catch (IOException e) {

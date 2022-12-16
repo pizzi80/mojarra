@@ -435,9 +435,10 @@ public class InstanceFactory {
     /*
      * @see jakarta.faces.application.Application#createConverter(Class)
      */
-    public Converter createConverter(Class<?> targetClass) {
+    @SuppressWarnings("unchecked")
+    public <T> Converter<T> createConverter(Class<T> targetClass) {
         notNull("targetClass", targetClass);
-        Converter returnVal = null;
+        Converter<T> returnVal = null;
 
         BeanManager beanManager = getBeanManager();
         returnVal = CdiUtils.createConverter(beanManager, targetClass);
@@ -445,7 +446,7 @@ public class InstanceFactory {
             return returnVal;
         }
 
-        returnVal = (Converter) newConverter(targetClass, converterTypeMap, targetClass);
+        returnVal = (Converter<T>) newConverter(targetClass, converterTypeMap, targetClass);
         if (returnVal != null) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
@@ -461,8 +462,8 @@ public class InstanceFactory {
         // targetClass
         Class<?>[] interfaces = targetClass.getInterfaces();
         if (interfaces != null) {
-            for (int i = 0; i < interfaces.length; i++) {
-                returnVal = createConverterBasedOnClass(interfaces[i], targetClass);
+            for (Class<?> anInterface : interfaces) {
+                returnVal = createConverterBasedOnClass(anInterface, targetClass);
                 if (returnVal != null) {
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));

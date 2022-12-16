@@ -301,8 +301,8 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
 
         @Override
         public ValueExpression getExpression(String name) {
-            Object ve = cc.getValueExpression(name);
-            return ve instanceof ValueExpression ? (ValueExpression) ve : null;
+            ValueExpression ve = cc.getValueExpression(name);
+            return ve;
         }
 
         // ---------------------------------------------------- Methods from Map
@@ -340,15 +340,15 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
                     return ((ValueExpression) v).getValue(ctx.getELContext());
                 }
             }
-            if (v != null && v instanceof MethodExpression) {
-                return v;
-            }
+//            if (v instanceof MethodExpression) {
+//                return v;
+//            }
             return v;
         }
 
         @Override
         public Object put(String key, Object value) {
-            // Unlinke AttributesMap.get() which will obtain a value from
+            // Unlike AttributesMap.get() which will obtain a value from
             // a ValueExpression, AttributesMap.put(), when passed a value,
             // will never call ValueExpression.setValue(), so we have to take
             // matters into our own hands...

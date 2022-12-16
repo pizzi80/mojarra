@@ -32,10 +32,10 @@ import com.sun.faces.RIConstants;
 /**
  * Utility class for HTML. Kudos to Adam Winer (Oracle) for much of this code.
  */
-public class HtmlUtils {
+public enum HtmlUtils { INSTANCE;
 
-    private final static Set<String> UTF_CHARSET = new HashSet<>(Arrays.asList("UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "UTF-32", "UTF-32BE", "UTF-32LE",
-            "x-UTF-16LE-BOM", "X-UTF-32BE-BOM", "X-UTF-32LE-BOM", ""));
+    private final static Set<String> UTF_CHARSET = Set.of("UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "UTF-32", "UTF-32BE", "UTF-32LE",
+            "x-UTF-16LE-BOM", "X-UTF-32BE-BOM", "X-UTF-32LE-BOM", "");
 
     // -------------------------------------------------
     // The following methods include the handling of
@@ -167,7 +167,7 @@ public class HtmlUtils {
                     if (ch >= 0x3f) {
                         if (ch == 's') {
                             // If putting scripts in attribute values
-                            // has been disabled (the defualt), look for
+                            // has been disabled (the default), look for
                             // script: in the attribute value.
                             // ensure the attribute value is long enough
                             // to accomodate "script:"
@@ -405,9 +405,6 @@ public class HtmlUtils {
         }
 
         return 0;
-    }
-
-    private HtmlUtils() {
     }
 
     /**
@@ -757,7 +754,7 @@ public class HtmlUtils {
     //
     // Entities from HTML 4.0, section 24.2.1; character codes 0xA0 to 0xFF
     //
-    static private char[][] sISO8859_1_Entities = new char[][] { "&nbsp;".toCharArray(), "&iexcl;".toCharArray(), "&cent;".toCharArray(),
+    private static final char[][] sISO8859_1_Entities = new char[][] { "&nbsp;".toCharArray(), "&iexcl;".toCharArray(), "&cent;".toCharArray(),
             "&pound;".toCharArray(), "&curren;".toCharArray(), "&yen;".toCharArray(), "&brvbar;".toCharArray(), "&sect;".toCharArray(), "&uml;".toCharArray(),
             "&copy;".toCharArray(), "&ordf;".toCharArray(), "&laquo;".toCharArray(), "&not;".toCharArray(), "&shy;".toCharArray(), "&reg;".toCharArray(),
             "&macr;".toCharArray(), "&deg;".toCharArray(), "&plusmn;".toCharArray(), "&sup2;".toCharArray(), "&sup3;".toCharArray(), "&acute;".toCharArray(),
@@ -826,26 +823,26 @@ public class HtmlUtils {
         return false;
     }
 
-    static private char _LAST_EMPTY_ELEMENT_START = 'p';
-    static private String[][] emptyElementArr = new String[_LAST_EMPTY_ELEMENT_START + 1][];
+    private static final char _LAST_EMPTY_ELEMENT_START = 'p';
+    private static final String[][] emptyElementArr = new String[_LAST_EMPTY_ELEMENT_START + 1][];
 
-    static private String[] aNames = new String[] { "area", };
+    static private final String[] aNames = new String[] { "area", };
 
-    static private String[] bNames = new String[] { "br", "base", "basefont", };
+    static private final String[] bNames = new String[] { "br", "base", "basefont", };
 
-    static private String[] cNames = new String[] { "col", };
+    static private final String[] cNames = new String[] { "col", };
 
-    static private String[] fNames = new String[] { "frame", };
+    static private final String[] fNames = new String[] { "frame", };
 
-    static private String[] hNames = new String[] { "hr", };
+    static private final String[] hNames = new String[] { "hr", };
 
-    static private String[] iNames = new String[] { "img", "input", "isindex", };
+    static private final String[] iNames = new String[] { "img", "input", "isindex", };
 
-    static private String[] lNames = new String[] { "link", };
+    static private final String[] lNames = new String[] { "link", };
 
-    static private String[] mNames = new String[] { "meta", };
+    static private final String[] mNames = new String[] { "meta", };
 
-    static private String[] pNames = new String[] { "param", };
+    static private final String[] pNames = new String[] { "param", };
 
     static {
         emptyElementArr['a'] = aNames;

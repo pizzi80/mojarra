@@ -42,17 +42,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -111,7 +101,7 @@ import jakarta.servlet.http.MappingMatch;
  * <B>Lifetime And Scope</B>
  *
  */
-public class Util {
+public enum Util { INSTANCE;
 
     // Log instance for this class
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
@@ -133,10 +123,6 @@ public class Util {
     private static final String CLIENT_ID_NESTED_IN_ITERATOR_PATTERN = "CLIENT_ID_NESTED_IN_ITERATOR_PATTERN";
 
     private static final String FACES_SERVLET_CLASS = FacesServlet.class.getName();
-
-    private Util() {
-        throw new IllegalStateException();
-    }
 
     private static Map<String, Pattern> getPatternCache(Map<String, Object> appMap) {
         @SuppressWarnings("unchecked")
@@ -217,7 +203,7 @@ public class Util {
             // ignore
         }
 
-        return applicationContextPath + " " + Thread.currentThread().toString() + " " + System.currentTimeMillis();
+        return applicationContextPath + " " + Thread.currentThread() + " " + System.currentTimeMillis();
 
     }
 
@@ -316,7 +302,7 @@ public class Util {
         return factory;
     }
 
-    public static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
+    public static Class<?> loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
         ClassLoader loader = Util.getCurrentLoader(fallbackClass);
 
         String[] primitiveNames = { "byte", "short", "int", "long", "float", "double", "boolean", "char" };
@@ -347,9 +333,11 @@ public class Util {
     @SuppressWarnings("unchecked")
     public static <T> T newInstance(Class<?> clazz) {
         try {
-            return (T) clazz.newInstance();
+            return (T) clazz.getDeclaredConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             throw new IllegalStateException(e.getMessage(), e);
+        } catch (InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -362,11 +350,11 @@ public class Util {
     }
 
     private static ClassLoader getContextClassLoader() {
-        if (System.getSecurityManager() == null) {
+        //if (System.getSecurityManager() == null) {
             return Thread.currentThread().getContextClassLoader();
-        } else {
-            return (ClassLoader) java.security.AccessController.doPrivileged((PrivilegedAction) () -> Thread.currentThread().getContextClassLoader());
-        }
+//        } else {
+//            return (ClassLoader) java.security.AccessController.doPrivileged((PrivilegedAction) () -> Thread.currentThread().getContextClassLoader());
+//        }
     }
 
     /**
@@ -545,7 +533,7 @@ public class Util {
         } else if (value instanceof Map<?, ?>) {
             return ((Map<?, ?>) value).isEmpty();
         } else if (value instanceof Optional<?>) {
-            return !((Optional<?>) value).isPresent();
+            return ((Optional<?>) value).isEmpty();
         } else if (value.getClass().isArray()) {
             return Array.getLength(value) == 0;
         } else {
@@ -616,7 +604,7 @@ public class Util {
     @SafeVarargs
     public static <T> boolean isOneOf(T object, T... objects) {
         for (Object other : objects) {
-            if (object == null ? other == null : object.equals(other)) {
+            if (Objects.equals(object, other)) {
                 return true;
             }
         }
@@ -691,7 +679,7 @@ public class Util {
         return result;
     }
 
-    public static Converter getConverterForClass(Class converterClass, FacesContext context) {
+    public static <T> Converter<T> getConverterForClass(Class<T> converterClass, FacesContext context) {
         if (converterClass == null) {
             return null;
         }
@@ -703,7 +691,7 @@ public class Util {
         }
     }
 
-    public static Converter getConverterForIdentifer(String converterId, FacesContext context) {
+    public static Converter<?> getConverterForIdentifier(String converterId, FacesContext context) {
         if (converterId == null) {
             return null;
         }
@@ -719,8 +707,8 @@ public class Util {
         return context.getApplication().getStateManager();
     }
 
-    public static Class getTypeFromString(String type) throws ClassNotFoundException {
-        Class result;
+    public static Class<?> getTypeFromString(String type) throws ClassNotFoundException {
+        Class<?> result;
         switch (type) {
         case "byte":
             result = Byte.TYPE;
@@ -773,12 +761,12 @@ public class Util {
     }
 
     public static boolean componentIsDisabled(UIComponent component) {
-        return Boolean.valueOf(String.valueOf(component.getAttributes().get("disabled")));
+        return Boolean.parseBoolean(String.valueOf(component.getAttributes().get("disabled")));
     }
 
     public static boolean componentIsDisabledOrReadonly(UIComponent component) {
-        return Boolean.valueOf(String.valueOf(component.getAttributes().get("disabled")))
-                || Boolean.valueOf(String.valueOf(component.getAttributes().get("readonly")));
+        return Boolean.parseBoolean(String.valueOf(component.getAttributes().get("disabled")))
+                || Boolean.parseBoolean(String.valueOf(component.getAttributes().get("readonly")));
     }
 
     // W3C XML specification refers to IETF RFC 1766 for language code
@@ -896,7 +884,7 @@ public class Util {
         }
 
         StackTraceElement[] stacks = e.getStackTrace();
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder(128);
         for (StackTraceElement stack : stacks) {
             sb.append(stack.toString()).append('\n');
         }
@@ -1234,7 +1222,7 @@ public class Util {
         Map<Object, Object> contextAttrs = context.getAttributes();
         Integer counter = (Integer) contextAttrs.get(viewStateCounterKey);
         if (null == counter) {
-            counter = Integer.valueOf(0);
+            counter = 0;
         }
 
         char sep = UINamingContainer.getSeparatorChar(context);
@@ -1251,7 +1239,7 @@ public class Util {
         Map<Object, Object> contextAttrs = context.getAttributes();
         Integer counter = (Integer) contextAttrs.get(clientWindowIdCounterKey);
         if (null == counter) {
-            counter = Integer.valueOf(0);
+            counter = 0;
         }
 
         char sep = UINamingContainer.getSeparatorChar(context);
@@ -1442,7 +1430,7 @@ public class Util {
         }
 
         @Override
-        public Iterator getPrefixes(String namespaceURI) {
+        public Iterator<String> getPrefixes(String namespaceURI) {
             return null;
         }
     }

@@ -24,6 +24,7 @@ import static jakarta.faces.component.visit.VisitHint.SKIP_UNRENDERED;
 import static jakarta.faces.component.visit.VisitResult.ACCEPT;
 import static jakarta.faces.component.visit.VisitResult.COMPLETE;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.SEVERE;
 
 import java.io.IOException;
@@ -95,7 +96,7 @@ import jakarta.faces.render.Renderer;
  */
 public abstract class UIComponent implements PartialStateHolder, TransientStateHolder, SystemEventListenerHolder, ComponentSystemEventListener {
 
-    private static Logger LOGGER = Logger.getLogger("jakarta.faces.component", "jakarta.faces.LogStrings");
+    private static final Logger LOGGER = Logger.getLogger("jakarta.faces.component", "jakarta.faces.LogStrings");
 
     /**
      * <p class="changed_added_2_0">
@@ -311,10 +312,7 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
      *
      */
     public ValueExpression getValueExpression(String name) {
-
-        if (name == null) {
-            throw new NullPointerException();
-        }
+        requireNonNull(name);
 
         @SuppressWarnings("unchecked")
         Map<String, ValueExpression> map = (Map<String, ValueExpression>) getStateHelper().get(UIComponentBase.PropertyKeys.bindings);

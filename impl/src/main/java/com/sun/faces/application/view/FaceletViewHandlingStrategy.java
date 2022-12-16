@@ -934,7 +934,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         // Always log
         if (LOGGER.isLoggable(SEVERE)) {
             UIViewRoot root = context.getViewRoot();
-            StringBuffer sb = new StringBuffer(64);
+            StringBuilder sb = new StringBuilder(64);
             sb.append("Error Rendering View");
             if (root != null) {
                 sb.append('[');
@@ -1332,7 +1332,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         public String getMethodSignature(FacesContext ctx) {
             ValueExpression methodSignature = (ValueExpression) propertyDescriptor.getValue("method-signature");
             if (methodSignature != null) {
-                return (String) methodSignature.getValue(ctx.getELContext());
+                return methodSignature.getValue(ctx.getELContext());
             }
 
             return null;
@@ -1368,7 +1368,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         public boolean isRequired(FacesContext ctx) {
 
             ValueExpression rd = (ValueExpression) propertyDescriptor.getValue("required");
-            return rd != null ? Boolean.valueOf(rd.getValue(ctx.getELContext()).toString()) : false;
+            return rd != null ? Boolean.parseBoolean(rd.getValue(ctx.getELContext()).toString()) : false;
 
         }
 
@@ -1405,12 +1405,12 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
     private static final class MethodRetargetHandlerManager {
 
         private Map<String, MethodRetargetHandler> handlerMap = new HashMap<>(4, 1.0f);
-        private MethodRetargetHandler arbitraryHandler = new ArbitraryMethodRegargetHandler();
+        private MethodRetargetHandler arbitraryHandler = new ArbitraryMethodRetargetHandler();
 
         // -------------------------------------------------------- Constructors
 
         MethodRetargetHandlerManager() {
-            MethodRetargetHandler[] handlers = { new ActionRegargetHandler(), new ActionListenerRegargetHandler(), new ValidatorRegargetHandler(),
+            MethodRetargetHandler[] handlers = { new ActionRetargetHandler(), new ActionListenerRetargetHandler(), new ValidatorRetargetHandler(),
                     new ValueChangeListenerRegargetHandler() };
             for (MethodRetargetHandler h : handlers) {
                 handlerMap.put(h.getAttribute(), h);
@@ -1453,7 +1453,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
          * This handler is responsible for creating/retargeting MethodExpressions defined associated with the
          * <code>action</code> attribute
          */
-        private static final class ActionRegargetHandler extends AbstractRetargetHandler {
+        private static final class ActionRetargetHandler extends AbstractRetargetHandler {
 
             private static final String ACTION = "action";
 
@@ -1474,13 +1474,13 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return ACTION;
             }
 
-        } // END ActionRegargetHandler
+        } // END ActionRetargetHandler
 
         /**
          * This handler is responsible for creating/retargeting MethodExpressions defined associated with the
          * <code>actionListener</code> attribute
          */
-        private static final class ActionListenerRegargetHandler extends AbstractRetargetHandler {
+        private static final class ActionListenerRetargetHandler extends AbstractRetargetHandler {
 
             private static final String ACTION_LISTENER = "actionListener";
             private static final Class[] ACTION_LISTENER_ARGS = new Class[] { ActionEvent.class };
@@ -1504,13 +1504,13 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return ACTION_LISTENER;
             }
 
-        } // END ActionListenerRegargetHandler
+        } // END ActionListenerRetargetHandler
 
         /**
          * This handler is responsible for creating/retargeting MethodExpressions defined associated with the
          * <code>validator</code> attribute
          */
-        private static final class ValidatorRegargetHandler extends AbstractRetargetHandler {
+        private static final class ValidatorRetargetHandler extends AbstractRetargetHandler {
 
             private static final String VALIDATOR = "validator";
             private static final Class[] VALIDATOR_ARGS = new Class[] { FacesContext.class, UIComponent.class, Object.class };
@@ -1563,12 +1563,12 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return VALUE_CHANGE_LISTENER;
             }
 
-        } // END ValueChangeListenerRegargetHandler
+        } // END ValueChangeListenerRetargetHandler
 
         /**
          * This handler is responsible for creating/retargeting MethodExpressions defined using arbitrary attribute names.
          */
-        private static final class ArbitraryMethodRegargetHandler extends AbstractRetargetHandler {
+        private static final class ArbitraryMethodRetargetHandler extends AbstractRetargetHandler {
 
             // ------------------------------ Methods from MethodRetargetHandler
 
@@ -1580,7 +1580,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 // There is no explicit methodExpression property on
                 // an inner component to which this MethodExpression
                 // should be retargeted. In this case, replace the
-                // ValueExpression with a method expresson.
+                // ValueExpression with a method expression.
 
                 // Pull apart the methodSignature to derive the
                 // expectedReturnType and expectedParameters
@@ -1657,9 +1657,9 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return null;
             }
 
-        } // END ArbitraryMethodRegargetHandler
+        } // END ArbitraryMethodRetargetHandler
 
-    } // END MethodRegargetHandlerManager
+    } // END MethodRetargetHandlerManager
 
     /**
      * Implementations of this interface provide the <code>strategy</code> to properly retarget a method expression for a
@@ -1848,11 +1848,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
      * @return true if we are, false otherwise.
      */
     private boolean isServerStateSaving() {
-        if (STATE_SAVING_METHOD_SERVER.equals(webConfig.getOptionValue(StateSavingMethod))) {
-            return true;
-        }
-
-        return false;
+        return STATE_SAVING_METHOD_SERVER.equals(webConfig.getOptionValue(StateSavingMethod));
     }
 
     /**
@@ -1918,11 +1914,11 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             return views;
         }
 
-        return views.map(view -> toImplicitOutcome(view));
+        return views.map(this::toImplicitOutcome);
     }
 
     private boolean returnAsImplicitOutCome(ViewVisitOption... options) {
-        return stream(options).filter(option -> option == RETURN_AS_MINIMAL_IMPLICIT_OUTCOME).findAny().isPresent();
+        return stream(options).anyMatch(option -> option == RETURN_AS_MINIMAL_IMPLICIT_OUTCOME);
     }
 
     private String toImplicitOutcome(String viewId) {

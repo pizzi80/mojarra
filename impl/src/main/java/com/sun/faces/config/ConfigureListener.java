@@ -559,12 +559,10 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
                     facesServletPresent = true;
                     return;
                 } finally {
-                    if (in != null) {
-                        try {
-                            in.close();
-                        } catch (Exception ioe) {
-                            LOGGER.log(FINEST, "Closing stream", ioe);
-                        }
+                    try {
+                        in.close();
+                    } catch (Exception ioe) {
+                        LOGGER.log(FINEST, "Closing stream", ioe);
                     }
                 }
             }
@@ -637,7 +635,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
             private static final String FACES_SERVLET = "jakarta.faces.webapp.FacesServlet";
 
             private boolean servletClassFound;
-            private StringBuffer content;
+            private StringBuilder content;
 
             @Override
             public InputSource resolveEntity(String publicId, String systemId) throws SAXException {
@@ -654,7 +652,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
                 if (!facesServletPresent) {
                     if (SERVLET_CLASS.equals(localName)) {
                         servletClassFound = true;
-                        content = new StringBuffer();
+                        content = new StringBuilder(128);
                     } else {
                         servletClassFound = false;
                     }
@@ -702,7 +700,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
                     monitors.add(new Monitor(uri));
                 } catch (IOException ioe) {
                     LOGGER.log(SEVERE, () -> "Unable to setup resource monitor for " + uri.toString() + ".  Resource will not be monitored for changes.");
-                    LOGGER.log(FINE, ioe, () -> ioe.toString());
+                    LOGGER.log(FINE, ioe, ioe::toString);
                 }
             }
 
@@ -743,7 +741,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
         private class Monitor {
 
-            private URI uri;
+            private final URI uri;
             private long timestamp = -1;
 
             // ---------------------------------------------------- Constructors

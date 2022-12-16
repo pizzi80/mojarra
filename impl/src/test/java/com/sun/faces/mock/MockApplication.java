@@ -261,17 +261,17 @@ public class MockApplication extends Application {
     }
 
     @Override
-    public Converter createConverter(Class targetClass) {
+    public <T> Converter<T> createConverter(Class<T> targetClass) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Iterator getConverterIds() {
+    public Iterator<String> getConverterIds() {
         return (converters.keySet().iterator());
     }
 
     @Override
-    public Iterator getConverterTypes() {
+    public Iterator<Class<?>> getConverterTypes() {
         throw new UnsupportedOperationException();
     }
 

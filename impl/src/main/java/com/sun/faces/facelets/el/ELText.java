@@ -87,17 +87,17 @@ public class ELText {
         }
 
         @Override
-        public Object getValue(ELContext context) {
+        public <T> T getValue(ELContext context) {
             return null;
         }
 
         @Override
-        public Class getType(ELContext context) {
+        public Class<?> getType(ELContext context) {
             return null;
         }
 
         @Override
-        public Class getExpectedType() {
+        public Class<?> getExpectedType() {
             return null;
         }
 
@@ -113,23 +113,23 @@ public class ELText {
 
         @Override
         public void write(Writer out, ELContext ctx) throws ELException, IOException {
-            for (int i = 0; i < txt.length; i++) {
-                txt[i].write(out, ctx);
+            for (ELText elText : txt) {
+                elText.write(out, ctx);
             }
         }
 
         @Override
         public void writeText(ResponseWriter out, ELContext ctx) throws ELException, IOException {
-            for (int i = 0; i < txt.length; i++) {
-                txt[i].writeText(out, ctx);
+            for (ELText elText : txt) {
+                elText.writeText(out, ctx);
             }
         }
 
         @Override
         public String toString(ELContext ctx) {
-            StringBuffer sb = new StringBuffer();
-            for (int i = 0; i < txt.length; i++) {
-                sb.append(txt[i].toString(ctx));
+            StringBuilder sb = new StringBuilder( txt.length * 16 );
+            for (ELText elText : txt) {
+                sb.append(elText.toString(ctx));
             }
             return sb.toString();
         }
@@ -141,9 +141,9 @@ public class ELText {
 
         @Override
         public String toString() {
-            StringBuffer sb = new StringBuffer();
-            for (int i = 0; i < txt.length; i++) {
-                sb.append(txt[i].toString());
+            StringBuilder sb = new StringBuilder( txt.length * 16 );
+            for (ELText elText : txt) {
+                sb.append(elText.toString());
             }
             return sb.toString();
         }
@@ -179,13 +179,12 @@ public class ELText {
 
         @Override
         public ELText apply(ExpressionFactory factory, ELContext ctx) {
-            ELText result = null;
+            final ELText result;
             if (ve instanceof ContextualCompositeValueExpression) {
                 result = new ELTextVariable(ve);
             } else {
                 result = new ELTextVariable(factory.createValueExpression(ctx, ve.getExpressionString(), String.class));
             }
-
             return result;
         }
 
@@ -329,8 +328,8 @@ public class ELText {
         boolean esc = false;
         int vlen = 0;
 
-        StringBuffer buff = new StringBuffer(128);
-        List text = new ArrayList();
+        StringBuilder buff = new StringBuilder();
+        List<ELText> text = new ArrayList<>();
         ELText t = null;
         ValueExpression ve = null;
 
@@ -390,9 +389,9 @@ public class ELText {
         if (text.isEmpty()) {
             return new ELText("");
         } else if (text.size() == 1) {
-            return (ELText) text.get(0);
+            return text.get(0);
         } else {
-            ELText[] ta = (ELText[]) text.toArray(new ELText[text.size()]);
+            ELText[] ta = text.toArray(new ELText[0]);
             return new ELTextComposite(ta);
         }
     }
