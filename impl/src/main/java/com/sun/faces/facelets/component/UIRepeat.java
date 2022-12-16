@@ -275,23 +275,21 @@ public class UIRepeat extends UINamingContainer {
         this.value = value;
     }
 
-    private transient StringBuffer buffer;
-
-    private StringBuffer getBuffer() {
-        if (buffer == null) {
-            buffer = new StringBuffer();
-        }
-        buffer.setLength(0);
-        return buffer;
-    }
+//    private transient StringBuffer buffer;
+//
+//    private StringBuffer getBuffer() {
+//        if (buffer == null) {
+//            buffer = new StringBuffer();
+//        }
+//        buffer.setLength(0);
+//        return buffer;
+//    }
 
     @Override
     public String getClientId(FacesContext faces) {
         String id = super.getClientId(faces);
-        if (index >= 0) {
-            id = getBuffer().append(id).append(getSeparatorChar(faces)).append(index).toString();
-        }
-        return id;
+        //id = getBuffer().append(id).append(getSeparatorChar(faces)).append(index).toString();
+        return index >= 0 ? id+getSeparatorChar(faces)+index : id;
     }
 
     private transient Object origValueOfVar;
@@ -368,9 +366,9 @@ public class UIRepeat extends UINamingContainer {
         String id = c.getId();
         c.setId(id);
 
-        Iterator itr = c.getFacetsAndChildren();
+        Iterator<UIComponent> itr = c.getFacetsAndChildren();
         while (itr.hasNext()) {
-            removeChildState(faces, (UIComponent) itr.next());
+            removeChildState(faces, itr.next());
         }
         if (childState != null) {
             childState.remove(c.getClientId(faces));
@@ -390,9 +388,9 @@ public class UIRepeat extends UINamingContainer {
         }
 
         // continue hack
-        Iterator itr = c.getFacetsAndChildren();
+        Iterator<UIComponent> itr = c.getFacetsAndChildren();
         while (itr.hasNext()) {
-            saveChildState(faces, (UIComponent) itr.next());
+            saveChildState(faces, itr.next());
         }
     }
 
@@ -423,9 +421,9 @@ public class UIRepeat extends UINamingContainer {
         }
 
         // continue hack
-        Iterator itr = c.getFacetsAndChildren();
+        Iterator<UIComponent> itr = c.getFacetsAndChildren();
         while (itr.hasNext()) {
-            restoreChildState(faces, (UIComponent) itr.next());
+            restoreChildState(faces, itr.next());
         }
     }
 
@@ -1022,14 +1020,15 @@ public class UIRepeat extends UINamingContainer {
         process(faces, PhaseId.RENDER_RESPONSE);
     }
 
-    @Override
-    public boolean getRendersChildren() {
-        if (getRendererType() != null) {
-            Renderer renderer = getRenderer(getFacesContext());
-            if (renderer != null) {
-                return renderer.getRendersChildren();
-            }
-        }
-        return true;
-    }
+    // seems equals to parent method...
+//    @Override
+//    public boolean getRendersChildren() {
+//        if (getRendererType() != null) {
+//            Renderer<?> renderer = getRenderer(getFacesContext());
+//            if (renderer != null) {
+//                return renderer.getRendersChildren();
+//            }
+//        }
+//        return true;
+//    }
 }

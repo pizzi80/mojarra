@@ -2151,13 +2151,13 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
     // --------------------------------------------------------- Private methods
 
     private Map<String, String> wrapBundleAsMap(final ResourceBundle bundle) {
-        return new Map<String, String>() {
+        return new Map<>() {
 
             // This is an immutable Map
 
             @Override
             public String toString() {
-                StringBuffer sb = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 Iterator<Map.Entry<String, String>> entries = entrySet().iterator();
                 Map.Entry<String, String> cur;
                 while (entries.hasNext()) {
@@ -2212,7 +2212,7 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
             @Override
             @SuppressWarnings("unchecked")
             public boolean equals(Object obj) {
-                return !(obj == null || !(obj instanceof Map)) && entrySet().equals(((Map<String, String>) obj).entrySet());
+                return obj instanceof Map && entrySet().equals(((Map<String, String>) obj).entrySet());
             }
 
             @Override

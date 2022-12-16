@@ -327,7 +327,7 @@ public abstract class UIComponentBase extends UIComponent {
     @Override
     public boolean getRendersChildren() {
         if (getRendererType() != null) {
-            Renderer renderer = getRenderer(getFacesContext());
+            Renderer<?> renderer = getRenderer(getFacesContext());
             if (renderer != null) {
                 return renderer.getRendersChildren();
             }

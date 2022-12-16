@@ -249,14 +249,14 @@ public class MessageFactory {
             }
         }
 
-        private String getFormattedString(String msgtext, Object[] params) {
+        private String getFormattedString(String text, Object[] params) {
             String localizedStr = null;
 
-            if (params == null || msgtext == null) {
-                return msgtext;
+            if (params == null || text == null) {
+                return text;
             }
-            StringBuffer b = new StringBuffer(100);
-            MessageFormat mf = new MessageFormat(msgtext);
+            StringBuilder b = new StringBuilder(100);
+            MessageFormat mf = new MessageFormat(text);
             if (locale != null) {
                 mf.setLocale(locale);
                 b.append(mf.format(params));

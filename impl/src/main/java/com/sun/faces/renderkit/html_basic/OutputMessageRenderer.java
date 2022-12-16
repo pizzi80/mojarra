@@ -31,7 +31,7 @@ import jakarta.faces.component.UIParameter;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
 
-/** <B>OutputMessageRenderer</B> is a class that renderes UIOutput */
+/** <B>OutputMessageRenderer</B> is a class that renders UIOutput */
 
 public class OutputMessageRenderer extends HtmlBasicInputRenderer {
 
@@ -54,7 +54,7 @@ public class OutputMessageRenderer extends HtmlBasicInputRenderer {
         }
 
         String currentValue = getCurrentValue(context, component);
-        // If null, do not putput anything - return.
+        // If null, do not output anything - return.
         if (null == currentValue) {
             return;
         }
@@ -83,7 +83,7 @@ public class OutputMessageRenderer extends HtmlBasicInputRenderer {
         if (parameterList.size() > 0) {
             MessageFormat fmt = new MessageFormat(currentValue, context.getViewRoot().getLocale());
             StringBuffer buf = new StringBuffer(currentValue.length() * 2);
-            fmt.format(parameterList.toArray(new Object[parameterList.size()]), buf, null);
+            fmt.format(parameterList.toArray(new Object[0]), buf, null);
             message = buf.toString();
         } else {
             message = currentValue;
@@ -121,7 +121,7 @@ public class OutputMessageRenderer extends HtmlBasicInputRenderer {
         }
 
         Object val = component.getAttributes().get("escape");
-        boolean escape = val != null && Boolean.valueOf(val.toString());
+        boolean escape = val != null && Boolean.parseBoolean(val.toString());
 
         if (escape) {
             writer.writeText(message, component, "value");

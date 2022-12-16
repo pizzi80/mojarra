@@ -94,7 +94,7 @@ public class InterfaceHandler extends TagHandlerImpl {
         String key;
         Object requiredValue;
         boolean found = false, required = false;
-        StringBuffer buf = null;
+        StringBuilder buf = null;
         String attrMessage = "", facetMessage = "";
 
         // Traverse the attributes of this component
@@ -125,7 +125,7 @@ public class InterfaceHandler extends TagHandlerImpl {
                 }
                 if (!found) {
                     if (null == buf) {
-                        buf = new StringBuffer();
+                        buf = new StringBuilder();
                         buf.append(key);
                     } else {
                         buf.append(", " + key);
@@ -156,7 +156,7 @@ public class InterfaceHandler extends TagHandlerImpl {
                     key = cur.getName();
                     if (!cc.getFacets().containsKey(key)) {
                         if (null == buf) {
-                            buf = new StringBuffer();
+                            buf = new StringBuilder();
                             buf.append(key);
                         } else {
                             buf.append(", " + key);

@@ -275,18 +275,18 @@ public final class FacesServlet implements Servlet {
 
     private enum HttpMethod {
 
-        OPTIONS("OPTIONS"), GET("GET"), HEAD("HEAD"), POST("POST"), PUT("PUT"), DELETE("DELETE"), TRACE("TRACE"), CONNECT("CONNECT");
+        OPTIONS, GET, HEAD, POST, PUT, DELETE, TRACE, CONNECT;
 
-        private String name;
+//        private final String name;
+//
+//        HttpMethod(String name) {
+//            this.name = name;
+//        }
 
-        HttpMethod(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
+//        @Override
+//        public String toString() {
+//            return name;
+//        }
 
     }
 
@@ -446,7 +446,7 @@ public final class FacesServlet implements Servlet {
 
         // Execute the request processing lifecycle for this request
         try {
-            executeLifecyle(context);
+            executeLifecycle(context);
         } finally {
             // Release the FacesContext instance for this request
             context.release();
@@ -681,7 +681,7 @@ public final class FacesServlet implements Servlet {
         return false;
     }
 
-    private void executeLifecyle(FacesContext context) throws IOException, ServletException {
+    private void executeLifecycle(FacesContext context) throws IOException, ServletException {
         try {
             ResourceHandler handler = context.getApplication().getResourceHandler();
             if (handler.isResourceRequest(context)) {

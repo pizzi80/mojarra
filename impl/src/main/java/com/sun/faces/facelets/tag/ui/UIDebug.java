@@ -27,6 +27,7 @@ import com.sun.faces.facelets.util.FastWriter;
 import com.sun.faces.renderkit.RenderKitUtils;
 import com.sun.faces.renderkit.html_basic.ScriptRenderer;
 
+import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIComponentBase;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
@@ -56,18 +57,18 @@ public final class UIDebug extends UIComponentBase {
     }
 
     @Override
-    public List getChildren() {
-        return new ArrayList() {
+    public List<UIComponent> getChildren() {
+        return new ArrayList<>() {
 
             private static final long serialVersionUID = 2156130539926052013L;
 
             @Override
-            public boolean add(Object o) {
+            public boolean add(UIComponent o) {
                 throw new IllegalStateException("<ui:debug> does not support children");
             }
 
             @Override
-            public void add(int index, Object o) {
+            public void add(int index, UIComponent o) {
                 throw new IllegalStateException("<ui:debug> does not support children");
             }
         };
@@ -80,7 +81,7 @@ public final class UIDebug extends UIComponentBase {
             pushComponentToEL(facesContext, this);
             String actionId = facesContext.getApplication().getViewHandler().getActionURL(facesContext, facesContext.getViewRoot().getViewId());
 
-            StringBuffer sb = new StringBuffer(512);
+            StringBuilder sb = new StringBuilder(512);
             sb.append("//<![CDATA[\n");
             sb.append("function faceletsDebug(URL) {");
             sb.append("day = new Date();");
@@ -89,8 +90,7 @@ public final class UIDebug extends UIComponentBase {
                     "eval(\"page\" + id + \" = window.open(URL, '\" + id + \"', 'toolbar=0,scrollbars=1,location=0,statusbar=0,menubar=0,resizable=1,width=800,height=600,left = 240,top = 212');\"); };");
             sb.append("(function() { if (typeof faceletsDebug === 'undefined') { var faceletsDebug = false; } if (!faceletsDebug) {");
             sb.append("var faceletsOrigKeyup = document.onkeyup;");
-            sb.append("document.onkeyup = function(e) { if (window.event) e = window.event; if (String.fromCharCode(e.keyCode) == '" + getHotkey()
-                    + "' & e.shiftKey & e.ctrlKey) faceletsDebug('");
+            sb.append("document.onkeyup = function(e) { if (window.event) e = window.event; if (String.fromCharCode(e.keyCode) == '").append(getHotkey()).append("' & e.shiftKey & e.ctrlKey) faceletsDebug('");
             sb.append(actionId);
             sb.append(actionId.indexOf('?') == -1 ? '?' : '&');
             sb.append(KEY);
@@ -119,10 +119,10 @@ public final class UIDebug extends UIComponentBase {
         FastWriter fw = new FastWriter();
         DevTools.debugHtml(fw, faces);
 
-        Map session = faces.getExternalContext().getSessionMap();
-        Map debugs = (Map) session.get(KEY);
+        Map<String, Object> session = faces.getExternalContext().getSessionMap();
+        Map<String,String> debugs = (Map<String,String>) session.get(KEY);
         if (debugs == null) {
-            debugs = new LinkedHashMap() {
+            debugs = new LinkedHashMap<>() {
 
                 private static final long serialVersionUID = 2541609242499547693L;
 
@@ -139,10 +139,10 @@ public final class UIDebug extends UIComponentBase {
     }
 
     private static String fetchDebugOutput(FacesContext faces, String id) {
-        Map session = faces.getExternalContext().getSessionMap();
-        Map debugs = (Map) session.get(KEY);
+        Map<String, Object> session = faces.getExternalContext().getSessionMap();
+        Map<String,String> debugs = (Map<String,String>) session.get(KEY);
         if (debugs != null) {
-            return (String) debugs.get(id);
+            return debugs.get(id);
         }
         return null;
     }
