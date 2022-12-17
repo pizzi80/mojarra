@@ -413,7 +413,7 @@ public class BehaviorHolderWrapper extends UIComponent implements ClientBehavior
     }
 
     @Override
-    protected Renderer getRenderer(FacesContext context) {
+    protected Renderer<? extends UIComponent> getRenderer(FacesContext context) {
         return null;
     }
 

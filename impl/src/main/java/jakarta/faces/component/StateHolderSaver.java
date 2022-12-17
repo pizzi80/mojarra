@@ -17,6 +17,7 @@
 package jakarta.faces.component;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 
 import jakarta.faces.context.FacesContext;
 
@@ -100,7 +101,7 @@ class StateHolderSaver implements Serializable {
 
     public Object restore(FacesContext context) throws IllegalStateException {
         Object result = null;
-        Class toRestoreClass;
+        Class<?> toRestoreClass;
 
         // if the Object to save implemented Serializable but not
         // StateHolder
@@ -124,11 +125,11 @@ class StateHolderSaver implements Serializable {
 
         if (null != toRestoreClass) {
             try {
-                result = toRestoreClass.newInstance();
-            } catch (InstantiationException e) {
+                result = toRestoreClass.getDeclaredConstructor().newInstance();
+            } catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
                 throw new IllegalStateException(e);
-            } catch (IllegalAccessException a) {
-                throw new IllegalStateException(a);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
             }
         }
 
@@ -141,7 +142,7 @@ class StateHolderSaver implements Serializable {
         return result;
     }
 
-    private static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
+    private static Class<?> loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         if (loader == null) {
             loader = fallbackClass.getClass().getClassLoader();
