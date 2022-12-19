@@ -1070,7 +1070,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         // PENDING this implementation is terribly wasteful.
         // Must find a better way.
         FaceletContext faceletContext = (FaceletContext) context.getAttributes().get(FACELET_CONTEXT_KEY);
-        DefaultFaceletFactory factory = (DefaultFaceletFactory) RequestStateManager.get(context, FACELET_FACTORY);
+        DefaultFaceletFactory factory = RequestStateManager.get(context, FACELET_FACTORY);
         VariableMapper orig = faceletContext.getVariableMapper();
 
         // Create tmp and facetComponent

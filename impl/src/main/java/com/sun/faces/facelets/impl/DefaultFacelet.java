@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import com.sun.faces.facelets.tag.faces.ComponentSupport;
 import com.sun.faces.util.FacesLogger;
@@ -144,10 +145,10 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
             // finally remove any children marked as deleted
             int sz = c.getChildCount();
             if (sz > 0) {
-                List cl = c.getChildren();
+                List<UIComponent> cl = c.getChildren();
                 ApplyToken token;
                 while (--sz >= 0) {
-                    UIComponent cc = (UIComponent) cl.get(sz);
+                    UIComponent cc = cl.get(sz);
                     if (!cc.isTransient()) {
                         token = (ApplyToken) cc.getAttributes().get(APPLIED_KEY);
                         if (token != null && token.time < createTime && token.alias.equals(alias)) {
@@ -164,13 +165,11 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
 
             // remove any facets marked as deleted
             if (c.getFacets().size() > 0) {
-                Collection col = c.getFacets().values();
-                UIComponent fc;
-                ApplyToken token;
-                for (Iterator itr = col.iterator(); itr.hasNext();) {
-                    fc = (UIComponent) itr.next();
+                Iterator<UIComponent> itr = c.getFacets().values().iterator();
+                while ( itr.hasNext() ) {
+                    UIComponent fc = itr.next();
                     if (!fc.isTransient()) {
-                        token = (ApplyToken) fc.getAttributes().get(APPLIED_KEY);
+                        ApplyToken token = (ApplyToken) fc.getAttributes().get(APPLIED_KEY);
                         if (token != null && token.time < createTime && token.alias.equals(alias)) {
                             if (log.isLoggable(Level.INFO)) {
                                 DateFormat df = SimpleDateFormat.getTimeInstance();
@@ -187,15 +186,15 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
 
     private void markApplied(UIComponent parent) {
         if (refreshPeriod > 0) {
-            Iterator itr = parent.getFacetsAndChildren();
-            ApplyToken token = new ApplyToken(alias, System.currentTimeMillis() + refreshPeriod);
+            final ApplyToken token = new ApplyToken(alias, System.currentTimeMillis() + refreshPeriod);
+            Iterator<UIComponent> itr = parent.getFacetsAndChildren();
             while (itr.hasNext()) {
-                UIComponent c = (UIComponent) itr.next();
-                if (!c.isTransient()) {
-                    Map<String, Object> attr = c.getAttributes();
-                    if (!attr.containsKey(APPLIED_KEY)) {
-                        attr.put(APPLIED_KEY, token);
-                    }
+                UIComponent c = itr.next();
+                if ( !c.isTransient() ) {
+                    //Map<String, Object> attr = c.getAttributes();
+                    //if ( !attr.containsKey(APPLIED_KEY) ) {
+                        c.getAttributes().putIfAbsent(APPLIED_KEY, token);
+                    //}
                 }
             }
         }
