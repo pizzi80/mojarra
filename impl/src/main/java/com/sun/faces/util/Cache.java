@@ -18,7 +18,7 @@ package com.sun.faces.util;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 /**
@@ -45,16 +45,6 @@ public class Cache<K, V> {
 
     /**
      * Constructs this cache using the specified <code>Factory</code>.
-     *
-     * @param factory
-     */
-    public Cache(Factory<K, V> factory) {
-        this.factory = factory;
-        this.cache = new ConcurrentHashMap<>();
-    }
-
-    /**
-     * Constructs this cache using the specified <code>Factory</code>.
      * and the specified Synchronized Map implementation.
      *
      * @param factory
@@ -63,6 +53,15 @@ public class Cache<K, V> {
     protected Cache(Factory<K, V> factory, Map<K,V> cache) {
         this.factory = factory;
         this.cache = cache;
+    }
+
+    /**
+     * Constructs this cache using the specified <code>Factory</code>.
+     *
+     * @param factory
+     */
+    public Cache(Factory<K, V> factory) {
+        this(factory, new ConcurrentHashMap<>());
     }
 
     // ------------------------------------------------------ Public Methods

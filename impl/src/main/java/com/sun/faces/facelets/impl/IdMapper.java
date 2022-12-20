@@ -24,13 +24,13 @@ import com.sun.faces.util.Util;
 import jakarta.faces.context.FacesContext;
 
 /**
- * Used to provide aliases to Facelets generated unique IDs with tend to be womewhat long.
+ * Used to provide aliases to Facelets generated unique IDs with tend to be somewhat long.
  */
 public class IdMapper {
 
     private static final String KEY = IdMapper.class.getName();
 
-    private Cache<String, String> idCache = new Cache<>(new IdGen());
+    private final Cache<String, String> idCache = new Cache<>(new IdGen());
 
     // ------------------------------------------------------------ Constructors
 
@@ -67,7 +67,7 @@ public class IdMapper {
 
     private static final class IdGen implements Cache.Factory<String, String> {
 
-        private AtomicInteger counter = new AtomicInteger(0);
+        private final AtomicInteger counter = new AtomicInteger(0);
 
         // ------------------------------------------ Methods from Cache.Factory
 
