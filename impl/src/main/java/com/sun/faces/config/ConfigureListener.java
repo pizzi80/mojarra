@@ -687,7 +687,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
     private class WebConfigResourceMonitor implements Runnable {
 
         private List<Monitor> monitors;
-        private ServletContext servletContext;
+        private final ServletContext servletContext;
 
         // -------------------------------------------------------- Constructors
 
@@ -743,7 +743,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
         private class Monitor {
 
-            private URI uri;
+            private final URI uri;
             private long timestamp = -1;
 
             // ---------------------------------------------------- Constructors
