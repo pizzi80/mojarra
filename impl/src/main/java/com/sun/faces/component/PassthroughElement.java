@@ -357,8 +357,8 @@ public class PassthroughElement extends jakarta.faces.component.UIPanel implemen
         getStateHelper().put(PropertyKeys.styleClass, styleClass);
     }
 
-    private static final Collection<String> EVENT_NAMES = Collections.unmodifiableCollection(
-            Arrays.asList("click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup"));
+    private static final List<String> EVENT_NAMES = List.of(
+            "click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
 
     @Override
     public Collection<String> getEventNames() {

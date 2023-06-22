@@ -39,7 +39,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
     // Supported by maps if overridden
     @Override
-    public void putAll(Map<? extends String, ? extends V> map) {
+    public void putAll(Map t) {
         throw new UnsupportedOperationException();
     }
 
@@ -106,7 +106,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
     // ----------------------------------------------------------- Inner Classes
 
-    abstract class BaseSet<E> extends AbstractSet<E> {
+    abstract static class BaseSet<E> extends AbstractSet<E> {
 
         @Override
         public int size() {
@@ -128,7 +128,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
         @Override
         public boolean remove(Object o) {
-            return o instanceof Map.Entry && removeKey(((Map.Entry<?, ?>) o).getKey());
+            return o instanceof Map.Entry && removeKey(((Map.Entry) o).getKey());
         }
 
     }
@@ -305,7 +305,8 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
             Object inputKey = input.getKey();
             Object inputValue = input.getValue();
 
-            return Objects.equals(inputKey, key) && Objects.equals(inputValue, value);
+            return Objects.equals(inputKey, key) &&
+                   Objects.equals(inputValue, value);
         }
     }
 

@@ -17,7 +17,10 @@
 package com.sun.faces.context;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,17 +63,20 @@ public class SessionMap extends BaseContextMap<Object> {
 
     // Supported by maps if overridden
     @Override
-    public void putAll(Map<? extends String, ?> map) {
+    public void putAll(Map t) {
         HttpSession session = getSession(true);
-        map.forEach( (key, value) -> {
-            if (ProjectStage.Development.equals(stage) && !(value instanceof Serializable)) {
+        for (Iterator i = t.entrySet().iterator(); i.hasNext();) {
+            Map.Entry entry = (Map.Entry) i.next();
+            Object v = entry.getValue();
+            Object k = entry.getKey();
+            if (ProjectStage.Development.equals(stage) && !(v instanceof Serializable)) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[]{key, value.getClass().getName()});
+                    LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[] { k, v.getClass().getName() });
                 }
             }
             // noinspection NonSerializableObjectBoundToHttpSession
-            session.setAttribute(key, value);
-        });
+            session.setAttribute((String) k, v);
+        }
     }
 
     @Override

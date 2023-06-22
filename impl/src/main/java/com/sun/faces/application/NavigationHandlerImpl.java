@@ -880,7 +880,8 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                             parameters = new LinkedHashMap<>(queryElements.length / 2, 1.0f);
                         }
 
-                        parameters.computeIfAbsent(elements[0], k -> new ArrayList<>(2)).add(rightHandSide);
+                        parameters.computeIfAbsent(elements[0], k -> new ArrayList<>(2))
+                                  .add(rightHandSide);
                     }
                 }
             }
@@ -1269,7 +1270,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
         Flow currentFlow = flowHandler.getCurrentFlow(context);
         if (null != currentFlow) {
             FlowNode node = currentFlow.getNode(outcome);
-            if (null != node && node instanceof ViewNode) {
+            if (node instanceof ViewNode) {
                 result = synthesizeCaseStruct(context, currentFlow, fromAction, outcome);
             }
         }
@@ -1409,8 +1410,8 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
     private static final class NavigationMap extends AbstractMap<String, Set<NavigationCase>> {
 
-        private HashMap<String, Set<NavigationCase>> mapToLookForNavCase = new HashMap<>();
-        private TreeSet<String> wildcardMatchList = new TreeSet<>((fromViewId1, fromViewId2) -> -fromViewId1.compareTo(fromViewId2));
+        private final HashMap<String, Set<NavigationCase>> mapToLookForNavCase = new HashMap<>();
+        private final TreeSet<String> wildcardMatchList = new TreeSet<>((fromViewId1, fromViewId2) -> -fromViewId1.compareTo(fromViewId2));
 
         // ---------------------------------------------------- Methods from Map
 
@@ -1463,11 +1464,11 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
         @Override
         public Set<String> keySet() {
-            return new AbstractSet<String>() {
+            return new AbstractSet<>() {
 
                 @Override
                 public Iterator<String> iterator() {
-                    return new Iterator<String>() {
+                    return new Iterator<>() {
 
                         Iterator<Map.Entry<String, Set<NavigationCase>>> i = entrySet().iterator();
 
@@ -1497,11 +1498,11 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
         @Override
         public Collection<Set<NavigationCase>> values() {
-            return new AbstractCollection<Set<NavigationCase>>() {
+            return new AbstractCollection<>() {
 
                 @Override
                 public Iterator<Set<NavigationCase>> iterator() {
-                    return new Iterator<Set<NavigationCase>>() {
+                    return new Iterator<>() {
 
                         Iterator<Map.Entry<String, Set<NavigationCase>>> i = entrySet().iterator();
 
@@ -1531,12 +1532,12 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
         @Override
         public Set<Entry<String, Set<NavigationCase>>> entrySet() {
-            return new AbstractSet<Entry<String, Set<NavigationCase>>>() {
+            return new AbstractSet<>() {
 
                 @Override
                 public Iterator<Entry<String, Set<NavigationCase>>> iterator() {
 
-                    return new Iterator<Entry<String, Set<NavigationCase>>>() {
+                    return new Iterator<>() {
 
                         Iterator<Entry<String, Set<NavigationCase>>> i = mapToLookForNavCase.entrySet().iterator();
 

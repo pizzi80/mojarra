@@ -34,7 +34,7 @@ import jakarta.faces.context.FacesContext;
 public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
 
     protected void addHint(SearchExpressionContext searchExpressionContext, SearchExpressionHint hint) {
-        // It is a Set already
+        // It is a Set already, it will add only if just not contains the hint
         searchExpressionContext.getExpressionHints().add(hint);
     }
 
