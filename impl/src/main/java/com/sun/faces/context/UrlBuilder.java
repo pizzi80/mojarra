@@ -16,14 +16,17 @@
 
 package com.sun.faces.context;
 
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.util.*;
+
 import com.sun.faces.util.Util;
+
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.lifecycle.ClientWindow;
 import jakarta.faces.render.ResponseStateManager;
 
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.util.*;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * <p>
@@ -43,9 +46,9 @@ class UrlBuilder {
     public static final String PARAMETER_PAIR_SEPARATOR = "&";
     public static final String PARAMETER_NAME_VALUE_SEPARATOR = "=";
     public static final String FRAGMENT_SEPARATOR = "#";
-    public static final String DEFAULT_ENCODING = "UTF-8";
+    public static final String DEFAULT_ENCODING = UTF_8.name();
 
-    private static final List<String> NULL_LIST = Collections.singletonList(null);
+    private static final List<String> NULL_LIST = Collections.singletonList((String) null);
 
     private final StringBuilder url;
     private String path;
@@ -62,7 +65,7 @@ class UrlBuilder {
         }
         this.url = new StringBuilder(url.length() * 2);
         extractSegments(url);
-        this.encoding = Charset.forName(encoding);
+        this.encoding = encoding != null ? Charset.forName(encoding) : null;
         // PERF TL lookup per-instance
     }
 
@@ -87,7 +90,8 @@ class UrlBuilder {
                 if (entry.getKey() == null || entry.getKey().trim().length() == 0) {
                     throw new IllegalArgumentException("Parameter name cannot be empty");
                 }
-                List<String> retValues = entry.getValue();
+                List<String> values = entry.getValue();
+                List<String> retValues = values;
                 addValuesToParameter(entry.getKey().trim(), retValues, true);
             }
         }
@@ -261,7 +265,8 @@ class UrlBuilder {
     protected void addValuesToParameter(String name, List<String> valuesRef, boolean replace) {
         List<String> values = new ArrayList<>();
         if (valuesRef != null) {
-            for (String string : valuesRef) {
+            for (Iterator<String> it = valuesRef.iterator(); it.hasNext();) {
+                String string = it.next();
                 if (encoding != null) {
                     values.add(URLEncoder.encode(string, encoding));
                 } else {
@@ -278,7 +283,8 @@ class UrlBuilder {
         if (replace) {
             parameters.put(name, values);
         } else {
-            parameters.computeIfAbsent(name, k -> new ArrayList<>(1)).addAll(values);
+            parameters.computeIfAbsent(name, k -> new ArrayList<>(1))
+                      .addAll(values);
         }
     }
 
