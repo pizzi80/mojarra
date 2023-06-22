@@ -87,12 +87,12 @@ public class ELText {
         }
 
         @Override
-        public Class<?> getType(ELContext context) {
+        public Class getType(ELContext context) {
             return null;
         }
 
         @Override
-        public Class<?> getExpectedType() {
+        public Class getExpectedType() {
             return null;
         }
 

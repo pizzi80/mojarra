@@ -51,7 +51,7 @@ public class ListenerTestImpl implements DataModelListener {
         if (value == null) {
             trace = new StringBuffer();
         } else {
-            trace.append("/");
+            trace.append('/');
             trace.append(value);
         }
     }

@@ -124,7 +124,7 @@ public class InterfaceHandler extends TagHandlerImpl {
                         buf = new StringBuilder();
                         buf.append(key);
                     } else {
-                        buf.append(", " + key);
+                        buf.append(", ").append(key);
                     }
                 }
             }
@@ -155,7 +155,7 @@ public class InterfaceHandler extends TagHandlerImpl {
                             buf = new StringBuilder();
                             buf.append(key);
                         } else {
-                            buf.append(", " + key);
+                            buf.append(", ").append(key);
                         }
                     }
                 }

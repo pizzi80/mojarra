@@ -63,7 +63,7 @@ public final class DefaultFunctionMapper extends FunctionMapper implements Exter
         }
         Function f = new Function(prefix, localName, m);
         synchronized (this) {
-            functions.put(prefix + ":" + localName, f);
+            functions.put(prefix + ':' + localName, f);
         }
     }
 
@@ -84,7 +84,7 @@ public final class DefaultFunctionMapper extends FunctionMapper implements Exter
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        functions = (Map<String,Function>) in.readObject();
+        functions = (Map) in.readObject();
     }
 
     @Override

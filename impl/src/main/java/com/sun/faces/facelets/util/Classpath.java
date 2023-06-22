@@ -71,9 +71,9 @@ public final class Classpath {
         URL url;
         URLConnection conn;
         JarFile jarFile;
-        for (Enumeration<URL> urlEnumeration : e) {
-            while (urlEnumeration.hasMoreElements()) {
-                url = urlEnumeration.nextElement();
+        for (Enumeration<URL> enumeration : e) {
+            while (enumeration.hasMoreElements()) {
+                url = enumeration.nextElement();
                 // Defensive programming. Due to issue 13045 this collection
                 // can contain URLs that have their spaces incorrectly escaped
                 // by having %20 replaced with %2520. This quick conditional
@@ -183,7 +183,7 @@ public final class Classpath {
     }
 
     /**
-     * Join tokens, exclude last if param equals true.
+     * Join tokens, exlude last if param equals true.
      *
      * @param tokens the tokens
      * @param excludeLast do we exclude last token
@@ -193,7 +193,7 @@ public final class Classpath {
     private static String join(String[] tokens, boolean excludeLast) {
         StringBuilder join = new StringBuilder();
         for (int i = 0; i < tokens.length - (excludeLast ? 1 : 0); i++) {
-            join.append(tokens[i]).append("/");
+            join.append(tokens[i]).append('/');
         }
         return join.toString();
     }
