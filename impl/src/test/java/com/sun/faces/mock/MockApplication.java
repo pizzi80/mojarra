@@ -247,18 +247,18 @@ public class MockApplication extends Application {
     }
 
     @Override
-    public <T> Converter<T> createConverter(String converterId) {
+    public Converter createConverter(String converterId) {
         String converterClass = converters.get(converterId);
         try {
-            Class<T> clazz = (Class<T>) Class.forName(converterClass);
-            return (Converter<T>) clazz.getDeclaredConstructor().newInstance();
+            Class<?> clazz = Class.forName(converterClass);
+            return ((Converter) clazz.getDeclaredConstructor().newInstance());
         } catch (Exception e) {
             throw new FacesException(e);
         }
     }
 
     @Override
-    public <T> Converter<T> createConverter(Class<T> targetClass) {
+    public Converter createConverter(Class<?> targetClass) {
         throw new UnsupportedOperationException();
     }
 
@@ -292,11 +292,11 @@ public class MockApplication extends Application {
     }
 
     @Override
-    public <T> Validator<T> createValidator(String validatorId) {
+    public Validator createValidator(String validatorId) {
         String validatorClass = validators.get(validatorId);
         try {
-            Class<T> clazz = (Class<T>) Class.forName(validatorClass);
-            return ((Validator<T>) clazz.getDeclaredConstructor().newInstance());
+            Class<?> clazz = Class.forName(validatorClass);
+            return ((Validator) clazz.getDeclaredConstructor().newInstance());
         } catch (Exception e) {
             throw new FacesException(e);
         }

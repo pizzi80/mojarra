@@ -435,9 +435,9 @@ public class InstanceFactory {
     /*
      * @see jakarta.faces.application.Application#createConverter(Class)
      */
-    public <T> Converter<T> createConverter(Class<T> targetClass) {
+    public Converter createConverter(Class<?> targetClass) {
         notNull("targetClass", targetClass);
-        Converter<T> returnVal = null;
+        Converter returnVal = null;
 
         BeanManager beanManager = getBeanManager();
         returnVal = CdiUtils.createConverter(beanManager, targetClass);

@@ -106,19 +106,19 @@ public final class CdiUtils {
      * @param forClass the for class.
      * @return the converter, or null if we could not match one.
      */
-    public static <T> Converter<T> createConverter(BeanManager beanManager, Class<T> forClass) {
-        Converter<T> managedConverter = null;
+    public static Converter<?> createConverter(BeanManager beanManager, Class<?> forClass) {
+        Converter<?> managedConverter = null;
 
         for (Class<?> forClassOrSuperclass = forClass; managedConverter == null && forClassOrSuperclass != null
                 && forClassOrSuperclass != Object.class; forClassOrSuperclass = forClassOrSuperclass.getSuperclass()) {
-            managedConverter = (Converter<T>) createConverter(beanManager, FacesConverter.Literal.of("", forClassOrSuperclass, true));
+            managedConverter = createConverter(beanManager, FacesConverter.Literal.of("", forClassOrSuperclass, true));
         }
 
         if (managedConverter != null) {
             ApplicationAssociate associate = ApplicationAssociate.getCurrentInstance();
             associate.getAnnotationManager().applyConverterAnnotations(FacesContext.getCurrentInstance(), managedConverter); // #4913
 
-            return new CdiConverter<>("", forClass, managedConverter);
+            return new CdiConverter("", forClass, managedConverter);
         }
 
         return null;
