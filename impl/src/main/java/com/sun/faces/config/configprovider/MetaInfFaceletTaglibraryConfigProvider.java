@@ -74,7 +74,7 @@ public class MetaInfFaceletTaglibraryConfigProvider implements ConfigurationReso
 
     // --------------------------------------------------------- Private Methods
 
-    private URI transformToURI(URL url) {
+    private static URI transformToURI(URL url) {
         try {
             return new URI(url.toExternalForm().replace(" ", "%20"));
         } catch (URISyntaxException ex) {
