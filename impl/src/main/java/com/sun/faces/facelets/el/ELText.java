@@ -87,12 +87,12 @@ public class ELText {
         }
 
         @Override
-        public Class<?> getType(ELContext context) {
+        public Class getType(ELContext context) {
             return null;
         }
 
         @Override
-        public Class<?> getExpectedType() {
+        public Class getExpectedType() {
             return null;
         }
 
@@ -108,21 +108,21 @@ public class ELText {
 
         @Override
         public void write(Writer out, ELContext ctx) throws ELException, IOException {
-            for (ELText elText : txt) {
-                elText.write(out, ctx);
+            for (int i = 0; i < txt.length; i++) {
+                txt[i].write(out, ctx);
             }
         }
 
         @Override
         public void writeText(ResponseWriter out, ELContext ctx) throws ELException, IOException {
-            for (ELText elText : txt) {
-                elText.writeText(out, ctx);
+            for (int i = 0; i < txt.length; i++) {
+                txt[i].writeText(out, ctx);
             }
         }
 
         @Override
         public String toString(ELContext ctx) {
-            StringBuilder sb = new StringBuilder( 8 * txt.length);
+            StringBuilder sb = new StringBuilder();
             for (ELText elText : txt) {
                 sb.append(elText.toString(ctx));
             }
@@ -136,7 +136,7 @@ public class ELText {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder( 8 * txt.length);
+            StringBuilder sb = new StringBuilder();
             for (ELText elText : txt) {
                 sb.append(elText.toString());
             }
@@ -387,7 +387,7 @@ public class ELText {
         } else if (text.size() == 1) {
             return text.get(0);
         } else {
-            ELText[] ta = text.toArray(new ELText[0]);
+            ELText[] ta = text.toArray(new ELText[text.size()]);
             return new ELTextComposite(ta);
         }
     }
