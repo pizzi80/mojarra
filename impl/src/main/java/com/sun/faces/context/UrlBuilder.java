@@ -16,14 +16,20 @@
 
 package com.sun.faces.context;
 
-import com.sun.faces.util.Util;
-import jakarta.faces.context.FacesContext;
-import jakarta.faces.lifecycle.ClientWindow;
-import jakarta.faces.render.ResponseStateManager;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.sun.faces.util.Util;
+
+import jakarta.faces.context.FacesContext;
+import jakarta.faces.lifecycle.ClientWindow;
+import jakarta.faces.render.ResponseStateManager;
 
 /**
  * <p>
@@ -40,12 +46,12 @@ import java.util.*;
  */
 class UrlBuilder {
     public static final String QUERY_STRING_SEPARATOR = "?";
+    public static final char QUERY_STRING_SEPARATOR_CHAR = QUERY_STRING_SEPARATOR.charAt(0);
     public static final String PARAMETER_PAIR_SEPARATOR = "&";
     public static final String PARAMETER_NAME_VALUE_SEPARATOR = "=";
     public static final String FRAGMENT_SEPARATOR = "#";
-    public static final String DEFAULT_ENCODING = "UTF-8";
-
-    private static final List<String> NULL_LIST = Collections.singletonList(null);
+    public static final char FRAGMENT_SEPARATOR_CHAR = FRAGMENT_SEPARATOR.charAt(0);
+    public static final String DEFAULT_ENCODING = UTF_8.name();
 
     private final StringBuilder url;
     private String path;
@@ -62,7 +68,7 @@ class UrlBuilder {
         }
         this.url = new StringBuilder(url.length() * 2);
         extractSegments(url);
-        this.encoding = Charset.forName(encoding);
+        this.encoding = encoding != null ? Charset.forName(encoding) : null;
         // PERF TL lookup per-instance
     }
 
@@ -73,7 +79,7 @@ class UrlBuilder {
     // ---------------------------------------------------------- Public Methods
 
     public UrlBuilder addParameters(String name, List<String> values) {
-        if (name == null || name.trim().length() == 0) {
+        if ( name == null || name.isBlank() ) {
             throw new IllegalArgumentException("Parameter name cannot be empty");
         }
         addValuesToParameter(name.trim(), values, true);
@@ -87,8 +93,8 @@ class UrlBuilder {
                 if (entry.getKey() == null || entry.getKey().trim().length() == 0) {
                     throw new IllegalArgumentException("Parameter name cannot be empty");
                 }
-                List<String> retValues = entry.getValue();
-                addValuesToParameter(entry.getKey().trim(), retValues, true);
+                List<String> values = entry.getValue();
+                addValuesToParameter(entry.getKey().trim(), values, true);
             }
         }
 
@@ -180,7 +186,7 @@ class UrlBuilder {
                 nextSeparatorChar = QUERY_STRING_SEPARATOR;
             } else {
                 nextSeparatorChar = PARAMETER_PAIR_SEPARATOR;
-                url.append(QUERY_STRING_SEPARATOR).append(queryString);
+                url.append(QUERY_STRING_SEPARATOR_CHAR).append(queryString);
             }
 
             for (Map.Entry<String, List<String>> param : parameters.entrySet()) {
@@ -233,14 +239,14 @@ class UrlBuilder {
     }
 
     protected void extractSegments(String url) {
-        int fragmentIndex = url.indexOf(FRAGMENT_SEPARATOR);
+        int fragmentIndex = url.indexOf(FRAGMENT_SEPARATOR_CHAR);
         if (fragmentIndex != -1) {
             fragment = url.substring(fragmentIndex + 1);
             cleanFragment();
             url = url.substring(0, fragmentIndex);
         }
 
-        int queryStringIndex = url.indexOf(QUERY_STRING_SEPARATOR);
+        int queryStringIndex = url.indexOf(QUERY_STRING_SEPARATOR_CHAR);
         if (queryStringIndex != -1) {
             queryString = url.substring(queryStringIndex + 1);
             cleanQueryString();
@@ -262,13 +268,10 @@ class UrlBuilder {
         List<String> values = new ArrayList<>();
         if (valuesRef != null) {
             for (String string : valuesRef) {
-                if (encoding != null) {
-                    values.add(URLEncoder.encode(string, encoding));
-                } else {
-                    values.add(string);
+                if (string != null) {
+                    values.add(encoding != null ? URLEncoder.encode(string, encoding) : string);
                 }
             }
-            values.removeAll(NULL_LIST);
         }
 
         if (parameters == null) {
@@ -278,7 +281,11 @@ class UrlBuilder {
         if (replace) {
             parameters.put(name, values);
         } else {
-            parameters.computeIfAbsent(name, k -> new ArrayList<>(1)).addAll(values);
+            List<String> oldValues = parameters.get(name);
+            // add if exists
+            if ( oldValues != null ) oldValues.addAll(values);
+            // put old+new or put only new values
+            parameters.put( name , oldValues != null ? oldValues : values );
         }
     }
 
@@ -286,32 +293,27 @@ class UrlBuilder {
 
     private void cleanFragment() {
         if (fragment != null) {
-            String f = fragment;
-            f = f.trim();
-            if (f.startsWith(FRAGMENT_SEPARATOR)) {
+            // trim
+            String f = fragment.trim();
+            // remove '#'
+            if ( f.charAt(0) == FRAGMENT_SEPARATOR_CHAR ) {
                 f = f.substring(1);
             }
-
-            if (f.length() == 0) {
-                f = null;
-            }
-
-            fragment = f;
+            // null if empty
+            fragment = f.isEmpty() ? null : f;
         }
     }
 
     private void cleanQueryString() {
         if (queryString != null) {
-            String q = queryString;
-            q = q.trim();
-            if (q.startsWith(QUERY_STRING_SEPARATOR)) {
+            // trim
+            String q = queryString.trim();
+            // remove '?'
+            if ( q.charAt(0) == QUERY_STRING_SEPARATOR_CHAR ) {
                 q = q.substring(1);
             }
-
-            if (q.length() == 0) {
-                q = null;
-            }
-            queryString = q;
+            // null if empty
+            queryString = q.isEmpty() ? null : q;
         }
     }
 
