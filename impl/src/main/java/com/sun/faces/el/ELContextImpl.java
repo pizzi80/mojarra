@@ -66,7 +66,7 @@ public class ELContextImpl extends ELContext {
             putContext(ExpressionFactory.class, expressionFactory);
         }
 
-        if ( !(facesContext instanceof InitFacesContext) ) {
+        if (!(facesContext instanceof InitFacesContext)) {
             UIViewRoot root = facesContext.getViewRoot();
             if (root != null) {
                 setLocale(root.getLocale());

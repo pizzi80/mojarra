@@ -237,7 +237,7 @@ public class MessageFactory {
         return afactory.getApplication();
     }
 
-    protected static ClassLoader getCurrentLoader(Class fallbackClass) {
+    protected static ClassLoader getCurrentLoader(Class<?> fallbackClass) {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         if (loader == null) {
             loader = fallbackClass.getClassLoader();

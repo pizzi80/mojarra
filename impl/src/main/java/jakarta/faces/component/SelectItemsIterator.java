@@ -275,11 +275,11 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
     private static final class MapIterator implements Iterator<SelectItem> {
 
         private final SelectItem item = new SelectItem();
-        private final Iterator<? extends Map.Entry<?, ?>> iterator;
+        private final Iterator iterator;
 
         // -------------------------------------------------------- Constructors
 
-        private MapIterator(Map<?,?> map) {
+        private MapIterator(Map map) {
 
             iterator = map.entrySet().iterator();
 
@@ -297,7 +297,7 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
         @Override
         public SelectItem next() {
 
-            Map.Entry<?,?> entry = iterator.next();
+            Map.Entry entry = (Map.Entry) iterator.next();
             Object key = entry.getKey();
             Object value = entry.getValue();
             item.setLabel(key != null ? key.toString() : value.toString());
@@ -448,9 +448,9 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
                     setValue(itemValueResult != null ? itemValueResult : value);
                     setLabel(itemLabelResult != null ? itemLabelResult.toString() : value.toString());
                     setDescription(itemDescriptionResult != null ? itemDescriptionResult.toString() : null);
-                    setEscape(itemEscapedResult == null || Boolean.parseBoolean(itemEscapedResult.toString()));
-                    setDisabled(itemDisabledResult != null && Boolean.parseBoolean(itemDisabledResult.toString()));
-                    setNoSelectionOption(noSelectionOptionResult != null && Boolean.parseBoolean(noSelectionOptionResult.toString()));
+                    setEscape(itemEscapedResult != null ? Boolean.valueOf(itemEscapedResult.toString()) : true);
+                    setDisabled(itemDisabledResult != null ? Boolean.valueOf(itemDisabledResult.toString()) : false);
+                    setNoSelectionOption(noSelectionOptionResult != null ? Boolean.valueOf(noSelectionOptionResult.toString()) : false);
                 } finally {
                     if (var != null) {
                         if (oldVarValue != null) {
@@ -538,7 +538,7 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
     } // END ArrayIterator
 
     /**
-     * Handles Collections of <code>SelectItem</code>s, generic Objects, or combinations of both.
+     * Handles Collections of <code>SelectItem</code>s, generic Objects, or combintations of both.
      *
      * A single <code>GenericObjectSelectItem</code> will be leverage for any non-<code>SelectItem</code> objects
      * encountered.

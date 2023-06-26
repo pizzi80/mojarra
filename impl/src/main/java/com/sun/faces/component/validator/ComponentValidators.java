@@ -16,7 +16,12 @@
 
 package com.sun.faces.component.validator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.sun.faces.facelets.tag.faces.ComponentSupport;
 import com.sun.faces.util.RequestStateManager;
@@ -132,8 +137,8 @@ public class ComponentValidators {
         Map<String, String> defaultValidatorInfo = application.getDefaultValidatorInfo();
         Set<String> keySet = defaultValidatorInfo.keySet();
 
-        // the same order of keySet ... defaultValidatorInfo is a LinkedHashMap ...
-        Collection<String> validatorIds = new LinkedHashSet<>(keySet);
+        List<String> validatorIds = new ArrayList<>(keySet.size());
+        validatorIds.addAll(keySet);
 
         Set<String> disabledIds = (Set<String>) RequestStateManager.remove(ctx, RequestStateManager.DISABLED_VALIDATORS);
         int count = validatorStack.size();
@@ -142,7 +147,9 @@ public class ComponentValidators {
             if (!info.isEnabled() || disabledIds != null && disabledIds.contains(info.getValidatorId())) {
                 validatorIds.remove(info.getValidatorId());
             } else {
-                validatorIds.add(info.getValidatorId());
+                if (!validatorIds.contains(info.getValidatorId())) {
+                    validatorIds.add(info.getValidatorId());
+                }
             }
         }
 
@@ -211,7 +218,7 @@ public class ComponentValidators {
         }
 
         // we now have the complete List of Validator IDs to add to the
-        // target EditableValueHolder
+        // target EditablValueHolder
         for (String id : validatorIds) {
             Validator<?> v = application.createValidator(id);
             // work backwards up the stack of ValidatorInfo to find the
@@ -267,7 +274,7 @@ public class ComponentValidators {
 
         }
 
-        public void applyAttributes(Validator<?> v) {
+        public void applyAttributes(Validator v) {
 
             owner.setAttributes(ctx, v);
 

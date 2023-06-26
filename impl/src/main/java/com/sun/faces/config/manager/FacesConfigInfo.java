@@ -141,7 +141,7 @@ public class FacesConfigInfo {
 
         if (isVersionGreaterOrEqual(2.0)) {
             String metadataComplete = document.getDocumentElement().getAttributeNS(document.getNamespaceURI(), "metadata-complete");
-            return metadataComplete != null && Boolean.parseBoolean(metadataComplete);
+            return Boolean.parseBoolean(metadataComplete);
         }
 
         // not a 2.0 application, so annotation processing will not occur

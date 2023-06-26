@@ -89,7 +89,7 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
 
         notNull("context", context);
 
-        if (base != null && base instanceof UIComponent && UIComponent.isCompositeComponent((UIComponent) base) && property != null) {
+        if (base instanceof UIComponent && UIComponent.isCompositeComponent((UIComponent) base) && property != null) {
 
             String propertyName = property.toString();
             if (COMPOSITE_COMPONENT_ATTRIBUTES_NAME.equals(propertyName)) {
@@ -271,11 +271,11 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
      */
     private static final class ExpressionEvalMap implements Map<String, Object>, CompositeComponentExpressionHolder {
 
-        private Map<String, Object> attributesMap;
+        private final Map<String, Object> attributesMap;
         private PropertyDescriptor[] declaredAttributes;
         private Map<Object, Object> declaredDefaultValues;
         private FacesContext ctx;
-        private UIComponent cc;
+        private final UIComponent cc;
 
         // -------------------------------------------------------- Constructors
 
@@ -296,8 +296,8 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
 
         @Override
         public ValueExpression getExpression(String name) {
-            return cc.getValueExpression(name);
-//            return ve instanceof ValueExpression ? (ValueExpression) ve : null;
+            Object ve = cc.getValueExpression(name);
+            return ve instanceof ValueExpression ? (ValueExpression) ve : null;
         }
 
         // ---------------------------------------------------- Methods from Map
@@ -334,6 +334,9 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
                 if (v != null) {
                     return ((ValueExpression) v).getValue(ctx.getELContext());
                 }
+            }
+            if (v instanceof MethodExpression) {
+                return v;
             }
             return v;
         }
