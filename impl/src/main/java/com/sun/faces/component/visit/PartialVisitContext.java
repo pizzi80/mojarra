@@ -230,7 +230,7 @@ public class PartialVisitContext extends VisitContext {
         // Initialize ids collection
         ids = new HashSet<>();
 
-        // Intialize subtreeClientIds collection
+        // Initialize subtreeClientIds collection
         subtreeClientIds = new HashMap<>();
 
         // Initialize the clientIds collection. Note that we proxy
@@ -265,8 +265,8 @@ public class PartialVisitContext extends VisitContext {
         return clientIds.contains(clientId) ? clientId : null;
     }
 
-    // Converts an client id into a plain old id by ripping
-    // out the trailing id segmetn.
+    // Converts a client id into a plain old id by ripping
+    // out the trailing id segment.
     private String getIdFromClientId(String clientId) {
         FacesContext facesContext = getFacesContext();
         char separator = UINamingContainer.getSeparatorChar(facesContext);

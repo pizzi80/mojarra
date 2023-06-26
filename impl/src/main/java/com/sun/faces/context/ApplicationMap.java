@@ -52,8 +52,9 @@ public class ApplicationMap extends BaseContextMap<Object> {
 
     // Supported by maps if overridden
     @Override
-    public void putAll(Map<? extends String, ?> map) {
-        map.forEach(servletContext::setAttribute);
+    public void putAll(Map map) {
+        Util.notNull("map", map);
+        map.forEach( (key, value) -> servletContext.setAttribute((String) key, value));
     }
 
     @Override
@@ -94,8 +95,8 @@ public class ApplicationMap extends BaseContextMap<Object> {
     @Override
     public int hashCode() {
         int hashCode = 7 * servletContext.hashCode();
-        for (Map.Entry<String, Object> stringObjectEntry : entrySet()) {
-            hashCode += stringObjectEntry.hashCode();
+        for (Map.Entry<String,Object> entry : entrySet()) {
+            hashCode += entry.hashCode();
         }
         return hashCode;
     }

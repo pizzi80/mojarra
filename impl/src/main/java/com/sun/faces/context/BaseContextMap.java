@@ -16,7 +16,15 @@
 
 package com.sun.faces.context;
 
-import java.util.*;
+import java.util.AbstractCollection;
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * <p>
@@ -39,7 +47,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
     // Supported by maps if overridden
     @Override
-    public void putAll(Map<? extends String, ? extends V> map) {
+    public void putAll(Map t) {
         throw new UnsupportedOperationException();
     }
 
@@ -88,8 +96,8 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
             return false;
         }
         if (containsValue(value)) {
-            for (Iterator<Map.Entry<String, V>> i = entrySet().iterator(); i.hasNext();) {
-                Map.Entry<String, V> e = i.next();
+            for (Iterator i = entrySet().iterator(); i.hasNext();) {
+                Map.Entry e = (Map.Entry) i.next();
                 if (value.equals(e.getValue())) {
                     valueRemoved = remove(e.getKey()) != null;
                 }
@@ -106,7 +114,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
     // ----------------------------------------------------------- Inner Classes
 
-    abstract class BaseSet<E> extends AbstractSet<E> {
+    abstract static class BaseSet<E> extends AbstractSet<E> {
 
         @Override
         public int size() {
@@ -128,7 +136,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
         @Override
         public boolean remove(Object o) {
-            return o instanceof Map.Entry && removeKey(((Map.Entry<?, ?>) o).getKey());
+            return o instanceof Map.Entry && removeKey(((Map.Entry) o).getKey());
         }
 
     }
@@ -301,11 +309,12 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
                 return false;
             }
 
-            Map.Entry input = (Map.Entry) obj;
-            Object inputKey = input.getKey();
-            Object inputValue = input.getValue();
+            Map.Entry<String,V> input = (Map.Entry<String,V>) obj;
+            Object key = input.getKey();
+            Object value = input.getValue();
 
-            return Objects.equals(inputKey, key) && Objects.equals(inputValue, value);
+            return Objects.equals(key, this.key) &&
+                   Objects.equals(value, this.value);
         }
     }
 

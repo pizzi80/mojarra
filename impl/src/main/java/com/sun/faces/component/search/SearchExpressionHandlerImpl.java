@@ -34,7 +34,7 @@ import jakarta.faces.context.FacesContext;
 public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
 
     protected void addHint(SearchExpressionContext searchExpressionContext, SearchExpressionHint hint) {
-        // It is a Set already
+        // It is a Set already, it will add only if just not contains the hint
         searchExpressionContext.getExpressionHints().add(hint);
     }
 
@@ -338,7 +338,6 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
                 for (char separator : separators) {
                     if (c == separator) {
                         isSeparator = true;
-                        break;
                     }
                 }
 
@@ -361,7 +360,7 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
         // lets not forget about part after the separator
         tokens.add(buffer.toString());
 
-        return tokens.toArray(new String[0]);
+        return tokens.toArray(new String[tokens.size()]);
     }
 
     @Override
