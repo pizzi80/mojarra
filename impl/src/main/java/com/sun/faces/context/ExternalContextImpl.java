@@ -31,8 +31,6 @@ import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +44,7 @@ import com.sun.faces.RIConstants;
 import com.sun.faces.context.flash.ELFlash;
 import com.sun.faces.renderkit.html_basic.ScriptRenderer;
 import com.sun.faces.renderkit.html_basic.StylesheetRenderer;
+import com.sun.faces.util.CollectionsUtils;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.MessageUtils;
 import com.sun.faces.util.TypedCollections;
@@ -81,9 +80,9 @@ public class ExternalContextImpl extends ExternalContext {
 
     private static final Logger LOGGER = FacesLogger.CONTEXT.getLogger();
 
-    private ServletContext servletContext = null;
-    private ServletRequest request = null;
-    private ServletResponse response = null;
+    private ServletContext servletContext;
+    private ServletRequest request;
+    private ServletResponse response;
     private ClientWindow clientWindow = null;
 
     private Map<String, Object> applicationMap = null;
@@ -95,7 +94,7 @@ public class ExternalContextImpl extends ExternalContext {
     private Map<String, String[]> requestHeaderValuesMap = null;
     private Map<String, Object> cookieMap = null;
     private Map<String, String> initParameterMap = null;
-    private Map<String, String> fallbackContentTypeMap = null;
+
     private Flash flash;
     private final boolean distributable;
 
@@ -112,7 +111,13 @@ public class ExternalContextImpl extends ExternalContext {
         }
     }
 
-    static final Class<? extends Map> theUnmodifiableMapClass = Collections.unmodifiableMap(new HashMap<>()).getClass();
+    // we want exactly the UnmodifiableMap.class (which is private) so do not remove the call to Collections.unmodifiableMap(...)
+    static final Class theUnmodifiableMapClass = Collections.unmodifiableMap(Collections.emptyMap()).getClass();
+
+    private static final Map<String, String> fallbackContentTypeMap = Map.of(
+            "js", ScriptRenderer.DEFAULT_CONTENT_TYPE,
+            "css", StylesheetRenderer.DEFAULT_CONTENT_TYPE,
+            "properties", "text/plain");
 
     // ------------------------------------------------------------ Constructors
 
@@ -135,12 +140,6 @@ public class ExternalContextImpl extends ExternalContext {
 
         distributable = ContextParamUtils.getValue(servletContext, ContextParam.EnableDistributable, Boolean.class);
 
-        fallbackContentTypeMap = Map.of(
-                "js", ScriptRenderer.DEFAULT_CONTENT_TYPE,
-                "css", StylesheetRenderer.DEFAULT_CONTENT_TYPE,
-                "properties", "text/plain"
-        );
-
     }
 
     // -------------------------------------------- Methods from ExternalContext
@@ -157,7 +156,7 @@ public class ExternalContextImpl extends ExternalContext {
     public String getSessionId(boolean create) {
         String id = null;
 
-        HttpSession session = (HttpSession) getSession(create);
+        final HttpSession session = (HttpSession) getSession(create);
         if (session != null) {
             id = session.getId();
         }
@@ -361,24 +360,7 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public Iterator<String> getRequestParameterNames() {
-        final Enumeration<String> namEnum = request.getParameterNames();
-
-        return new Iterator<>() {
-            @Override
-            public boolean hasNext() {
-                return namEnum.hasMoreElements();
-            }
-
-            @Override
-            public String next() {
-                return namEnum.nextElement();
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
+        return CollectionsUtils.unmodifiableIterator( request.getParameterNames() );
     }
 
     /**
@@ -394,7 +376,7 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public Iterator<Locale> getRequestLocales() {
-        return new LocalesIterator(request.getLocales());
+        return CollectionsUtils.unmodifiableIterator(request.getLocales());
     }
 
     /**
@@ -709,12 +691,10 @@ public class ExternalContextImpl extends ExternalContext {
             mimeType = getFallbackMimeType(file);
         }
 
-        FacesContext ctx = FacesContext.getCurrentInstance();
-        if (mimeType == null && LOGGER.isLoggable(Level.WARNING) && ctx.isProjectStage(ProjectStage.Development)) {
+        if (mimeType == null && LOGGER.isLoggable(Level.WARNING) && FacesContext.getCurrentInstance().isProjectStage(ProjectStage.Development)) {
             LOGGER.log(Level.WARNING, "faces.externalcontext.no.mime.type.found", new Object[] { file });
         }
         return mimeType;
-
     }
 
     /**
@@ -970,7 +950,7 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public boolean isSecure() {
-        return ((HttpServletRequest) request).isSecure();
+        return request.isSecure();
     }
 
     @Override
@@ -1041,6 +1021,7 @@ public class ExternalContextImpl extends ExternalContext {
         request = null;
         response = null;
         clientWindow = null;
+
         applicationMap = null;
         sessionMap = null;
         requestMap = null;
@@ -1050,7 +1031,7 @@ public class ExternalContextImpl extends ExternalContext {
         requestHeaderValuesMap = null;
         cookieMap = null;
         initParameterMap = null;
-        fallbackContentTypeMap = null;
+
         flash = null;
     }
 
@@ -1103,48 +1084,12 @@ public class ExternalContextImpl extends ExternalContext {
 
     // --------------------------------------------------------- Private Methods
 
-    public String getFallbackMimeType(String file) {
-
-        if (file == null || file.length() == 0) {
-            return null;
-        }
-        int idx = file.lastIndexOf('.');
-        if (idx == -1) {
-            return null;
-        }
-        String extension = file.substring(idx + 1);
-        if (extension.length() == 0) {
-            return null;
-        }
-        return fallbackContentTypeMap.get(extension);
-
+    private static String getFallbackMimeType(String file) {
+        final String extension = Util.fileExtension(file);
+        return extension != null ? fallbackContentTypeMap.get(extension) : null;
     }
 
     // ----------------------------------------------------------- Inner Classes
 
-    private static class LocalesIterator implements Iterator<Locale> {
-
-        public LocalesIterator(Enumeration<Locale> locales) {
-            this.locales = locales;
-        }
-
-        private final Enumeration<Locale> locales;
-
-        @Override
-        public boolean hasNext() {
-            return locales.hasMoreElements();
-        }
-
-        @Override
-        public Locale next() {
-            return locales.nextElement();
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-
-    }
 
 }
