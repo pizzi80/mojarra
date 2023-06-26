@@ -125,7 +125,13 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
 
         let delayHandler = null;
 
-        // --- AUTOEXEC JS -----------------------------------------------------------------------------------
+        /**
+         * Find instance of passed String via getElementById.
+         * @ignore
+         */
+        const $ = function $( elementOrId ) {
+            return typeof elementOrId == 'string' ? document.getElementById(elementOrId) : elementOrId;
+        };
 
         /**
          * Note by pizzi80:
@@ -149,13 +155,8 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          */
         const hasInputFileControl = function(form) { return isNotNull(form.querySelector("input[type='file']")); };
 
-        /**
-         * Find instance of passed String via getElementById.
-         * @ignore
-         */
-        const $ = function $( elementOrId ) {
-            return typeof elementOrId == 'string' ? document.getElementById(elementOrId) : elementOrId;
-        };
+
+        // --- FACES input processing functions ---------------------------------------------------------------------------------------
 
         /**
          * Get the form element which encloses the supplied element.
@@ -164,7 +165,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          * @ignore
          */
         const getForm = function(element) {
-            const form = element.closest('form');
+            const form = element.closest(FORM);
             return form ? form : document.forms[0];
         };
 
@@ -186,9 +187,10 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                         && element.method === "post"
                         && element.id
                         && element.elements
-                        && element.id.indexOf(context.namingContainerPrefix) === 0) {
-                        formsToUpdate.push(element);
-                    } else {
+                        && element.id.indexOf(context.namingContainerPrefix) === 0) { // replace with startsWith after dropping IE11
+                            formsToUpdate.push(element);
+                    }
+                    else {
                         const forms = element.getElementsByTagName(FORM);
                         for ( const form of forms )
                             add(form);
@@ -270,29 +272,32 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             return targetClientIds.join(SPACE);
         };
 
+
+        // --- HTML as String processing functions ----------------------------------------------------------------------------
+
         // Regex to find all scripts in a string
-        const findscripts = /<script[^>]*>([\S\s]*?)<\/script>/igm;
+        const SCRIPT_TAG_REGEX = /<script[^>]*>([\S\s]*?)<\/script>/igm;
 
         // Regex to find one script, to isolate it's content [2] and attributes [1]
-        const findscript = /<script([^>]*)>([\S\s]*?)<\/script>/im;
+        const SINGLE_SCRIPT_TAG_REGEX = /<script([^>]*)>([\S\s]*?)<\/script>/im;
 
         // Regex to find type attribute
-        const findtype = /type="([\S]*?)"/im;
+        const TAG_ATTRIBUTE_TYPE_REGEX = /type="([\S]*?)"/im;
 
         /**
          * Get all scripts from supplied string, return them as an array for later processing.
-         * @param str
+         * @param html a String containing a portion of html
          * @returns {array} of script text
          * @ignore
          */
-        const getScripts = function getScripts(str) {
+        const getScripts = function getScripts(html) {
             const scripts = [];
-            const initialnodes = str.match(findscripts);
+            const initialnodes = html.match(SCRIPT_TAG_REGEX);
             while (!!initialnodes && initialnodes.length > 0) {
                 let scriptStr = [];
-                scriptStr = initialnodes.shift().match(findscript);
+                scriptStr = initialnodes.shift().match(SINGLE_SCRIPT_TAG_REGEX); // todo: shift array is slow, rewrite this algo
                 // check the type - skip if specified but not text/javascript
-                const type = scriptStr[1].match(findtype);
+                const type = scriptStr[1].match(TAG_ATTRIBUTE_TYPE_REGEX);
                 if (!!type && type[1] !== "text/javascript") {
                     continue;
                 }
@@ -301,8 +306,13 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             return scripts;
         };
 
-        const removeScripts = function removeScripts(str) {
-            return str.replace(/<script[^>]*type="text\/javascript"[^>]*>([\S\s]*?)<\/script>/igm, EMPTY);
+        /**
+         * Remove all the portion of code matching the script pattern from the passed string
+         * @param html a String containing a portion of html
+         * @ignore
+         */
+        const removeScripts = function removeScripts(html) {
+            return html.replace(/<script[^>]*type="text\/javascript"[^>]*>([\S\s]*?)<\/script>/igm, EMPTY);
         };
 
         /**
@@ -318,7 +328,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             const loadedScripts = document.getElementsByTagName("script");
             const loadedScriptUrls = [];
 
-            for( const scriptNode of loadedScripts ) {
+            for ( const scriptNode of loadedScripts ) {
                 const url = scriptNode.getAttribute("src");
                 if (url) loadedScriptUrls.push(url);
             }
@@ -363,7 +373,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                     parserElement.innerHTML = scriptStr[0];
                     cloneAttributes(scriptNode, parserElement.firstChild);
                     deleteNode(parserElement);
-                    scriptNode.type = 'text/javascript';
+                    //scriptNode.type = 'text/javascript';
                     scriptNode.src = url; // add the src to the script node
                     scriptNode.onload = scriptNode.onreadystatechange = function(_, abort) {
                         if (abort || !scriptNode.readyState || isInArray(scriptLoadedStates,scriptNode.readyState)) {
@@ -381,7 +391,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                 if (!!script) {
                     // create script node
                     const scriptNode = document.createElement('script');
-                    scriptNode.type = 'text/javascript';
+                    // scriptNode.type = 'text/javascript';
                     scriptNode.text = script; // add the code to the script node
                     head.appendChild(scriptNode); // add it to the head
                     head.removeChild(scriptNode); // then remove it
@@ -458,7 +468,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
         };
 
         /**
-         * Replace DOM element with a new tagname and supplied innerHTML
+         * Replace DOM element with a new tag name and supplied innerHTML
          * @param element element to replace
          * @param tempTagName new tag name to replace with
          * @param src string new content for element
@@ -475,48 +485,136 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                 temp.id = element.id;
             }
 
-            let scripts = [];
             if (isAutoExec()) {
                 temp.innerHTML = src;
-            } else {
+                cloneAttributes(temp, element);
+                replaceNode(temp, element);
+            }
+            else {
                 // Get scripts from text
-                scripts = getScripts(src);
+                const scripts = getScripts(src);
                 // Remove scripts from text
                 src = removeScripts(src);
                 temp.innerHTML = src;
+                cloneAttributes(temp, element);
+                replaceNode(temp, element);
+                runScripts(scripts);
             }
-
-            replaceNode(temp, element);
-            cloneAttributes(temp, element);
-            runScripts(scripts);
 
         };
 
-        /**
-         * Get a string with the concatenated values of all string nodes under the given node
-         * @param  oNode the given DOM node
-         * @param  deep boolean - whether to recursively scan the children nodes of the given node for text as well. Default is <code>false</code>
-         * @ignore
-         * Note:  This code originally from Sarissa: http://dev.abiss.gr/sarissa
-         * It has been modified to fit into the overall codebase
+        // --- DocumentFragment DOM manipulation ---------------------------------------------------------------------------------
 
-        const getText = function getText(oNode, deep) {
-            // TODO: in what this function differs from Node.textContent?
-            // https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent
-            let s = EMPTY;
-            const nodes = oNode.childNodes;
-            for ( const node of nodes ) {
-                const nodeType = node.nodeType;
-                if (nodeType === Node.TEXT_NODE || nodeType === Node.CDATA_SECTION_NODE) {
-                    s += node.data;
-                } else if (deep === true && (nodeType === Node.ELEMENT_NODE ||
-                    nodeType === Node.DOCUMENT_NODE ||
-                    nodeType === Node.DOCUMENT_FRAGMENT_NODE)) {
-                    s += getText(node, true);
-                }
-            }
-            return s;
-        };*/
+        /**
+         * Replace DOM element with a new tag name and supplied html
+         * executing script and stylesheet using DocumentFragment.
+         *
+         * Chrome, Firefox, IE11 , Safari 9, Opera 12
+         *
+         * todo: this could be the new and only "update algorithm"
+         *       we can remove isAutoExec() and all the related logic
+         *
+         * @param element the source element to be replaced
+         * @param tagName the tag name of the new element
+         * @param html the html content of the new element
+         * @ignore
+         */
+        const replaceDomElement = function replaceDomElement(element, tagName, html) {
+            // Creating a head element isn't allowed in IE,
+            // and faulty in most browsers, so it is not allowed
+            if (element && element.nodeName && element.nodeName.toLowerCase() === "head")
+                throw new Error("Attempted to replace a head element - this is not allowed.");
+
+            const newElement = document.createElement(tagName);
+
+            // set the id
+            if (element.id) newElement.id = element.id;
+
+            // clone all other attributes
+            cloneAttributes(newElement, element);
+
+            // create a DocumentFragment from the source
+            const fragment = createDocumentFragment(html);
+
+            // append the fragment to the new element
+            newElement.append(fragment);
+
+            // replace the old element with the new one
+            // Note that this will execute all styles and
+            // scripts inside the html fragment!
+            replaceNode(newElement, element);
+        };
+
+        const replaceTableElement = function replaceTableElement( element , html ) {
+
+            // id of the element
+            const id = element.getAttribute('id');
+
+            // decorate passed html with table tag
+            const tableHtmlFragment = '<table>' + html + '</table>';
+
+            // create a DocumentFragment with the decorated html
+            const fragment = createDocumentFragment(tableHtmlFragment);
+
+            // --- v1 ----------------------------------------------------
+            // create a fake dom element to contain the new fragment
+            //const container = document.createElement('div');
+            // container.append(fragment);
+            // some browsers will also create intermediary elements such as table>tbody>tr>td
+            // let newElement = container.firstChild;
+            // while ((null !== newElement) && (id !== newElement.id)) {
+            //     newElement = newElement.firstChild;
+            // }
+            // replace the new element in the dom
+            // todo: why not element.replaceWith(newElement)
+            // const parent = element.parentElement;
+            // parent.replaceChild(newElement, element);
+
+            // --- v2 -----------------------------------------------------
+            // find the element by id inside the fragment ... is it necessary?
+            const newElement = fragment.querySelector('#'+id);
+
+            replaceNode( newElement , element );
+        };
+
+        const replaceInputElement = function replaceInputElement( element , html ) {
+            // special case handling for 'input' elements
+            // in order to not lose focus when updating,
+            // input elements need to be added in place.
+            const container = document.createElement('div');
+
+            // Inject html inside new element
+            const fragment = createDocumentFragment(html);
+            container.append(fragment);
+
+            const newElement = container.firstChild;
+
+            cloneAttributes(element, newElement);
+            deleteNode(container);
+        };
+
+        const createDocumentFragment = function createDocumentFragment( html ) {
+            return document.createRange().createContextualFragment(html);
+        };
+
+        const getExternalStylesheetsFromHtml = function getExternalStylesheetsFromHtml( html ) {
+            getExternalStylesheets(createDocumentFragment(html));
+        };
+
+        const getExternalStylesheets = function getExternalStylesheets( docOrFragment ) {
+            return docOrFragment.querySelectorAll("link[type='text/css'][rel='stylesheet'][href]:not([href='']),link:not([type])[rel='stylesheet'][href]:not([href=''])");
+        };
+
+        const getScriptsFromHtml = function getScriptsFromHtml( html ) {
+            getScriptsOfDom(createDocumentFragment(html));
+        };
+
+        const getScriptsOfDom = function getScriptsOfDom( docOrFragment ) {
+            // script tag with attribute src not empty and with optional attribute type equals to text/javascript
+            return docOrFragment.querySelectorAll("script[src][type='text/javascript']:not([src='']),script[src]:not([src='']):not([type])");
+        };
+
+        // --- Faces xml errors ---------------------------------------------------------------------------
 
         const PARSED_OK = "Document contains no parsing errors";
         const PARSED_EMPTY = "Document is empty";
@@ -549,6 +647,8 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             return parseErrorText;
         };
 
+        // --- DOM Manipulation ---------------------------------------------------------------------------------------------------------
+
         // PENDING - add support for removing handlers added via DOM 2 methods
 
         const NODE_EVENTS = [
@@ -571,7 +671,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             }
             // remove the events from node
             try {
-                for (const eventName in NODE_EVENTS)
+                for (const eventName of NODE_EVENTS)
                     node[eventName] = null;
             } catch (ex) {
                 // it's OK if it fails, at least we tried
@@ -585,6 +685,16 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          */
         const deleteNode = function deleteNode(node) {
             if (node) node.remove();
+        };
+
+        /**
+         * Delete all nodes
+         * @param nodes array of node
+         * @ignore
+         */
+        const deleteNodes = function deleteNodes( nodes ) {
+            for ( const node of nodes )
+                deleteNode(node);
         };
 
         /**
@@ -634,11 +744,10 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             }
         };
 
-
         /**
          * Replace one node with another.
-         * @param node
-         * @param newNode
+         * @param node node to replace
+         * @param newNode the new node that's replace the old one
          * @ignore
          */
         const replaceNode = function replaceNode(newNode, node) {
@@ -688,37 +797,36 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             const propertyNames = isInputElement ? coreAndInputElementProperties : coreElementProperties;
             const isXML = !source.ownerDocument.contentType || source.ownerDocument.contentType === 'text/xml';
 
-            for ( const propertyName of propertyNames ) {
+            for (const propertyName of propertyNames) {
                 const attributeName = propertyToAttribute(propertyName);
                 const sourceValue = isXML ? source.getAttribute(attributeName) : source[propertyName];
                 if (isNotNull(sourceValue)) target[propertyName] = sourceValue;
             }
 
             const booleanPropertyNames = isInputElement ? inputElementBooleanProperties : [];
-            for ( const booleanPropertyName of booleanPropertyNames ) {
+            for (const booleanPropertyName of booleanPropertyNames) {
                 const newBooleanValue = source[booleanPropertyName];
                 if (isNotNull(newBooleanValue)) target[booleanPropertyName] = newBooleanValue;
             }
 
             //'style' attribute special case
-            if ( source.hasAttribute('style') ) {
+            if (source.hasAttribute('style')) {
                 const sourceStyle = source.getAttribute('style');
                 if (isNotNull(sourceStyle)) target.setAttribute('style', sourceStyle);
-            }
-            else if ( target.hasAttribute('style') ) {
+            } else if (target.hasAttribute('style')) {
                 target.removeAttribute('style');
             }
 
             // Special case for 'dir' attribute
             if (source.dir !== target.dir) {
-                if ( source.hasAttribute('dir') ) {
+                if (source.hasAttribute('dir')) {
                     target.dir = source.dir;
-                } else if ( target.hasAttribute('dir') ) {
+                } else if (target.hasAttribute('dir')) {
                     target.dir = '';
                 }
             }
 
-            for ( const name of LISTENER_NAMES ) {
+            for (const name of LISTENER_NAMES) {
                 target[name] = source[name] ? source[name] : null;
                 if (source[name]) {
                     source[name] = null;
@@ -738,7 +846,6 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                     targetDataset[sp] = sourceDataset[sp];
                 }
             }
-
         };
 
         /**
@@ -748,15 +855,6 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          * @ignore
          */
         const elementReplace = function elementReplace(newElement, origElement) {
-
-            // // move or copy child nodes
-            // copyChildNodes(newElement, origElement);
-            //
-            // // sadly, we have to reparse all over again
-            // // to reregister the event handlers and styles
-            // // PENDING do some performance tests on large pages
-            // origElement.innerHTML = origElement.innerHTML;
-            //
 
             // copy source attributes to target node
             try {
@@ -800,6 +898,8 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
 
             return body;
         };
+
+        // --- Faces Ajax response DOM operation algorithms ----------------------------------------------------------------------------------------
 
         /**
          * Find encoded url field for a given form.
@@ -914,7 +1014,8 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                     const docBody = document.getElementsByTagName('body')[0];
                     const bodyStart = bodyStartEx.exec(src);
 
-                    if (bodyStart !== null) { // replace body tag
+                    // replace body tag
+                    if (bodyStart !== null) {
                         // First, try with XML manipulation
                         try {
                             runStylesheets(src);
@@ -938,7 +1039,9 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                             elementReplaceStr(docBody, "body", srcBody);
                         }
 
-                    } else {  // replace body contents with innerHTML - note, script handling happens within function
+                    }
+                    // replace body contents with innerHTML - note, script handling happens within function
+                    else {
                         elementReplaceStr(docBody, "body", src);
                     }
                 } else {
@@ -948,14 +1051,13 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
 
                     const parent = element.parentNode;
                     // Trim space padding before assigning to innerHTML
-                    let html = src.replace(/^\s+/g, '').replace(/\s+$/g, '');
+                    let html = src.trim(); //.replace(/^\s+/g, '').replace(/\s+$/g, '');
                     let parserElement = document.createElement('div');
                     const tag = element.nodeName.toLowerCase();
 
                     const isInTable = isInArray(TABLE_ELEMENTS,tag);
 
                     if (isInTable) {
-
                         if (isAutoExec()) {
                             // Create html
                             parserElement.innerHTML = '<table>' + html + '</table>';
@@ -971,8 +1073,12 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
                         while ((null !== newElement) && (id !== newElement.id)) {
                             newElement = newElement.firstChild;
                         }
+
+                        // todo: why not element.replaceWith(newElement)
                         parent.replaceChild(newElement, element);
+
                         runScripts(scripts);
+
                     } else if (element.nodeName.toLowerCase() === 'input') {
                         // special case handling for 'input' elements
                         // in order to not lose focus when updating,
@@ -1018,7 +1124,6 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
          */
         const doInsert = function doInsert(element) {
 
-            let scripts = [];
             let target = $(element.firstChild.getAttribute('id'));
             const parent = target.parentNode;
             let html = element.firstChild.firstChild.nodeValue;
@@ -1029,9 +1134,11 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
 
             if (!isAutoExec())  {
                 // Get the scripts from the text
-                scripts = getScripts(html);
+                const scripts = getScripts(html);
                 // Remove scripts from text
                 html = removeScripts(html);
+                // execute scripts
+                runScripts(scripts);
             }
             const tempElement = document.createElement('div');
             let newElement;
@@ -1055,7 +1162,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             if (!!tempElement.innerHTML) { // check if only scripts were inserted - if so, do nothing here
                 parent.insertBefore(newElement, target);
             }
-            runScripts(scripts);
+
             deleteNode(tempElement);
         };
 
@@ -2449,7 +2556,7 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
             return mojarra.projectStageCache;
         }
         // faces.js script
-        const _script = document.querySelector("script[type='text/javascript'][src*='jakarta.faces.resource/faces.js']");
+        const _script = document.querySelector("script[src*='jakarta.faces.resource/faces.js']");
         const scriptSrcSearchParam = isNotNull(_script) ? new URLSearchParams(_script.src) : null;
 
         const stage = ( isNotNull(scriptSrcSearchParam) && scriptSrcSearchParam.get('stage') === 'Development' ) ? 'Development' : 'Production';
@@ -2461,10 +2568,23 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
     };
 
     /**
-     * Partial submit adapted from OmniFaces
-     * @param form
-     * @param execute
-     * @returns {string}
+     * <p>Collect and encode state for input controls associated
+     * with the specified <code>form</code> element.  This will include
+     * all input controls of type <code>hidden</code>.</p>
+     * <p><b>Usage:</b></p>
+     * <pre><code>
+     * var state = faces.getViewState(form);
+     * </pre></code>
+     *
+     * @param form The <code>form</code> element whose contained
+     * <code>input</code> controls will be collected and encoded.
+     * Only successful controls will be collected and encoded in
+     * accordance with: <a href="http://www.w3.org/TR/html401/interact/forms.html#h-17.13.2">
+     * Section 17.13.2 of the HTML Specification</a>.
+     *
+     * @param execute The option.execute string built inside faces.ajax.request
+     *
+     * @returns String The encoded state for the specified form's input controls.
      */
     faces.getPartialViewState = function(form, execute) {
 
@@ -2544,8 +2664,6 @@ if ( !( (faces && faces.specversion && faces.specversion >= 40000 )
      * Only successful controls will be collected and encoded in
      * accordance with: <a href="http://www.w3.org/TR/html401/interact/forms.html#h-17.13.2">
      * Section 17.13.2 of the HTML Specification</a>.
-     *
-     * @param execute The option.execute string built inside faces.ajax.request
      *
      * @returns String The encoded state for the specified form's input controls.
      * @function faces.getViewState
@@ -3133,3 +3251,4 @@ mojarra.l = function l(l) {
     }
 
 };
+
