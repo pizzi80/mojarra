@@ -133,7 +133,7 @@ public class MetaInfFacesConfigResourceProvider implements ConfigurationResource
             URL[] urlArray = Classpath.search("META-INF/", FACES_CONFIG_EXTENSION);
             for (URL cur : urlArray) {
                 String urlString = cur.toExternalForm();
-                urlString = urlString.replaceAll(" ", "%20");
+                urlString = urlString.replace(" ", "%20");
                 urls.add(new URI(urlString));
             }
             // special case for finding taglib files in WEB-INF/classes/META-INF
@@ -143,7 +143,7 @@ public class MetaInfFacesConfigResourceProvider implements ConfigurationResource
                     String p = path.toString();
                     if (p.endsWith(FACES_CONFIG_EXTENSION)) {
                         String urlString = context.getResource(p).toExternalForm();
-                        urlString = urlString.replaceAll(" ", "%20");
+                        urlString = urlString.replace(" ", "%20");
                         urls.add(new URI(urlString));
                     }
                 }
