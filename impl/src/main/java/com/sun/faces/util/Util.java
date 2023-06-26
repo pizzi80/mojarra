@@ -47,7 +47,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -318,19 +317,21 @@ public class Util {
         return factory;
     }
 
-    public static Class<?> loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
+
+    public static final Map<String,Class<?>> primitiveTypes = Map.of(
+            "byte" , byte.class ,
+            "short" , short.class ,
+            "int" , int.class ,
+            "long" , long.class ,
+            "float" , float.class ,
+            "double" , double.class ,
+            "boolean" , boolean.class ,
+            "char" , char.class
+    );
+
+    public static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
         ClassLoader loader = Util.getCurrentLoader(fallbackClass);
-
-        String[] primitiveNames = { "byte", "short", "int", "long", "float", "double", "boolean", "char" };
-        Class<?>[] primitiveClasses = { byte.class, short.class, int.class, long.class, float.class, double.class, boolean.class, char.class };
-
-        for (int i = 0; i < primitiveNames.length; i++) {
-            if (primitiveNames[i].equals(name)) {
-                return primitiveClasses[i];
-            }
-        }
-
-        return Class.forName(name, true, loader);
+        return primitiveTypes.getOrDefault(name, Class.forName(name, true, loader));
     }
 
     public static Class<?> loadClass2(String name, Object fallbackClass) {
@@ -412,6 +413,24 @@ public class Util {
 
         return input;
     }
+
+    /**
+     * @return null if the passed String is null, empty or blank
+     */
+    public static String nullIfBlank(String s) {
+        return s == null || s.length() == 0 || s.trim().length() == 0 ? null : s;
+    }
+
+    /**
+     * @return the filename extension or null. the method is null-safe
+     */
+    public static String fileExtension(String filename) {
+        final String notBlankFilename = nullIfBlank(filename);
+        if ( notBlankFilename == null ) return null;
+        int idx = notBlankFilename.lastIndexOf('.');
+        return idx == -1 ? null : notBlankFilename.substring(idx+1);
+    }
+
 
     public static String removeAllButNextToLastSlashPathSegment(String input) {
         // Trim the leading lastSlash, if any.
@@ -547,7 +566,7 @@ public class Util {
         } else if (value instanceof Map<?, ?>) {
             return ((Map<?, ?>) value).isEmpty();
         } else if (value instanceof Optional<?>) {
-            return !((Optional<?>) value).isPresent();
+            return ((Optional<?>) value).isEmpty();
         } else if (value.getClass().isArray()) {
             return Array.getLength(value) == 0;
         } else {
@@ -775,12 +794,12 @@ public class Util {
     }
 
     public static boolean componentIsDisabled(UIComponent component) {
-        return Boolean.valueOf(String.valueOf(component.getAttributes().get("disabled")));
+        return Boolean.parseBoolean(String.valueOf(component.getAttributes().get("disabled")));
     }
 
     public static boolean componentIsDisabledOrReadonly(UIComponent component) {
-        return Boolean.valueOf(String.valueOf(component.getAttributes().get("disabled")))
-                || Boolean.valueOf(String.valueOf(component.getAttributes().get("readonly")));
+        return Boolean.parseBoolean(String.valueOf(component.getAttributes().get("disabled")))
+                || Boolean.parseBoolean(String.valueOf(component.getAttributes().get("readonly")));
     }
 
     // W3C XML specification refers to IETF RFC 1766 for language code
@@ -898,7 +917,7 @@ public class Util {
         }
 
         StackTraceElement[] stacks = e.getStackTrace();
-        StringBuilder sb = new StringBuilder();
+        StringBuffer sb = new StringBuffer();
         for (StackTraceElement stack : stacks) {
             sb.append(stack.toString()).append('\n');
         }
@@ -1436,7 +1455,7 @@ public class Util {
         }
 
         @Override
-        public Iterator<String> getPrefixes(String namespaceURI) {
+        public Iterator getPrefixes(String namespaceURI) {
             return null;
         }
     }
@@ -1494,17 +1513,9 @@ public class Util {
     public static <T> Stream<T> stream(Object object) {
         if (object == null) {
             return Stream.empty();
-        }
-        else if (object instanceof Stream) {
+        } else if (object instanceof Stream) {
             return (Stream<T>) object;
-        }
-        else if (object instanceof Collection) {
-            return ((Collection)object).stream();   // little bonus with sized spliterator...
-        }
-        else if ( object instanceof Enumeration ) { // recursive call wrapping in an Iterator (Java 9+)
-            return stream( ((Enumeration)object).asIterator() );
-        }
-        else if (object instanceof Iterable) {
+        } else if (object instanceof Iterable) {
             return (Stream<T>) StreamSupport.stream(((Iterable<?>) object).spliterator(), false);
         } else if (object instanceof Map) {
             return (Stream<T>) ((Map<?, ?>) object).entrySet().stream();
