@@ -58,6 +58,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -117,6 +118,9 @@ public class Util {
 
     // Log instance for this class
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
+
+    public static final String EMPTY_STRING = "";
+    public static final String SPACE_STRING = " ";
 
     // README - make sure to add the message identifier constant
     // (ex: Util.CONVERSION_ERROR_MESSAGE_ID) and the number of substitution
@@ -208,7 +212,7 @@ public class Util {
      * @param context the <code>FacesContext</code> associated with the request.
      */
     public static boolean isPortletRequest(FacesContext context) {
-        return context.getExternalContext().getRequestMap().get("javax.portlet.faces.phase") != null;
+        return context.getExternalContext().getRequestMap().containsKey("javax.portlet.faces.phase");
     }
 
     public static String generateCreatedBy(FacesContext facesContext) {
@@ -219,7 +223,7 @@ public class Util {
             // ignore
         }
 
-        return applicationContextPath + " " + Thread.currentThread().toString() + " " + System.currentTimeMillis();
+        return applicationContextPath + " " + Thread.currentThread() + " " + System.currentTimeMillis();
 
     }
 
@@ -249,7 +253,7 @@ public class Util {
         }
         if (instance == null && type != null) {
             try {
-                instance = ReflectionUtils.newInstance((String) type.getValue(faces.getELContext()));
+                instance = ReflectionUtils.newInstance(type.getValue(faces.getELContext()));
             } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException e) {
                 throw new AbortProcessingException(e.getMessage(), e);
             }
@@ -327,12 +331,17 @@ public class Util {
             "float" , float.class ,
             "double" , double.class ,
             "boolean" , boolean.class ,
-            "char" , char.class
+            "char" , char.class ,
+            "void" , void.class
     );
 
     public static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
-        ClassLoader loader = Util.getCurrentLoader(fallbackClass);
-        return primitiveTypes.getOrDefault(name, Class.forName(name, true, loader));
+        Class<?> clazz = primitiveTypes.get(name);
+        if ( clazz == null ) {
+            ClassLoader loader = Util.getCurrentLoader(fallbackClass);
+            clazz = Class.forName(name, true, loader);
+        }
+        return clazz;
     }
 
     public static Class<?> loadClass2(String name, Object fallbackClass) {
@@ -600,6 +609,8 @@ public class Util {
             return ((String) value).isEmpty();
         } else if (value instanceof Collection<?>) {
             return ((Collection<?>) value).isEmpty();
+        } else if ( value instanceof Iterable<?> ) {
+            return ((Iterable<?>)value).iterator().hasNext();
         } else if (value instanceof Map<?, ?>) {
             return ((Map<?, ?>) value).isEmpty();
         } else if (value instanceof Optional<?>) {
@@ -674,7 +685,7 @@ public class Util {
     @SafeVarargs
     public static <T> boolean isOneOf(T object, T... objects) {
         for (Object other : objects) {
-            if (object == null ? other == null : object.equals(other)) {
+            if (Objects.equals(object, other)) {
                 return true;
             }
         }
@@ -778,44 +789,17 @@ public class Util {
     }
 
     public static Class getTypeFromString(String type) throws ClassNotFoundException {
-        Class result;
-        switch (type) {
-        case "byte":
-            result = Byte.TYPE;
-            break;
-        case "short":
-            result = Short.TYPE;
-            break;
-        case "int":
-            result = Integer.TYPE;
-            break;
-        case "long":
-            result = Long.TYPE;
-            break;
-        case "float":
-            result = Float.TYPE;
-            break;
-        case "double":
-            result = Double.TYPE;
-            break;
-        case "boolean":
-            result = Boolean.TYPE;
-            break;
-        case "char":
-            result = Character.TYPE;
-            break;
-        case "void":
-            result = Void.TYPE;
-            break;
-        default:
+
+        Class<?> clazz = primitiveTypes.get(type);
+
+        if ( clazz == null ) {
             if (type.indexOf('.') == -1) {
                 type = "java.lang." + type;
             }
-            result = Util.loadClass(type, Void.TYPE);
-            break;
+            clazz = Util.loadClass(type, Void.TYPE);
         }
 
-        return result;
+        return clazz;
     }
 
     public static ViewHandler getViewHandler(FacesContext context) throws FacesException {
@@ -831,12 +815,12 @@ public class Util {
     }
 
     public static boolean componentIsDisabled(UIComponent component) {
-        return Boolean.valueOf(String.valueOf(component.getAttributes().get("disabled")));
+        return Boolean.parseBoolean(String.valueOf(component.getAttributes().get("disabled")));
     }
 
     public static boolean componentIsDisabledOrReadonly(UIComponent component) {
-        return Boolean.valueOf(String.valueOf(component.getAttributes().get("disabled")))
-                || Boolean.valueOf(String.valueOf(component.getAttributes().get("readonly")));
+        return Boolean.parseBoolean(String.valueOf(component.getAttributes().get("disabled")))
+                || Boolean.parseBoolean(String.valueOf(component.getAttributes().get("readonly")));
     }
 
     // W3C XML specification refers to IETF RFC 1766 for language code
@@ -849,19 +833,10 @@ public class Util {
         if (null == localeStr || localeStr.length() < 2) {
             throw new IllegalArgumentException("Illegal locale String: " + localeStr);
         }
-        Locale result = null;
 
-        try {
-            Method method = Locale.class.getMethod("forLanguageTag", String.class);
-            if (method != null) {
-                result = (Locale) method.invoke(null, localeStr);
-            }
-        } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException throwable) {
-            // if we are NOT running JavaSE 7 we end up here and we will
-            // default to the previous way of determining the Locale below.
-        }
+        Locale result = Locale.forLanguageTag(localeStr);
 
-        if (result == null || result.getLanguage().equals("")) {
+        if ( result == null || EMPTY_STRING.equals(result.getLanguage()) ) {
             String lang = null;
             String country = null;
             String variant = null;
@@ -871,7 +846,7 @@ public class Util {
             int j = 0;
 
             // to have a language, the length must be >= 2
-            if (inputLength >= 2 && (i = indexOfSet(localeStr, seps, 0)) == -1) {
+            if ((i = indexOfSet(localeStr, seps, 0)) == -1) {
                 // we have only Language, no country or variant
                 if (2 != localeStr.length()) {
                     throw new IllegalArgumentException("Illegal locale String: " + localeStr);
@@ -902,12 +877,12 @@ public class Util {
                     }
                 }
             }
-            if (variant != null && country != null && lang != null) {
+            if (variant != null) {
                 result = new Locale(lang, country, variant);
-            } else if (lang != null && country != null) {
+            } else if (country != null) {
                 result = new Locale(lang, country);
-            } else if (lang != null) {
-                result = new Locale(lang, "");
+            } else {
+                result = new Locale(lang, EMPTY_STRING);
             }
         }
 
@@ -950,11 +925,11 @@ public class Util {
      */
     public static String getStackTraceString(Throwable e) {
         if (null == e) {
-            return "";
+            return EMPTY_STRING;
         }
 
         StackTraceElement[] stacks = e.getStackTrace();
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (StackTraceElement stack : stacks) {
             sb.append(stack.toString()).append('\n');
         }
@@ -1113,7 +1088,7 @@ public class Util {
 
                         @Override
                         public String getServletName() {
-                            return "";
+                            return EMPTY_STRING;
                         }
 
                         @Override
@@ -1224,23 +1199,22 @@ public class Util {
         if (clazz != null) {
             while (clazz != Object.class) {
                 try {
+                    // fields
                     Field[] fields = clazz.getDeclaredFields();
-                    if (fields != null) {
-                        for (Field field : fields) {
-                            if (field.getAnnotations().length > 0) {
-                                return true;
-                            }
+                    for (Field field : fields) {
+                        if (field.getAnnotations().length > 0) {
+                            return true;
                         }
                     }
 
+                    // methods
                     Method[] methods = clazz.getDeclaredMethods();
-                    if (methods != null) {
-                        for (Method method : methods) {
-                            if (method.getDeclaredAnnotations().length > 0) {
-                                return true;
-                            }
+                    for (Method method : methods) {
+                        if (method.getDeclaredAnnotations().length > 0) {
+                            return true;
                         }
                     }
+
                 }
                 catch (NoClassDefFoundError e) {
                     if (LOGGER.isLoggable(FINE)) {
@@ -1284,12 +1258,12 @@ public class Util {
         Map<Object, Object> contextAttrs = context.getAttributes();
         Integer counter = (Integer) contextAttrs.get(viewStateCounterKey);
         if (null == counter) {
-            counter = Integer.valueOf(0);
+            counter = 0;
         }
 
         char sep = UINamingContainer.getSeparatorChar(context);
         UIViewRoot root = context.getViewRoot();
-        result = root.getContainerClientId(context) + sep + ResponseStateManager.VIEW_STATE_PARAM + sep + +counter;
+        result = root.getContainerClientId(context) + sep + ResponseStateManager.VIEW_STATE_PARAM + sep + +counter; // todo: check if it's ok "+counter"
         contextAttrs.put(viewStateCounterKey, ++counter);
 
         return result;
@@ -1301,7 +1275,7 @@ public class Util {
         Map<Object, Object> contextAttrs = context.getAttributes();
         Integer counter = (Integer) contextAttrs.get(clientWindowIdCounterKey);
         if (null == counter) {
-            counter = Integer.valueOf(0);
+            counter = 0;
         }
 
         char sep = UINamingContainer.getSeparatorChar(context);
@@ -1552,6 +1526,8 @@ public class Util {
             return Stream.empty();
         } else if (object instanceof Stream) {
             return (Stream<T>) object;
+        } else if (object instanceof Collection) {
+            return ((Collection<T>)object).stream();
         } else if (object instanceof Iterable) {
             return (Stream<T>) StreamSupport.stream(((Iterable<?>) object).spliterator(), false);
         } else if (object instanceof Map) {
@@ -1571,9 +1547,13 @@ public class Util {
 
     @SafeVarargs
     public static <E> Set<E> unmodifiableSet(E... elements) {
-        return Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(elements)));
+        return Collections.unmodifiableSet(asSortedSet(elements));
     }
 
+    @SafeVarargs
+    public static <E> Set<E> asSortedSet(E... elements) {
+        return new LinkedHashSet<>(Arrays.asList(elements));
+    }
 
     public static boolean isNestedInIterator(FacesContext context, UIComponent component) {
         UIComponent parent = component.getParent();

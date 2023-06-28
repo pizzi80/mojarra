@@ -24,10 +24,12 @@ import static java.util.Collections.emptyMap;
 import static java.util.logging.Level.FINE;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
+import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -41,6 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -328,9 +331,10 @@ public class WebConfiguration {
     public List<String> getConfiguredExtensions() {
         String[] faceletsSuffix = getOptionValue(FaceletsSuffix, " ");
 
-        Set<String> deduplicatedFaceletsSuffixes = new LinkedHashSet<>(asList(faceletsSuffix));
-
-        return new ArrayList<>(deduplicatedFaceletsSuffixes);
+        // remove duplicates and return as List
+        return Arrays.stream(faceletsSuffix)
+                     .distinct()
+                     .collect(toList());
     }
 
     public void overrideContextInitParameter(WebContextInitParameter param, String value) {
