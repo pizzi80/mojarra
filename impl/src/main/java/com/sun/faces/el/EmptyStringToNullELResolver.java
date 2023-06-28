@@ -16,13 +16,30 @@
 
 package com.sun.faces.el;
 
-import java.beans.FeatureDescriptor;
-import java.util.Iterator;
-
 import jakarta.el.ELContext;
 import jakarta.el.ELResolver;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+//        if ( String.class == targetType && context instanceof org.apache.el.lang.EvaluationContext ) // && context instanceof com.sun.faces.el.ELContextImpl
+//            System.out.println("value:["+value+"] - targetType:["+targetType+"]" + " {"+context+"}");
+
+// NOTA: la soluzione proposta da BalusC ad oggi crea dei malfunzionamenti a JSF durante la valutazione di espressioni EL
+//       ad esempio se faccio #{'hello'.concat(null)} darebbe errore perché null verrebbe trattato appunto come null e String.concat(null)
+//       lancia un NullPointer, invece EL fa una conversione null -> '' e ti salva la vita
+
+// Invece per ottenere il comportamento desiderato in fase di input
+// sembra che EL-context in questione sia EvaluationContext
 public class EmptyStringToNullELResolver extends ELResolver {
+
+    static final String EVALUATION_CONTEXT_CLASS_NAME = "EvaluationContext";
+
+    static final Map<Class<? extends ELContext>,Boolean> isEvaluationContextCache = new ConcurrentHashMap<>();
+
+    static boolean isEvaluationContext( ELContext context ) {
+        return isEvaluationContextCache.computeIfAbsent( context.getClass() , clazz -> clazz.getName().endsWith(EVALUATION_CONTEXT_CLASS_NAME) );
+    }
 
     @Override
     public Class<?> getCommonPropertyType(ELContext context, Object base) {
@@ -32,16 +49,16 @@ public class EmptyStringToNullELResolver extends ELResolver {
     @Override
     @SuppressWarnings("unchecked")
     public <T> T convertToType(ELContext context, Object value, Class<T> targetType) {
-        if (value == null && targetType == String.class) {
+
+        if (    value == null &&
+                targetType == String.class &&
+                isEvaluationContext(context) ) {
+
             context.setPropertyResolved(true);
+            //return (T) null;
         }
 
         return (T) value;
-    }
-
-    @Override
-    public Iterator<FeatureDescriptor> getFeatureDescriptors(ELContext context, Object base) {
-        return null;
     }
 
     @Override
