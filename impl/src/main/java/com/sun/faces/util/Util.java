@@ -47,12 +47,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -505,6 +505,32 @@ public class Util {
         }
     }
 
+    public static void notNullArgs( Object arg1 , Object arg2 ) {
+        if ( arg1 == null || arg2 == null )
+            throw new NullPointerException();
+    }
+
+    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 ) {
+        notNullArgs(arg1,arg2);
+        Objects.requireNonNull(arg3);
+    }
+
+    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 , Object arg4 ) {
+        notNullArgs(arg1,arg2,arg3);
+        Objects.requireNonNull(arg4);
+    }
+
+    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 , Object arg4 , Object arg5 ) {
+        notNullArgs(arg1,arg2,arg3,arg4);
+        Objects.requireNonNull(arg5);
+    }
+
+    public static void notNullArgs( Object... objets ) {
+        Objects.requireNonNull(objets);
+        for ( Object obj : objets)
+            Objects.requireNonNull(obj);
+    }
+
     public static ValueExpression getValueExpressionNullSafe(UIComponent component, String name) {
         ValueExpression valueExpression = component.getValueExpression(name);
 
@@ -805,12 +831,12 @@ public class Util {
     }
 
     public static boolean componentIsDisabled(UIComponent component) {
-        return Boolean.parseBoolean(String.valueOf(component.getAttributes().get("disabled")));
+        return Boolean.valueOf(String.valueOf(component.getAttributes().get("disabled")));
     }
 
     public static boolean componentIsDisabledOrReadonly(UIComponent component) {
-        return Boolean.parseBoolean(String.valueOf(component.getAttributes().get("disabled")))
-                || Boolean.parseBoolean(String.valueOf(component.getAttributes().get("readonly")));
+        return Boolean.valueOf(String.valueOf(component.getAttributes().get("disabled")))
+                || Boolean.valueOf(String.valueOf(component.getAttributes().get("readonly")));
     }
 
     // W3C XML specification refers to IETF RFC 1766 for language code
@@ -928,7 +954,7 @@ public class Util {
         }
 
         StackTraceElement[] stacks = e.getStackTrace();
-        StringBuilder sb = new StringBuilder();
+        StringBuffer sb = new StringBuffer();
         for (StackTraceElement stack : stacks) {
             sb.append(stack.toString()).append('\n');
         }
@@ -1524,17 +1550,9 @@ public class Util {
     public static <T> Stream<T> stream(Object object) {
         if (object == null) {
             return Stream.empty();
-        }
-        else if (object instanceof Stream) {
+        } else if (object instanceof Stream) {
             return (Stream<T>) object;
-        }
-        else if (object instanceof Collection) {
-            return ((Collection)object).stream();   // little bonus with sized spliterator...
-        }
-        else if ( object instanceof Enumeration ) { // recursive call wrapping in an Iterator (Java 9+)
-            return stream( ((Enumeration)object).asIterator() );
-        }
-        else if (object instanceof Iterable) {
+        } else if (object instanceof Iterable) {
             return (Stream<T>) StreamSupport.stream(((Iterable<?>) object).spliterator(), false);
         } else if (object instanceof Map) {
             return (Stream<T>) ((Map<?, ?>) object).entrySet().stream();
