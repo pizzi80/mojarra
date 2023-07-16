@@ -29,7 +29,7 @@
 
    <groupId>org.glassfish</groupId>
    <artifactId>mojarra-parent</artifactId>
-   <version>4.1.7-SNAPSHOT</version>
+   <version>5.0.0-SNAPSHOT</version>
    <packaging>pom</packaging>
 
    <name>Mojarra ${project.version} - Project</name>
@@ -57,7 +57,7 @@
    <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        
+
         <maven.compiler.release>17</maven.compiler.release>
     </properties>
 
@@ -81,16 +81,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            
-            <!-- Restricts the Java version to 17 - API remains at Java 17 for now. -->
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-                <configuration>
-                    <release>17</release>
-                    <compilerArgument>-Xlint:unchecked</compilerArgument>
-                </configuration>
             </plugin>
         </plugins>
     </build>
