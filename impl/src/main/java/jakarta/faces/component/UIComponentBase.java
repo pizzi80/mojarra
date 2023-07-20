@@ -91,7 +91,7 @@ public abstract class UIComponentBase extends UIComponent {
 
     // -------------------------------------------------------------- Attributes
 
-    private static Logger LOGGER = Logger.getLogger("jakarta.faces.component", "jakarta.faces.LogStrings");
+    private static final Logger LOGGER = Logger.getLogger("jakarta.faces.component", "jakarta.faces.LogStrings");
 
     private static final String ADDED = UIComponentBase.class.getName() + ".ADDED";
 
@@ -120,7 +120,7 @@ public abstract class UIComponentBase extends UIComponent {
      * An EMPTY_OBJECT_ARRAY argument list to be passed to reflection methods.
      * </p>
      */
-    private static final Object EMPTY_OBJECT_ARRAY[] = new Object[0];
+    private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
     /**
      * <p>
@@ -295,7 +295,7 @@ public abstract class UIComponentBase extends UIComponent {
 
     @Override
     public boolean isRendered() {
-        return Boolean.valueOf(getStateHelper().eval(PropertyKeys.rendered, TRUE).toString());
+        return Boolean.parseBoolean(getStateHelper().eval(PropertyKeys.rendered, TRUE).toString());
     }
 
     @Override
@@ -1182,14 +1182,14 @@ public abstract class UIComponentBase extends UIComponent {
 
         Object[] values = (Object[]) state;
 
-        if ( getElement(values,0) != null) {
+        if ( values[0] != null) {
             if (listeners == null) {
                 listeners = new AttachedObjectListHolder<>();
             }
             listeners.restoreState(context, values[0]);
         }
 
-        if ( getElement(values,1) != null) {
+        if ( values[1] != null) {
             Map<Class<? extends SystemEvent>, List<SystemEventListener>> restoredListeners = restoreSystemEventListeners(context, values[1]);
             if (listenersByEventClass != null) {
                 listenersByEventClass.putAll(restoredListeners);
@@ -1198,19 +1198,19 @@ public abstract class UIComponentBase extends UIComponent {
             }
         }
 
-        if ( getElement(values, 2) != null ) {
+        if ( values[2] != null ) {
             behaviors = restoreBehaviorsState(context, values[2]);
         }
 
-        if ( getElement(values,4) != null) {
+        if ( values[4] != null) {
             getStateHelper().restoreState(context, values[4]);
         }
 
 
         // This means we've saved full state and need to do a little more
         // work to finish the job
-        if ( getElement(values,5) != null) {
-            id = (String) getElement(values,5);
+        if ( values[5] != null) {
+            id = (String) values[5];
         }
 
     }
@@ -1402,9 +1402,9 @@ public abstract class UIComponentBase extends UIComponent {
         if (state == null) {
             return null;
         }
-        Object values[] = (Object[]) state;
-        String names[] = (String[]) values[0];
-        Object states[] = (Object[]) values[1];
+        Object[] values = (Object[]) state;
+        String[] names = (String[]) values[0];
+        Object[] states = (Object[]) values[1];
         Map<String, ValueExpression> bindings = new HashMap<>(names.length);
         for (int i = 0; i < names.length; i++) {
             bindings.put(names[i], (ValueExpression) restoreAttachedState(context, states[i]));
@@ -2337,7 +2337,7 @@ public abstract class UIComponentBase extends UIComponent {
             }
         }
 
-        private ChildrenList list;
+        private final ChildrenList list;
         private int index;
         private int last = -1; // Index last returned by next() or previous()
 
@@ -2422,7 +2422,7 @@ public abstract class UIComponentBase extends UIComponent {
 
         private Iterator<UIComponent> iterator;
         private boolean childMode;
-        private UIComponent c;
+        private final UIComponent c;
 
         public FacetsAndChildrenIterator(UIComponent c) {
             this.c = c;
@@ -2475,8 +2475,8 @@ public abstract class UIComponentBase extends UIComponent {
          *
          */
         private static final long serialVersionUID = -1444791615672259097L;
-        private UIComponent component;
-        private FacesContext context;
+        private final UIComponent component;
+        private final FacesContext context;
 
         public FacetsMap(UIComponent component) {
             super(3, 1.0f);
@@ -2670,8 +2670,8 @@ public abstract class UIComponentBase extends UIComponent {
             this.key = key;
         }
 
-        private FacetsMap map;
-        private String key;
+        private final FacetsMap map;
+        private final String key;
 
         @Override
         public boolean equals(Object o) {
@@ -2895,7 +2895,7 @@ public abstract class UIComponentBase extends UIComponent {
             this.map = map;
         }
 
-        private FacetsMap map;
+        private final FacetsMap map;
 
         @Override
         public boolean add(UIComponent o) {
@@ -2937,8 +2937,8 @@ public abstract class UIComponentBase extends UIComponent {
             iterator = map.keySetIterator();
         }
 
-        private FacetsMap map = null;
-        private Iterator<String> iterator = null;
+        private final FacetsMap map;
+        private final Iterator<String> iterator;
         private Object last = null;
 
         @Override
@@ -2968,10 +2968,10 @@ public abstract class UIComponentBase extends UIComponent {
     // but UIComponentBase itself needs to be able to write to the Map.
     // We solve these requirements wrapping the underlying modifiable
     // Map inside of a unmodifiable map and providing private access to
-    // the underlying (modifable) Map
+    // the underlying (modifiable) Map
     private static class BehaviorsMap extends AbstractMap<String, List<ClientBehavior>> {
-        private Map<String, List<ClientBehavior>> unmodifiableMap;
-        private Map<String, List<ClientBehavior>> modifiableMap;
+        private final Map<String, List<ClientBehavior>> unmodifiableMap;
+        private final Map<String, List<ClientBehavior>> modifiableMap;
 
         private BehaviorsMap(Map<String, List<ClientBehavior>> modifiableMap) {
             this.modifiableMap = modifiableMap;
@@ -3042,7 +3042,7 @@ public abstract class UIComponentBase extends UIComponent {
 
             // We did not find the property descriptor map so we are now going to load it.
 
-            PropertyDescriptor propertyDescriptors[] = getPropertyDescriptors();
+            PropertyDescriptor[] propertyDescriptors = getPropertyDescriptors();
             if (propertyDescriptors != null) {
                 propertyDescriptorMap = new HashMap<>(propertyDescriptors.length, 1.0f);
                 for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
@@ -3077,8 +3077,7 @@ public abstract class UIComponentBase extends UIComponent {
     }
 
     private String addParentId(FacesContext context, String parentId, String childId) {
-        return new StringBuilder(parentId.length() + 1 + childId.length()).append(parentId).append(UINamingContainer.getSeparatorChar(context)).append(childId)
-                .toString();
+        return parentId + UINamingContainer.getSeparatorChar(context) + childId;
     }
 
     private String getParentId(FacesContext context, UIComponent parent) {
@@ -3364,17 +3363,6 @@ public abstract class UIComponentBase extends UIComponent {
                 ++j;
             }
         }
-    }
-
-    // --------------------------------------------------------------------------- Util methods
-
-    /**
-     * {@link ArrayIndexOutOfBoundsException}-safe return the element at index position
-     * @return the element at index position if index is not out of bounds of the array, null otherwise
-     */
-    // todo: move to Faces Util after other Pull Requests by pizzi80 will be merged
-    public static <T> T getElement( T[] array , int index ) {
-        return index > -1 && array.length > index ? array[index] : null;
     }
 
 }
