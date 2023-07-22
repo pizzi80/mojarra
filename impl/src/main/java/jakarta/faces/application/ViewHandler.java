@@ -79,24 +79,6 @@ public abstract class ViewHandler {
     public static final String CHARACTER_ENCODING_KEY = "jakarta.faces.request.charset";
 
     /**
-     * <p class="changed_modified_4_0">
-     * This is not anymore used since removal of support for Jakarta Pages.
-     * </p>
-     * @deprecated Use {@link #FACELETS_SUFFIX_PARAM_NAME} instead.
-     */
-    @Deprecated(since = "4.0", forRemoval = true)
-    public static final String DEFAULT_SUFFIX_PARAM_NAME = "jakarta.faces.DEFAULT_SUFFIX";
-
-    /**
-     * <p class="changed_modified_4_0">
-     * This is not anymore used since removal of support for Jakarta Pages.
-     * </p>
-     * @deprecated Use {@link #DEFAULT_FACELETS_SUFFIX} instead.
-     */
-    @Deprecated(since = "4.0", forRemoval = true)
-    public static final String DEFAULT_SUFFIX = ".xhtml";
-
-    /**
      * <p class="changed_added_2_2 changed_modified_4_1">
      * If this param is set, and calling toLowerCase().equals("true") on a String representation of its value returns true,
      * the runtime must ensure that any XML comments in the Facelets source page are not delivered to the client.
@@ -158,7 +140,7 @@ public abstract class ViewHandler {
      * <p class="changed_added_2_2 changed_modified_4_1">
      * <span class="changed_modified_2_3">When</span> a page is requested, what interval in seconds should the compiler
      * check for changes. If you don't want the compiler to check for changes once the page is compiled, then use a value of
-     * -1. Setting a low refresh period helps during development to be able to edit pages in a running application. 
+     * -1. Setting a low refresh period helps during development to be able to edit pages in a running application.
      * <span class="changed_added_2_3 changed_modified_4_1">If this value
      * is not specified, then the default depends on {@link jakarta.faces.application.ProjectStage}. If it is {@code Production},
      * then runtime must act as if it is set to -1</span><span class="changed_added_4_1">, else the runtime must act as if it is
