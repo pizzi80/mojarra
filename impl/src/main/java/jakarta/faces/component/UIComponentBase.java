@@ -110,6 +110,8 @@ public abstract class UIComponentBase extends UIComponent {
     private static final int MY_STATE = 0;
     private static final int CHILD_STATE = 1;
 
+    private static final String FACES_COMPONENT_DESCRIPTORS_MAP_NAME = "com.sun.faces.component.COMPONENT_DESCRIPTORS_MAP";
+
     /**
      * <p>
      * Each entry is an map of <code>PropertyDescriptor</code>s describing the properties of a concrete {@link UIComponent}
@@ -132,7 +134,7 @@ public abstract class UIComponentBase extends UIComponent {
      * An EMPTY_OBJECT_ARRAY argument list to be passed to reflection methods.
      * </p>
      */
-    private static final Object EMPTY_OBJECT_ARRAY[] = new Object[0];
+    private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
 
     /**
      * <p>
@@ -307,7 +309,7 @@ public abstract class UIComponentBase extends UIComponent {
 
     @Override
     public boolean isRendered() {
-        return Boolean.valueOf(getStateHelper().eval(PropertyKeys.rendered, TRUE).toString());
+        return Boolean.parseBoolean(getStateHelper().eval(PropertyKeys.rendered, TRUE).toString());
     }
 
     @Override
@@ -1433,9 +1435,9 @@ public abstract class UIComponentBase extends UIComponent {
         if (state == null) {
             return null;
         }
-        Object values[] = (Object[]) state;
-        String names[] = (String[]) values[0];
-        Object states[] = (Object[]) values[1];
+        Object[] values = (Object[]) state;
+        String[] names = (String[]) values[0];
+        Object[] states = (Object[]) values[1];
         Map<String, ValueExpression> bindings = new HashMap<>(names.length);
         for (int i = 0; i < names.length; i++) {
             bindings.put(names[i], (ValueExpression) restoreAttachedState(context, states[i]));
@@ -1471,7 +1473,7 @@ public abstract class UIComponentBase extends UIComponent {
         }
 
         int size = listenersByEventClass.size();
-        Object listeners[][] = new Object[size][2];
+        Object[][] listeners = new Object[size][2];
         int idx = 0;
         boolean savedState = false;
         for (Entry<Class<? extends SystemEvent>, List<SystemEventListener>> e : listenersByEventClass.entrySet()) {
@@ -2740,7 +2742,7 @@ public abstract class UIComponentBase extends UIComponent {
         @Override
         public boolean retainAll(Collection c) {
             boolean result = false;
-            Iterator v = iterator();
+            Iterator<Entry<String, UIComponent>> v = iterator();
             while (v.hasNext()) {
                 if (!c.contains(v.next())) {
                     v.remove();
@@ -2932,7 +2934,7 @@ public abstract class UIComponentBase extends UIComponent {
         @Override
         public boolean retainAll(Collection c) {
             boolean result = false;
-            Iterator v = iterator();
+            Iterator<String> v = iterator();
             while (v.hasNext()) {
                 if (!c.contains(v.next())) {
                     v.remove();
@@ -3125,11 +3127,9 @@ public abstract class UIComponentBase extends UIComponent {
 
             Map<String, Object> applicationMap = facesContext.getExternalContext().getApplicationMap();
 
-            if (!applicationMap.containsKey("com.sun.faces.compnent.COMPONENT_DESCRIPTORS_MAP")) {
-                applicationMap.put("com.sun.faces.compnent.COMPONENT_DESCRIPTORS_MAP", new ConcurrentHashMap<>());
-            }
+            applicationMap.putIfAbsent(FACES_COMPONENT_DESCRIPTORS_MAP_NAME, new ConcurrentHashMap<>());
 
-            descriptors = (Map<Class<?>, Map<String, PropertyDescriptor>>) applicationMap.get("com.sun.faces.compnent.COMPONENT_DESCRIPTORS_MAP");
+            descriptors = (Map<Class<?>, Map<String, PropertyDescriptor>>) applicationMap.get(FACES_COMPONENT_DESCRIPTORS_MAP_NAME);
             propertyDescriptorMap = descriptors.get(clazz);
         }
 
@@ -3137,7 +3137,7 @@ public abstract class UIComponentBase extends UIComponent {
 
             // We did not find the property descriptor map so we are now going to load it.
 
-            PropertyDescriptor propertyDescriptors[] = getPropertyDescriptors();
+            PropertyDescriptor[] propertyDescriptors = getPropertyDescriptors();
             if (propertyDescriptors != null) {
                 propertyDescriptorMap = new HashMap<>(propertyDescriptors.length, 1.0f);
                 for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
