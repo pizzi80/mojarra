@@ -118,6 +118,9 @@ public class Util {
     // Log instance for this class
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
 
+    public static final String EMPTY_STRING = "";
+    public static final String SPACE_STRING = " ";
+
     // README - make sure to add the message identifier constant
     // (ex: Util.CONVERSION_ERROR_MESSAGE_ID) and the number of substitution
     // parameters to test/com/sun/faces/util/TestUtil_messages (see comment there).
@@ -503,6 +506,32 @@ public class Util {
         if (attribute == null) {
             throw new FacesException("The \"" + attributeName + "\" attribute is required");
         }
+    }
+
+    public static void notNullArgs( Object arg1 , Object arg2 ) {
+        if ( arg1 == null || arg2 == null )
+            throw new NullPointerException();
+    }
+
+    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 ) {
+        notNullArgs(arg1,arg2);
+        Objects.requireNonNull(arg3);
+    }
+
+    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 , Object arg4 ) {
+        notNullArgs(arg1,arg2,arg3);
+        Objects.requireNonNull(arg4);
+    }
+
+    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 , Object arg4 , Object arg5 ) {
+        notNullArgs(arg1,arg2,arg3,arg4);
+        Objects.requireNonNull(arg5);
+    }
+
+    public static void notNullArgs( Object... objets ) {
+        Objects.requireNonNull(objets);
+        for ( Object obj : objets)
+            Objects.requireNonNull(obj);
     }
 
     public static ValueExpression getValueExpressionNullSafe(UIComponent component, String name) {
@@ -1531,7 +1560,7 @@ public class Util {
         else if (object instanceof Collection) {
             return ((Collection)object).stream();   // little bonus with sized spliterator...
         }
-        else if ( object instanceof Enumeration ) { // recursive call wrapping in an Iterator (Java 9+)
+        else if ( object instanceof Enumeration) { // recursive call wrapping in an Iterator (Java 9+)
             return stream( ((Enumeration)object).asIterator() );
         }
         else if (object instanceof Iterable) {
