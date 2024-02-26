@@ -27,6 +27,8 @@ import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParamet
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.ForceLoadFacesConfigFiles;
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.VerifyFacesConfigObjects;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.JakartaFacesProjectStage;
+import static com.sun.faces.context.SessionMap.createMutex;
+import static com.sun.faces.context.SessionMap.removeMutex;
 import static com.sun.faces.push.WebsocketEndpoint.URI_TEMPLATE;
 import static java.lang.Boolean.TRUE;
 import static java.text.MessageFormat.format;
@@ -42,6 +44,7 @@ import java.io.StringReader;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -121,6 +124,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
         }
 
         InitFacesContext initFacesContext = new InitFacesContext(servletContext);
+        Util.getCdiBeanManager(initFacesContext); // #5232 Fail fast when CDI is really not available.
 
         LOGGER.log(FINE, () -> format("ConfigureListener.contextInitialized({0})", servletContext.getContextPath()));
 
@@ -149,8 +153,11 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
             }
         }
 
-        if (webXmlProcessor.isDistributablePresent()) {
-            webConfig.setOptionEnabled(WebConfiguration.BooleanWebContextInitParameter.EnableDistributable, true);
+        // Do not override if already defined
+        if (!webConfig.isSet(WebConfiguration.BooleanWebContextInitParameter.EnableDistributable)) {
+            webConfig.setOptionEnabled(WebConfiguration.BooleanWebContextInitParameter.EnableDistributable, webXmlProcessor.isDistributablePresent());
+        }
+        if (webConfig.isOptionEnabled(WebConfiguration.BooleanWebContextInitParameter.EnableDistributable)) {
             servletContext.setAttribute(WebConfiguration.BooleanWebContextInitParameter.EnableDistributable.getQualifiedName(), TRUE);
         }
 
@@ -162,7 +169,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
         try {
             if (LOGGER.isLoggable(INFO)) {
-                LOGGER.log(INFO, "faces.config.listener.version", servletContext.getContextPath());
+                LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.3_pizzi" , servletContext.getContextPath()) );
             }
 
             if (webConfig.isOptionEnabled(VerifyFacesConfigObjects)) {
@@ -346,6 +353,8 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
     @Override
     public void sessionCreated(HttpSessionEvent event) {
+        createMutex(event.getSession());
+
         if (webAppListener != null) {
             webAppListener.sessionCreated(event);
         }
@@ -353,6 +362,8 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
     @Override
     public void sessionDestroyed(HttpSessionEvent event) {
+        removeMutex(event.getSession());
+
         if (webAppListener != null) {
             webAppListener.sessionDestroyed(event);
         }

@@ -19,7 +19,6 @@ package com.sun.faces.application.resource;
 import static com.sun.faces.RIConstants.FLOW_IN_JAR_PREFIX;
 import static com.sun.faces.config.WebConfiguration.META_INF_CONTRACTS_DIR;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsSuffix;
-import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.WebAppContractsDirectory;
 import static jakarta.faces.application.ResourceVisitOption.TOP_LEVEL_VIEWS_ONLY;
 import static java.util.Spliterator.DISTINCT;
 import static java.util.Spliterators.spliteratorUnknownSize;
@@ -32,13 +31,16 @@ import java.net.URL;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.util.Util;
 
+import jakarta.enterprise.inject.Any;
 import jakarta.faces.FacesException;
+import jakarta.faces.annotation.View;
 import jakarta.faces.application.ResourceVisitOption;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
@@ -48,12 +50,12 @@ public class FaceletWebappResourceHelper extends ResourceHelper {
 
     private static final String[] RESTRICTED_DIRECTORIES = { "/WEB-INF/", "/META-INF/" };
 
-    private final String webAppContractsDirectory;
+    private final ResourceHelper webappResourceHelper;
     private final String[] configuredExtensions;
 
-    public FaceletWebappResourceHelper() {
+    public FaceletWebappResourceHelper(WebappResourceHelper webappResourceHelper) {
+        this.webappResourceHelper = webappResourceHelper;
         WebConfiguration webConfig = WebConfiguration.getInstance();
-        webAppContractsDirectory = webConfig.getOptionValue(WebAppContractsDirectory);
         configuredExtensions = webConfig.getOptionValue(FaceletsSuffix, " ");
     }
 
@@ -114,9 +116,16 @@ public class FaceletWebappResourceHelper extends ResourceHelper {
     }
 
     public Stream<String> getViewResources(FacesContext facesContext, String path, int maxDepth, ResourceVisitOption... options) {
-        return stream(spliteratorUnknownSize(
+        Stream<String> physicalViewResources = stream(spliteratorUnknownSize(
                 new ResourcePathsIterator(path, maxDepth, configuredExtensions, getRestrictedDirectories(options), facesContext.getExternalContext()),
                 DISTINCT), false);
+        Stream<String> programmaticViewResources = Util.getCdiBeanManager(facesContext)
+                .getBeans(Object.class, Any.Literal.INSTANCE).stream()
+                .map(bean -> bean.getBeanClass().getAnnotation(View.class))
+                .filter(Objects::nonNull)
+                .map(View::value);
+
+        return Stream.concat(physicalViewResources, programmaticViewResources);
     }
 
     private static String[] getRestrictedDirectories(final ResourceVisitOption... options) {
@@ -150,9 +159,9 @@ public class FaceletWebappResourceHelper extends ResourceHelper {
 
         for (String contract : contracts) {
             if (baseResourceName.startsWith("/")) {
-                resourceName = webAppContractsDirectory + "/" + contract + baseResourceName;
+                resourceName = getBaseContractsPath() + "/" + contract + baseResourceName;
             } else {
-                resourceName = webAppContractsDirectory + "/" + contract + "/" + baseResourceName;
+                resourceName = getBaseContractsPath() + "/" + contract + "/" + baseResourceName;
             }
 
             url = Resource.getResourceUrl(ctx, resourceName);
@@ -226,7 +235,7 @@ public class FaceletWebappResourceHelper extends ResourceHelper {
 
     @Override
     public String getBaseContractsPath() {
-        return webAppContractsDirectory;
+        return webappResourceHelper.getBaseContractsPath();
     }
 
     @Override

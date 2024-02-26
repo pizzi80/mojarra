@@ -16,6 +16,9 @@
 
 package com.sun.faces.context;
 
+import static com.sun.faces.RIConstants.CHAR_ENCODING;
+
+import java.io.UnsupportedEncodingException;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URLEncoder;
@@ -75,7 +78,7 @@ class UrlBuilder {
     }
 
     public UrlBuilder(String url) {
-        this(url, DEFAULT_ENCODING);
+        this(url, CHAR_ENCODING);
     }
 
     // ---------------------------------------------------------- Public Methods
