@@ -18,6 +18,7 @@ package com.sun.faces.util;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.sun.faces.RIConstants;
 
@@ -28,7 +29,7 @@ import jakarta.faces.context.PartialViewContext;
 /**
  * <p>
  * This helper class is used a central location for per-request state that is needed by Mojarra. This class leverages
- * FacesContext.getAttributes() which as added in 2.0 instead of the request scope to prevent the unecessary triggering
+ * FacesContext.getAttributes() which as added in 2.0 instead of the request scope to prevent the unnecessary triggering
  * of ServletRequestAttributeListeners.
  * </p>
  */
@@ -56,12 +57,12 @@ public class RequestStateManager {
     public static final String RENDER_KIT_IMPL_REQ = RIConstants.FACES_PREFIX + "renderKitImplForRequest";
 
     /**
-     * This attribute is used by the StateMangaer during restore view. The values are stored in the request for later use.
+     * This attribute is used by the StateManager during restore view. The values are stored in the request for later use.
      */
     public static final String LOGICAL_VIEW_MAP = RIConstants.FACES_PREFIX + "logicalViewMap";
 
     /**
-     * This attribute is used by the StateMangaer during restore view. The values are stored in the request for later use.
+     * This attribute is used by the StateManager during restore view. The values are stored in the request for later use.
      */
     public static final String ACTUAL_VIEW_MAP = RIConstants.FACES_PREFIX + "actualViewMap";
 
@@ -88,8 +89,8 @@ public class RequestStateManager {
     public static final String FACES_VIEW_STATE = "com.sun.faces.FACES_VIEW_STATE";
 
     /**
-     * Leveraged by ResourceHandlerImpl to denote whether or not a request is a resource request. A <code>Boolean</code>
-     * value will be assoicated with this key.
+     * Leveraged by ResourceHandlerImpl to denote whether a request is a resource request. A <code>Boolean</code>
+     * value will be associated with this key.
      */
     public static final String RESOURCE_REQUEST = "com.sun.faces.RESOURCE_REQUEST";
 
@@ -123,8 +124,10 @@ public class RequestStateManager {
      */
     public static final String RENDERED_RESOURCE_DEPENDENCIES = ResourceHandler.RESOURCE_IDENTIFIER;
 
-    // TODO: refactor this thing to common map.
-    private static final String[] ATTRIBUTES_TO_CLEAR_ON_CHANGE_OF_VIEW = { SCRIPT_STATE, PROCESSED_RESOURCE_DEPENDENCIES, PROCESSED_RADIO_BUTTON_GROUPS };
+    /**
+     * Attributes to be removed while changing the view root
+     */
+    private static final Set<String> ATTRIBUTES_TO_CLEAR_ON_CHANGE_OF_VIEW = Set.of( SCRIPT_STATE, PROCESSED_RESOURCE_DEPENDENCIES, PROCESSED_RADIO_BUTTON_GROUPS );
 
     /**
      * <p>
@@ -204,10 +207,8 @@ public class RequestStateManager {
             return;
         }
 
-        Map<Object, Object> attrs = ctx.getAttributes();
-        for (String key : ATTRIBUTES_TO_CLEAR_ON_CHANGE_OF_VIEW) {
-            attrs.remove(key);
-        }
+        Map<Object,Object> attrs = ctx.getAttributes();
+        attrs.keySet().removeAll(ATTRIBUTES_TO_CLEAR_ON_CHANGE_OF_VIEW);
 
         PartialViewContext pvc = ctx.getPartialViewContext();
 

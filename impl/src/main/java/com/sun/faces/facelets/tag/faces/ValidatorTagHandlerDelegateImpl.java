@@ -159,7 +159,7 @@ public class ValidatorTagHandlerDelegateImpl extends TagHandlerDelegate implemen
 
     // --------------------------------------------------------- Private Methods
 
-    // Tests whether the valiator tag is wrapping other tags.
+    // Tests whether the validator tag is wrapping other tags.
     private boolean isWrapping() {
 
         // Would be nice if there was some easy way to determine whether
@@ -210,7 +210,7 @@ public class ValidatorTagHandlerDelegateImpl extends TagHandlerDelegate implemen
      * @param ctx FaceletContext to use
      * @return a new Validator instance
      */
-    private Validator createValidator(FaceletContext ctx) {
+    private Validator<?> createValidator(FaceletContext ctx) {
 
         String id = owner.getValidatorId(ctx);
         if (id == null) {

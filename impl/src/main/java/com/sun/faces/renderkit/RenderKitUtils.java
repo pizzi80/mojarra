@@ -86,7 +86,7 @@ public class RenderKitUtils {
 
     /**
      * <p>
-     * The prefix to append to certain attributes when renderking <code>XHTML Transitional</code> content.
+     * The prefix to append to certain attributes when rendering <code>XHTML Transitional</code> content.
      */
     private static final String XHTML_ATTR_PREFIX = "xml:";
 
@@ -164,9 +164,9 @@ public class RenderKitUtils {
         PARTIAL_EXECUTE_PARAM(PartialViewContext.PARTIAL_EXECUTE_PARAM_NAME), PARTIAL_RENDER_PARAM(PartialViewContext.PARTIAL_RENDER_PARAM_NAME),
         PARTIAL_RESET_VALUES_PARAM(PartialViewContext.RESET_VALUES_PARAM_NAME);
 
-        private String name;
+        private final String name;
 
-        private PredefinedPostbackParameter(String name) {
+        PredefinedPostbackParameter(String name) {
             this.name = name;
         }
 
@@ -300,7 +300,7 @@ public class RenderKitUtils {
         }
 
         // Don't render behavior scripts if component is disabled
-        if (null != behaviors && behaviors.size() > 0 && Util.componentIsDisabled(component)) {
+        if (null != behaviors && !behaviors.isEmpty() && Util.componentIsDisabled(component)) {
             behaviors = null;
         }
 
@@ -372,7 +372,7 @@ public class RenderKitUtils {
         renderHandler(context, component, params, handlerName, userHandler, behaviorEventName, null, false, incExec);
     }
 
-    // Renders onclick handler for SelectRaidio and SelectCheckbox
+    // Renders onclick handler for SelectRadio and SelectCheckbox
     public static void renderSelectOnclick(FacesContext context, UIComponent component, boolean incExec) throws IOException {
 
         final String handlerName = "onclick";
@@ -513,7 +513,7 @@ public class RenderKitUtils {
                 continue;
             }
 
-            if (Boolean.valueOf(val.toString())) {
+            if (Boolean.parseBoolean(val.toString())) {
                 writer.writeAttribute(attrName, true, attrName);
             }
         }
@@ -533,10 +533,8 @@ public class RenderKitUtils {
      * @return The content type <code>String</code>
      */
     public static String determineContentType(String accept, String serverSupportedTypes, String preferredType) {
-        String contentType = null;
-
         if (null == accept || null == serverSupportedTypes) {
-            return contentType;
+            return null;
         }
 
         String[][] clientContentTypes = buildTypeArrayFromString(accept);
@@ -547,10 +545,12 @@ public class RenderKitUtils {
         // if best match exits and best match is not some wildcard,
         // return best match
         if (matchedInfo[0][1] != null && !matchedInfo[0][2].equals("*")) {
-            contentType = matchedInfo[0][1] + CONTENT_TYPE_SUBTYPE_DELIMITER + matchedInfo[0][2];
+            String contentType = matchedInfo[0][1] + CONTENT_TYPE_SUBTYPE_DELIMITER + matchedInfo[0][2];
+            return contentType;
         }
 
-        return contentType;
+        // else return null
+        return null;
     }
 
     /**
@@ -574,7 +574,7 @@ public class RenderKitUtils {
         assert behaviors != null;
 
         String name = component.getClass().getName();
-        if (name != null && name.startsWith(OPTIMIZED_PACKAGE)) {
+        if (name.startsWith(OPTIMIZED_PACKAGE)) {
 
             // If we've got behaviors attached to multiple events
             // it is difficult to optimize, so fall back to the
@@ -640,8 +640,7 @@ public class RenderKitUtils {
             // Note that we can optimize this search by providing
             // an event name -> Attribute inverse look up map.
             // This would change the search time from O(n) to O(1).
-            for (int i = 0; i < knownAttributes.length; i++) {
-                Attribute attr = knownAttributes[i];
+            for (Attribute attr : knownAttributes) {
                 String[] events = attr.getEvents();
                 if (events != null && events.length > 0 && behaviorEventName.equals(events[0])) {
 
@@ -746,7 +745,7 @@ public class RenderKitUtils {
     }
 
     /**
-     * <p>
+     * <pre>
      * This method builds a two element array structure as follows: Example: Given the following accept string: text/html;
      * level=1, text/plain; q=0.5 [0][0] 1 (quality is 1 if none specified) [0][1] "text" (type) [0][2] "html; level=1"
      * (subtype) [0][3] 1 (level, if specified; null if not)
@@ -754,15 +753,15 @@ public class RenderKitUtils {
      * [1][0] .5 [1][1] "text" [1][2] "plain" [1][3] (level, if specified; null if not)
      *
      * The array is used for comparison purposes in the findMatch method.
-     * </p>
+     * </pre>
      *
      * @param accept An accept <code>String</code>
-     * @return an two dimensional array containing content-type/quality info
+     * @return a two dimensional array containing content-type/quality info
      */
     private static String[][] buildTypeArrayFromString(String accept) {
         // return if empty
-        if (accept == null || accept.length() == 0) {
-            return new String[0][0];
+        if (Util.isEmpty(accept)) {
+            return RIConstants.EMPTY_STRING_MATRIX;
         }
         // some helper variables
         StringBuilder typeSubType;
@@ -776,8 +775,8 @@ public class RenderKitUtils {
         String[] types = Util.split(appMap, accept, CONTENT_TYPE_DELIMITER);
         String[][] arrayAccept = new String[types.length][MAX_CONTENT_TYPE_PARTS];
         int index = -1;
-        for (int i = 0; i < types.length; i++) {
-            String token = types[i].trim();
+        for (String s : types) {
+            String token = s.trim();
             index += 1;
             // Check to see if our accept string contains the delimiter that is used
             // to add uniqueness to a type/subtype, and/or delimits a qualifier value:
@@ -804,13 +803,13 @@ public class RenderKitUtils {
                             quality = qualityParts[1].trim();
                             break;
                         } else {
-                            quality = "not set"; // to identifiy that no quality was supplied
+                            quality = "not set"; // to identify that no quality was supplied
                         }
                     }
                 }
             } else {
                 typeSubType = new StringBuilder(token);
-                quality = "not set"; // to identifiy that no quality was supplied
+                quality = "not set"; // to identify that no quality was supplied
             }
             // now split type and subtype
             if (typeSubType.indexOf(CONTENT_TYPE_SUBTYPE_DELIMITER) >= 0) {
@@ -839,7 +838,7 @@ public class RenderKitUtils {
                     quality = "0.01";
                 } else if (!type.equals("*") && subtype.equals("*")) {
                     quality = "0.02";
-                } else if (type.equals("*") && subtype.length() == 0) {
+                } else if (type.equals("*") && subtype.isEmpty()) {
                     quality = "0.01";
                 } else {
                     quality = "1";
@@ -876,49 +875,48 @@ public class RenderKitUtils {
         double highestQFactor = 0;
         // the record with the highest quality
         int idx = 0;
-        for (int sidx = 0, slen = serverSupportedContentTypes.length; sidx < slen; sidx++) {
+        for (String[] serverSupportedContentType : serverSupportedContentTypes) {
             // get server type
-            String serverType = serverSupportedContentTypes[sidx][1];
+            String serverType = serverSupportedContentType[1];
             if (serverType != null) {
-                for (int cidx = 0, clen = clientContentTypes.length; cidx < clen; cidx++) {
+                for (String[] clientContentType : clientContentTypes) {
                     // get browser type
-                    String browserType = clientContentTypes[cidx][1];
+                    String browserType = clientContentType[1];
                     if (browserType != null) {
                         // compare them and check for wildcard
                         if (browserType.equalsIgnoreCase(serverType) || browserType.equals("*")) {
                             // types are equal or browser type is wildcard - compare subtypes
-                            if (clientContentTypes[cidx][2].equalsIgnoreCase(serverSupportedContentTypes[sidx][2])
-                                    || clientContentTypes[cidx][2].equals("*")) {
+                            if (clientContentType[2].equalsIgnoreCase(serverSupportedContentType[2]) || clientContentType[2].equals("*")) {
                                 // subtypes are equal or browser subtype is wildcard
-                                // found match: multiplicate qualities and add to result array
+                                // found match: multiplicative qualities and add to result array
                                 // if there was a level associated, this gets higher precedence, so
                                 // factor in the level in the calculation.
                                 double cLevel = 0.0;
                                 double sLevel = 0.0;
-                                if (clientContentTypes[cidx][3] != null) {
-                                    cLevel = Double.parseDouble(clientContentTypes[cidx][3]) * .10;
+                                if (clientContentType[3] != null) {
+                                    cLevel = Double.parseDouble(clientContentType[3]) * .10;
                                 }
-                                if (serverSupportedContentTypes[sidx][3] != null) {
-                                    sLevel = Double.parseDouble(serverSupportedContentTypes[sidx][3]) * .10;
+                                if (serverSupportedContentType[3] != null) {
+                                    sLevel = Double.parseDouble(serverSupportedContentType[3]) * .10;
                                 }
-                                double cQfactor = Double.parseDouble(clientContentTypes[cidx][0]) + cLevel;
-                                double sQfactor = Double.parseDouble(serverSupportedContentTypes[sidx][0]) + sLevel;
+                                double cQfactor = Double.parseDouble(clientContentType[0]) + cLevel;
+                                double sQfactor = Double.parseDouble(serverSupportedContentType[0]) + sLevel;
                                 double resultQuality = cQfactor * sQfactor;
 
                                 String[] curResult = new String[MAX_CONTENT_TYPE_PARTS];
                                 resultList.add(curResult);
                                 curResult[0] = String.valueOf(resultQuality);
 
-                                if (clientContentTypes[cidx][2].equals("*")) {
+                                if (clientContentType[2].equals("*")) {
                                     // browser subtype is wildcard
                                     // return type and subtype (wildcard)
-                                    curResult[1] = clientContentTypes[cidx][1];
-                                    curResult[2] = clientContentTypes[cidx][2];
+                                    curResult[1] = clientContentType[1];
+                                    curResult[2] = clientContentType[2];
                                 } else {
                                     // return server type and subtype
-                                    curResult[1] = serverSupportedContentTypes[sidx][1];
-                                    curResult[2] = serverSupportedContentTypes[sidx][2];
-                                    curResult[3] = serverSupportedContentTypes[sidx][3];
+                                    curResult[1] = serverSupportedContentType[1];
+                                    curResult[2] = serverSupportedContentType[2];
+                                    curResult[3] = serverSupportedContentType[3];
                                 }
                                 // check if this was the highest factor
                                 if (resultQuality > highestQFactor) {
@@ -937,10 +935,8 @@ public class RenderKitUtils {
         String[][] match = new String[1][3];
         if (preferredContentType.length != 0 && preferredContentType[0][0] != null) {
             BigDecimal highestQual = BigDecimal.valueOf(highestQFactor);
-            for (int i = 0, len = resultList.size(); i < len; i++) {
-                String[] result = resultList.get(i);
-                if (BigDecimal.valueOf(Double.parseDouble(result[0])).compareTo(highestQual) == 0 && result[1].equals(preferredContentType[0][1])
-                        && result[2].equals(preferredContentType[0][2])) {
+            for (String[] result : resultList) {
+                if (BigDecimal.valueOf(Double.parseDouble(result[0])).compareTo(highestQual) == 0 && result[1].equals(preferredContentType[0][1]) && result[2].equals(preferredContentType[0][2])) {
                     match[0][0] = result[0];
                     match[0][1] = result[1];
                     match[0][2] = result[2];
@@ -964,8 +960,8 @@ public class RenderKitUtils {
      * Replaces all occurrences of <code>-</code> with <code>$_</code>.
      * </p>
      *
-     * @param origIdentifier the original identifer that needs to be 'ECMA-ized'
-     * @return an ECMA valid identifer
+     * @param origIdentifier the original identifier that needs to be 'ECMA-ized'
+     * @return an ECMA valid identifier
      */
     public static String createValidECMAIdentifier(String origIdentifier) {
         return origIdentifier.replace("-", "$_");
@@ -1134,7 +1130,7 @@ public class RenderKitUtils {
     // been triggered either via faces.ajax.request() or via a submitting
     // behavior.
     public static boolean isPartialOrBehaviorAction(FacesContext context, String clientId) {
-        if (clientId == null || clientId.length() == 0) {
+        if ( Util.isEmpty(clientId) ) {
             return false;
         }
 
@@ -1196,11 +1192,7 @@ public class RenderKitUtils {
         }
 
         UIForm form = (UIForm) parent;
-        if (form != null) {
-            return form;
-        }
-
-        return null;
+        return form;
     }
 
     /**
@@ -1226,7 +1218,7 @@ public class RenderKitUtils {
                     String msg = "Illegal path, direct contract references are not allowed: " + resName;
                     context.addMessage(component.getClientId(context), new FacesMessage(FacesMessage.SEVERITY_ERROR, msg, msg));
                 }
-                return "RES_NOT_FOUND";
+                return RIConstants.RESOURCE_NOT_FOUND;
             }
 
             Resource res = handler.createResource(resName, libName);
@@ -1235,7 +1227,7 @@ public class RenderKitUtils {
                     String msg = "Unable to find resource " + (libName == null ? "" : libName + ", ") + resName;
                     context.addMessage(component.getClientId(context), new FacesMessage(FacesMessage.SEVERITY_ERROR, msg, msg));
                 }
-                return "RES_NOT_FOUND";
+                return RIConstants.RESOURCE_NOT_FOUND;
             } else {
                 String requestPath = res.getRequestPath();
                 return context.getExternalContext().encodeResourceURL(requestPath);
@@ -1243,8 +1235,8 @@ public class RenderKitUtils {
         } else {
 
             String value = (String) component.getAttributes().get(attrName);
-            if (value == null || value.length() == 0) {
-                return "";
+            if ( Util.isEmpty(value) ) {
+                return RIConstants.NO_VALUE;
             }
             WebConfiguration webConfig = WebConfiguration.getInstance();
             if (value.startsWith(webConfig.getOptionValue(WebConfiguration.WebContextInitParameter.WebAppContractsDirectory))) {
@@ -1252,7 +1244,7 @@ public class RenderKitUtils {
                     String msg = "Illegal path, direct contract references are not allowed: " + value;
                     context.addMessage(component.getClientId(context), new FacesMessage(FacesMessage.SEVERITY_ERROR, msg, msg));
                 }
-                return "RES_NOT_FOUND";
+                return RIConstants.RESOURCE_NOT_FOUND;
             }
 
             if (handler.isResourceURL(value)) {
@@ -1304,11 +1296,11 @@ public class RenderKitUtils {
     // Appends a script to a faces.util.chain() call
     private static void appendScriptToChain(StringBuilder builder, String script) {
 
-        if (script == null || script.length() == 0) {
+        if ( Util.isEmpty(script) ) {
             return;
         }
 
-        if (builder.length() == 0) {
+        if (builder.isEmpty()) {
             builder.append("faces.util.chain(this,event,");
         }
 
@@ -1319,7 +1311,7 @@ public class RenderKitUtils {
         appendQuotedValue(builder, script);
     }
 
-    // Appends an name/value property pair to a JSON object. Assumes
+    // Appends a name/value property pair to a JSON object. Assumes
     // object has already been opened by the caller. The value will
     // be quoted (ie. wrapped in single quotes and escaped appropriately).
     public static void appendProperty(StringBuilder builder, String name, Object value) {
@@ -1330,7 +1322,7 @@ public class RenderKitUtils {
     // object has already been opened by the caller.
     public static void appendProperty(StringBuilder builder, String name, Object value, boolean quoteValue) {
 
-        if (null == name || name.length() == 0) {
+        if ( Util.isEmpty(name) ) {
             throw new IllegalArgumentException();
         }
 
@@ -1347,7 +1339,7 @@ public class RenderKitUtils {
         } else if (quoteValue) {
             RenderKitUtils.appendQuotedValue(builder, value.toString());
         } else {
-            builder.append(value.toString());
+            builder.append(value);
         }
     }
 
@@ -1386,7 +1378,7 @@ public class RenderKitUtils {
 
         for (ClientBehavior behavior : behaviors) {
             String script = behavior.getScript(bContext);
-            if (script != null && script.length() > 0) {
+            if ( Util.isNotEmpty(script) ) {
                 appendScriptToChain(builder, script);
 
                 if (isSubmitting(behavior)) {
@@ -1438,7 +1430,7 @@ public class RenderKitUtils {
             handler = handlerObject.toString();
             handler = handler.trim();
 
-            if (handler.length() == 0) {
+            if (handler.isEmpty()) {
                 handler = null;
             }
         }
@@ -1450,9 +1442,8 @@ public class RenderKitUtils {
     // or null if no Behaviors are available
     private static List<ClientBehavior> getClientBehaviors(UIComponent component, String behaviorEventName) {
 
-        if (component instanceof ClientBehaviorHolder) {
-            ClientBehaviorHolder bHolder = (ClientBehaviorHolder) component;
-            Map<String, List<ClientBehavior>> behaviors = bHolder.getClientBehaviors();
+        if (component instanceof ClientBehaviorHolder holder) {
+            Map<String, List<ClientBehavior>> behaviors = holder.getClientBehaviors();
             if (null != behaviors) {
                 return behaviors.get(behaviorEventName);
             }
@@ -1523,11 +1514,11 @@ public class RenderKitUtils {
             submitting = true;
         }
 
-        if (builder.length() == 0) {
+        if (builder.isEmpty()) {
             return null;
         }
 
-        builder.append(")");
+        builder.append(')');
 
         // If we're submitting (either via a behavior, or by rendering
         // a submit script), we need to return false to prevent the
@@ -1596,7 +1587,7 @@ public class RenderKitUtils {
         List<ClientBehavior> behaviors = getClientBehaviors(component, behaviorEventName);
 
         // Don't render behavior scripts if component is disabled
-        if (null != behaviors && behaviors.size() > 0 && Util.componentIsDisabled(component)) {
+        if ( Util.isNotEmpty(behaviors) && Util.componentIsDisabled(component)) {
             behaviors = null;
         }
 

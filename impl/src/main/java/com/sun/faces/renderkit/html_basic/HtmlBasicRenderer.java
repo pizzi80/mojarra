@@ -533,8 +533,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
         if (childCount > 0) {
 
             for (UIComponent kid : command.getChildren()) {
-                if (kid instanceof UIParameter) {
-                    UIParameter uiParam = (UIParameter) kid;
+                if (kid instanceof UIParameter uiParam) {
                     String name = uiParam.getName();
                     Object value = uiParam.getValue();
 
@@ -550,7 +549,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
             }
         }
 
-        return params == null ? Collections.<ClientBehaviorContext.Parameter>emptyList() : params;
+        return params == null ? Collections.emptyList() : params;
     }
 
     protected Object getValue(UIComponent component) {
@@ -701,16 +700,14 @@ public abstract class HtmlBasicRenderer extends Renderer {
      * @param forComponent - the component to search for
      *
      * @return the component with the the <code>id</code that matches
-     *         <code>forComponent</code> otheriwse null if no match is found.
+     *         <code>forComponent</code> otherwise null if no match is found.
      */
     private static UIComponent findUIComponentBelow(UIComponent startPoint, String forComponent) {
 
         UIComponent retComp = null;
         if (startPoint.getChildCount() > 0) {
             List<UIComponent> children = startPoint.getChildren();
-            for (int i = 0, size = children.size(); i < size; i++) {
-                UIComponent comp = children.get(i);
-
+            for (UIComponent comp : children) {
                 if (comp instanceof NamingContainer) {
                     try {
                         retComp = comp.findComponent(forComponent);

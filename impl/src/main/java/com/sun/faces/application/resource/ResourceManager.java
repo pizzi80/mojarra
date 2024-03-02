@@ -62,22 +62,22 @@ public class ResourceManager {
     /**
      * {@link ResourceHelper} used for looking up webapp-based resources.
      */
-    private WebappResourceHelper webappResourceHelper = new WebappResourceHelper();
+    private final WebappResourceHelper webappResourceHelper = new WebappResourceHelper();
 
     /**
      * {@link ResourceHelper} used for looking up webapp-based facelets resources.
      */
-    private FaceletWebappResourceHelper faceletWebappResourceHelper = new FaceletWebappResourceHelper(webappResourceHelper);
+    private final FaceletWebappResourceHelper faceletWebappResourceHelper = new FaceletWebappResourceHelper(webappResourceHelper);
 
     /**
      * {@link ResourceHelper} used for looking up classpath-based resources.
      */
-    private ClasspathResourceHelper classpathResourceHelper = new ClasspathResourceHelper();
+    private final ClasspathResourceHelper classpathResourceHelper = new ClasspathResourceHelper();
 
     /**
      * Cache for storing {@link ResourceInfo} instances to reduce the cost of the resource lookups.
      */
-    private ResourceCache cache;
+    private final ResourceCache cache;
 
     /**
      * Patterns used to find {@link ResourceInfo} instances that may have their content compressed.
@@ -568,7 +568,7 @@ public class ResourceManager {
                 // it is a resource request. look at the parameter con=.
 
                 String param = context.getExternalContext().getRequestParameterMap().get("con");
-                if (!nameContainsForbiddenSequence(param) && param != null && param.trim().length() > 0) {
+                if (!nameContainsForbiddenSequence(param) && param != null && !param.trim().isEmpty()) {
                     return Arrays.asList(param);
                 }
             }
@@ -610,7 +610,7 @@ public class ResourceManager {
 
         WebConfiguration config = WebConfiguration.getInstance();
         String value = config.getOptionValue(WebConfiguration.WebContextInitParameter.CompressableMimeTypes);
-        if (value != null && value.length() > 0) {
+        if (value != null && !value.isEmpty()) {
             String[] values = Util.split(appMap, value, ",");
             if (values != null) {
                 for (String s : values) {

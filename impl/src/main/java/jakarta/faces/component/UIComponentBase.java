@@ -37,6 +37,7 @@ import java.beans.PropertyDescriptor;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serial;
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
@@ -1135,8 +1136,6 @@ public abstract class UIComponentBase extends UIComponent {
             throw new NullPointerException();
         }
 
-        Object[] values = null;
-
         if (initialStateMarked()) {
             Object savedFacesListeners = listeners != null ? listeners.saveState(context) : null;
             Object savedSysEventListeners = saveSystemEventListeners(context);
@@ -1152,9 +1151,7 @@ public abstract class UIComponentBase extends UIComponent {
                 return null;
             }
 
-            if (values == null || values.length != 5) {
-                values = new Object[5];
-            }
+            Object[] values = new Object[5];
 
             // Since we're saving partial state, skip id and clientId
             // as this will be reconstructed from the template execution
@@ -1167,10 +1164,9 @@ public abstract class UIComponentBase extends UIComponent {
 
             return values;
 
-        } else {
-            if (values == null || values.length != 6) {
-                values = new Object[6];
-            }
+        }
+        else {
+            Object[] values = new Object[6];
 
             values[0] = listeners != null ? listeners.saveState(context) : null;
             values[1] = saveSystemEventListeners(context);
@@ -1411,8 +1407,7 @@ public abstract class UIComponentBase extends UIComponent {
                 result = retMap;
 
             }
-        } else if (stateObj instanceof StateHolderSaver) {
-            StateHolderSaver saver = (StateHolderSaver) stateObj;
+        } else if (stateObj instanceof StateHolderSaver saver) {
             result = saver.restore(context);
         } else {
             throw new IllegalStateException("Unknown object type");
@@ -1469,8 +1464,7 @@ public abstract class UIComponentBase extends UIComponent {
 
         Object[][] listeners = (Object[][]) state;
         Map<Class<? extends SystemEvent>, List<SystemEventListener>> m = new HashMap<>(listeners.length, 1.0f);
-        for (int i = 0, len = listeners.length; i < len; i++) {
-            Object[] source = listeners[i];
+        for (Object[] source : listeners) {
             m.put((Class<? extends SystemEvent>) source[0], (List<SystemEventListener>) restoreAttachedState(ctx, source[1]));
         }
 
@@ -1671,7 +1665,7 @@ public abstract class UIComponentBase extends UIComponent {
      */
     private Object saveBehaviorsState(FacesContext context) {
         Object state = null;
-        if (null != behaviors && behaviors.size() > 0) {
+        if (null != behaviors && !behaviors.isEmpty()) {
             boolean stateWritten = false;
             Object[] attachedBehaviors = new Object[behaviors.size()];
             int i = 0;
@@ -1719,8 +1713,8 @@ public abstract class UIComponentBase extends UIComponent {
                 for (int i = 0; i < attachedBehaviors.length; i++) {
                     Object[] attachedEventBehaviors = (Object[]) attachedBehaviors[i];
                     ArrayList<ClientBehavior> eventBehaviors = new ArrayList<>(attachedBehaviors.length);
-                    for (int j = 0; j < attachedEventBehaviors.length; j++) {
-                        eventBehaviors.add((ClientBehavior) restoreAttachedState(context, attachedEventBehaviors[j]));
+                    for (Object attachedEventBehavior : attachedEventBehaviors) {
+                        eventBehaviors.add((ClientBehavior) restoreAttachedState(context, attachedEventBehavior));
                     }
 
                     modifiableMap.put(names[i], eventBehaviors);
@@ -1781,16 +1775,16 @@ public abstract class UIComponentBase extends UIComponent {
             component.pushComponentToEL(context, component);
             application.publishEvent(context, PostAddToViewEvent.class, component);
             if (component.getChildCount() > 0) {
-                Collection<UIComponent> clist = new ArrayList<>(component.getChildren());
-                for (UIComponent c : clist) {
-                    publishAfterViewEvents(context, application, c);
+                Collection<UIComponent> children = new ArrayList<>(component.getChildren());
+                for (UIComponent child : children) {
+                    publishAfterViewEvents(context, application, child);
                 }
             }
 
             if (component.getFacetCount() > 0) {
-                Collection<UIComponent> clist = new ArrayList<>(component.getFacets().values());
-                for (UIComponent c : clist) {
-                    publishAfterViewEvents(context, application, c);
+                Collection<UIComponent> facets = new ArrayList<>(component.getFacets().values());
+                for (UIComponent facet : facets) {
+                    publishAfterViewEvents(context, application, facet);
                 }
             }
         } finally {
@@ -1806,14 +1800,14 @@ public abstract class UIComponentBase extends UIComponent {
         component.compositeParent = null;
         if (component.getChildCount() > 0) {
             List<UIComponent> children = component.getChildren();
-            for (UIComponent c : children) {
-                disconnectFromView(context, application, c);
+            for (UIComponent child : children) {
+                disconnectFromView(context, application, child);
             }
         }
         if (component.getFacetCount() > 0) {
             Map<String, UIComponent> facets = component.getFacets();
-            for (UIComponent c : facets.values()) {
-                disconnectFromView(context, application, c);
+            for (UIComponent facet : facets.values()) {
+                disconnectFromView(context, application, facet);
             }
         }
 
@@ -1836,22 +1830,23 @@ public abstract class UIComponentBase extends UIComponent {
     // private 'attributes' map directly to the state saving process.
     private static class AttributesMap implements Map<String, Object>, Serializable {
 
+        @Serial
+        private static final long serialVersionUID = -6773035086539772945L;
+
         // this KEY is special to the AttributesMap - this allows the implementation
         // to access the the List containing the attributes that have been set
         private static final String ATTRIBUTES_THAT_ARE_SET_KEY = UIComponentBase.class.getName() + ".attributesThatAreSet";
 
         // private Map<String, Object> attributes;
+        private transient UIComponent component;
         private transient Map<String, PropertyDescriptor> pdMap;
         private transient ConcurrentMap<String, Method> readMap;
-        private transient UIComponent component;
-        private static final long serialVersionUID = -6773035086539772945L;
 
         // -------------------------------------------------------- Constructors
 
         private AttributesMap(UIComponent component) {
-
             this.component = component;
-            pdMap = ((UIComponentBase) component).getDescriptorMap();
+            this.pdMap = ((UIComponentBase) component).getDescriptorMap();
         }
 
         @Override
@@ -2149,7 +2144,6 @@ public abstract class UIComponentBase extends UIComponent {
         }
 
         private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-            // noinspection unchecked
             Class<?> clazz = (Class<?>) in.readObject();
             try {
                 component = (UIComponent) clazz.getDeclaredConstructor().newInstance();
@@ -2164,12 +2158,11 @@ public abstract class UIComponentBase extends UIComponent {
     // required by UIComponent.getChildren()
     private static class ChildrenList extends ArrayList<UIComponent> {
 
-        /**
-         *
-         */
+        @Serial
         private static final long serialVersionUID = 8926987612679576963L;
-        private UIComponent component;
-        private FacesContext context;
+
+        private final UIComponent component;
+        private final FacesContext context;
 
         public ChildrenList(UIComponent component) {
             super(6);
@@ -2288,7 +2281,7 @@ public abstract class UIComponentBase extends UIComponent {
             if (isNotRenderingResponse(context)) {
                 removeFromDescendantMarkIdCache(component, element);
             }
-            if (super.indexOf(element) != -1) {
+            if (super.contains(element)) {
                 element.setParent(null);
             }
             if (super.remove(element)) {
@@ -2344,9 +2337,13 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of ListIterator for ChildrenList
     private static class ChildrenListIterator implements ListIterator<UIComponent> {
 
+        private final ChildrenList list;
+        private int index;
+        private int last = -1; // Index last returned by next() or previous()
+
         public ChildrenListIterator(ChildrenList list) {
             this.list = list;
-            index = 0;
+            this.index = 0;
         }
 
         public ChildrenListIterator(ChildrenList list, int index) {
@@ -2357,10 +2354,6 @@ public abstract class UIComponentBase extends UIComponent {
                 this.index = index;
             }
         }
-
-        private ChildrenList list;
-        private int index;
-        private int last = -1; // Index last returned by next() or previous()
 
         // Iterator methods
 
@@ -2441,30 +2434,30 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of Iterator for getFacetsAndChildren()
     private final static class FacetsAndChildrenIterator implements Iterator<UIComponent> {
 
+        private final UIComponent component;
         private Iterator<UIComponent> iterator;
         private boolean childMode;
-        private UIComponent c;
 
         public FacetsAndChildrenIterator(UIComponent c) {
-            this.c = c;
-            childMode = false;
+            this.component = c;
+            this.childMode = false;
         }
 
         private void update() {
             if (iterator == null) {
                 // we must guarantee that 'iterator' is never null
-                if (c.getFacetCount() != 0) {
-                    iterator = c.getFacets().values().iterator();
+                if (component.getFacetCount() != 0) {
+                    iterator = component.getFacets().values().iterator();
                     childMode = false;
-                } else if (c.getChildCount() != 0) {
-                    iterator = c.getChildren().iterator();
+                } else if (component.getChildCount() != 0) {
+                    iterator = component.getChildren().iterator();
                     childMode = true;
                 } else {
                     iterator = Collections.emptyIterator();
                     childMode = true;
                 }
-            } else if (!childMode && !iterator.hasNext() && c.getChildCount() != 0) {
-                iterator = c.getChildren().iterator();
+            } else if (!childMode && !iterator.hasNext() && component.getChildCount() != 0) {
+                iterator = component.getChildren().iterator();
                 childMode = true;
             }
         }
@@ -2492,12 +2485,11 @@ public abstract class UIComponentBase extends UIComponent {
     // required by UIComponent.getFacets()
     private static class FacetsMap extends HashMap<String, UIComponent> {
 
-        /**
-         *
-         */
+        @Serial
         private static final long serialVersionUID = -1444791615672259097L;
-        private UIComponent component;
-        private FacesContext context;
+
+        private final UIComponent component;
+        private final FacesContext context;
 
         public FacetsMap(UIComponent component) {
             super(3, 1.0f);
@@ -2583,11 +2575,11 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of Set for FacetsMap.getEntrySet()
     private static class FacetsMapEntrySet extends AbstractSet<Map.Entry<String, UIComponent>> {
 
+        private final FacetsMap map;
+
         public FacetsMapEntrySet(FacetsMap map) {
             this.map = map;
         }
-
-        private FacetsMap map = null;
 
         @Override
         public boolean add(Map.Entry<String, UIComponent> o) {
@@ -2612,16 +2604,16 @@ public abstract class UIComponentBase extends UIComponent {
             if (!(o instanceof Map.Entry)) {
                 return false;
             }
-            Map.Entry e = (Map.Entry) o;
-            Object k = e.getKey();
-            Object v = e.getValue();
-            if (!map.containsKey(k)) {
+            Entry<String, UIComponent> entry = (Entry<String, UIComponent>) o;
+            String name = entry.getKey();
+            UIComponent component = entry.getValue();
+            if (!map.containsKey(name)) {
                 return false;
             }
-            if (v == null) {
-                return map.get(k) == null;
+            if (component == null) {
+                return map.get(name) == null;
             } else {
-                return v.equals(map.get(k));
+                return component.equals(map.get(name));
             }
         }
 
@@ -2640,12 +2632,12 @@ public abstract class UIComponentBase extends UIComponent {
             if (o == null) {
                 throw new NullPointerException();
             }
-            if (!(o instanceof Map.Entry)) {
+            if (!(o instanceof Map.Entry<?,?>)) {
                 return false;
             }
-            Object k = ((Map.Entry) o).getKey();
-            if (map.containsKey(k)) {
-                map.remove(k);
+            String name = ((Entry<String, UIComponent>) o).getKey();
+            if (map.containsKey(name)) {
+                map.remove(name);
                 return true;
             } else {
                 return false;
@@ -2686,13 +2678,13 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of Map.Entry for FacetsMapEntrySet
     private static class FacetsMapEntrySetEntry implements Map.Entry<String, UIComponent> {
 
+        private final FacetsMap map;
+        private final String key;
+
         public FacetsMapEntrySetEntry(FacetsMap map, String key) {
             this.map = map;
             this.key = key;
         }
-
-        private FacetsMap map;
-        private String key;
 
         @Override
         public boolean equals(Object o) {
@@ -2753,14 +2745,14 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of Set for FacetsMap.getEntrySet().iterator()
     private static class FacetsMapEntrySetIterator implements Iterator<Map.Entry<String, UIComponent>> {
 
+        private final FacetsMap map;
+        private final Iterator<String> iterator;
+        private Map.Entry<String, UIComponent> last = null;
+
         public FacetsMapEntrySetIterator(FacetsMap map) {
             this.map = map;
-            iterator = map.keySetIterator();
+            this.iterator = map.keySetIterator();
         }
-
-        private FacetsMap map = null;
-        private Iterator<String> iterator = null;
-        private Map.Entry<String, UIComponent> last = null;
 
         @Override
         public boolean hasNext() {
@@ -2787,11 +2779,11 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of Set for FacetsMap.getKeySet()
     private static class FacetsMapKeySet extends AbstractSet<String> {
 
+        private final FacetsMap map;
+
         public FacetsMapKeySet(FacetsMap map) {
             this.map = map;
         }
-
-        private FacetsMap map = null;
 
         @Override
         public boolean add(String o) {
@@ -2878,14 +2870,14 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of Set for FacetsMap.getKeySet().iterator()
     private static class FacetsMapKeySetIterator implements Iterator<String> {
 
+        private final FacetsMap map;
+        private final Iterator<String> iterator;
+        private String last = null;
+
         public FacetsMapKeySetIterator(FacetsMap map) {
             this.map = map;
-            iterator = map.keySetIterator();
+            this.iterator = map.keySetIterator();
         }
-
-        private FacetsMap map = null;
-        private Iterator<String> iterator = null;
-        private String last = null;
 
         @Override
         public boolean hasNext() {
@@ -2912,11 +2904,11 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of Collection for FacetsMap.values()
     private static class FacetsMapValues extends AbstractCollection<UIComponent> {
 
+        private final FacetsMap map;
+
         public FacetsMapValues(FacetsMap map) {
             this.map = map;
         }
-
-        private FacetsMap map;
 
         @Override
         public boolean add(UIComponent o) {
@@ -2953,14 +2945,14 @@ public abstract class UIComponentBase extends UIComponent {
     // Private implementation of Iterator for FacetsMap.values().iterator()
     private static class FacetsMapValuesIterator implements Iterator<UIComponent> {
 
+        private final FacetsMap map;
+        private final Iterator<String> iterator;
+        private String last = null;
+
         public FacetsMapValuesIterator(FacetsMap map) {
             this.map = map;
-            iterator = map.keySetIterator();
+            this.iterator = map.keySetIterator();
         }
-
-        private FacetsMap map = null;
-        private Iterator<String> iterator = null;
-        private Object last = null;
 
         @Override
         public boolean hasNext() {
@@ -2988,11 +2980,11 @@ public abstract class UIComponentBase extends UIComponent {
     // Note that this Map must be unmodifiable to the external world,
     // but UIComponentBase itself needs to be able to write to the Map.
     // We solve these requirements wrapping the underlying modifiable
-    // Map inside of a unmodifiable map and providing private access to
+    // Map inside an unmodifiable map and providing private access to
     // the underlying (modifiable) Map
     private static class BehaviorsMap extends AbstractMap<String, List<ClientBehavior>> {
-        private Map<String, List<ClientBehavior>> unmodifiableMap;
-        private Map<String, List<ClientBehavior>> modifiableMap;
+        private final Map<String, List<ClientBehavior>> unmodifiableMap;
+        private final Map<String, List<ClientBehavior>> modifiableMap;
 
         private BehaviorsMap(Map<String, List<ClientBehavior>> modifiableMap) {
             this.modifiableMap = modifiableMap;
@@ -3011,6 +3003,7 @@ public abstract class UIComponentBase extends UIComponent {
 
     private static class PassThroughAttributesMap<K, V> extends ConcurrentHashMap<String, Object> implements Serializable {
 
+        @Serial
         private static final long serialVersionUID = 4230540513272170861L;
 
         @Override
@@ -3096,8 +3089,7 @@ public abstract class UIComponentBase extends UIComponent {
     }
 
     private String addParentId(FacesContext context, String parentId, String childId) {
-        return new StringBuilder(parentId.length() + 1 + childId.length()).append(parentId).append(UINamingContainer.getSeparatorChar(context)).append(childId)
-                .toString();
+        return parentId + UINamingContainer.getSeparatorChar(context) + childId;
     }
 
     private String getParentId(FacesContext context, UIComponent parent) {

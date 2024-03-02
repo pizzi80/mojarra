@@ -594,6 +594,14 @@ public class Util {
     }
 
     /**
+     * Returns true if the given string is not null and not empty.
+     *
+     * @param string The string to be checked on emptiness.
+     * @return True if the given string is not null and not empty.
+     */
+    public static boolean isNotEmpty(String string) { return !isEmpty(string); }
+
+    /**
      * Returns true if the given string is null or is blank.
      *
      * @param string The string to be checked.
@@ -629,6 +637,8 @@ public class Util {
     public static boolean isEmpty(Collection<?> collection) {
         return collection == null || collection.isEmpty();
     }
+
+    public static boolean isNotEmpty(Collection<?> collection) { return !isEmpty(collection); }
 
     /**
      * Returns <code>true</code> if the given value is null or is empty. Types of String, Collection, Map, Optional and
@@ -1402,12 +1412,11 @@ public class Util {
         try {
             conn = url.openConnection();
 
-            if (conn instanceof JarURLConnection) {
+            if (conn instanceof JarURLConnection jarUrlConnection) {
                 /*
                  * Note this is a work around for JarURLConnection since the getLastModified method is buggy. See JAVASERVERFACES-2725
                  * and JAVASERVERFACES-2734.
                  */
-                JarURLConnection jarUrlConnection = (JarURLConnection) conn;
                 URL jarFileUrl = jarUrlConnection.getJarFileURL();
                 URLConnection jarFileConnection = jarFileUrl.openConnection();
                 lastModified = jarFileConnection.getLastModified();

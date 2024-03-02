@@ -130,7 +130,7 @@ public class ButtonRenderer extends HtmlBasicRenderer {
         RenderKitUtils.renderXHTMLStyleBooleanAttributes(writer, component);
 
         String styleClass = (String) component.getAttributes().get("styleClass");
-        if (styleClass != null && styleClass.length() > 0) {
+        if (styleClass != null && !styleClass.isEmpty()) {
             writer.writeAttribute("class", styleClass, "styleClass");
         }
 
@@ -172,7 +172,7 @@ public class ButtonRenderer extends HtmlBasicRenderer {
     private static boolean wasClicked(FacesContext context, UIComponent component, String clientId) {
 
         // Was our command the one that caused this submission?
-        // we don' have to worry about getting the value from request parameter
+        // we don't have to worry about getting the value from request parameter
         // because we just need to know if this command caused the submission. We
         // can get the command name by calling currentValue. This way we can
         // get around the IE bug.

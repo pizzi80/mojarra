@@ -95,7 +95,7 @@ public class PropertyEditorHelper {
     protected UIComponent getComponent() {
         FacesContext context = FacesContext.getCurrentInstance();
         if (context != null) {
-            return (UIComponent) RequestStateManager.get(context, RequestStateManager.TARGET_COMPONENT_ATTRIBUTE_NAME);
+            return RequestStateManager.get(context, RequestStateManager.TARGET_COMPONENT_ATTRIBUTE_NAME);
         }
         return null;
     }

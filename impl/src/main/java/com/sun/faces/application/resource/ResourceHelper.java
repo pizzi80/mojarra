@@ -385,7 +385,7 @@ public abstract class ResourceHelper {
      * </p>
      *
      * <p>
-     * See http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html RFC 2616, sec. 14 for details on the
+     * See <a href="https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html">...</a> RFC 2616, sec. 14 for details on the
      * accept-encoding header.
      * </p>
      *
@@ -416,7 +416,7 @@ public abstract class ResourceHelper {
                     break;
                 }
                 if (value.contains("*") && !value.contains("*;q=0,") && !value.endsWith("*;q=0")) {
-                    // gzip not explictly listed, but client sent *
+                    // gzip not explicitly listed, but client sent *
                     // meaning gzip is implicitly acceptable
                     // keep looping to ensure we don't come across a
                     // *;q=0 value.
@@ -436,7 +436,7 @@ public abstract class ResourceHelper {
 
     /**
      * <p>
-     * Utility method to peform the necessary actions to compress content.
+     * Utility method to perform the necessary actions to compress content.
      * </p>
      *
      * <p>
@@ -568,7 +568,7 @@ public abstract class ResourceHelper {
                 nextRead = -1;
                 failedExpressionTest = false;
             } else if (writingExpression) {
-                if (0 < buf.size()) {
+                if ( !buf.isEmpty() ) {
                     i = buf.remove(0);
                 } else {
                     writingExpression = false;
