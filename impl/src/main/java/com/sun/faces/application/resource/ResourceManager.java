@@ -568,7 +568,7 @@ public class ResourceManager {
                 // it is a resource request. look at the parameter con=.
 
                 String param = context.getExternalContext().getRequestParameterMap().get("con");
-                if (!nameContainsForbiddenSequence(param) && param != null && param.trim().length() > 0) {
+                if (!nameContainsForbiddenSequence(param) && param != null && !param.trim().isEmpty()) {
                     return Arrays.asList(param);
                 }
             }
@@ -610,7 +610,7 @@ public class ResourceManager {
 
         WebConfiguration config = WebConfiguration.getInstance();
         String value = config.getOptionValue(WebConfiguration.WebContextInitParameter.CompressableMimeTypes);
-        if (value != null && value.length() > 0) {
+        if (value != null && !value.isEmpty()) {
             String[] values = Util.split(appMap, value, ",");
             if (values != null) {
                 for (String s : values) {

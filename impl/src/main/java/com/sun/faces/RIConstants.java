@@ -49,6 +49,7 @@ public class RIConstants {
 
     public static final Class<?>[] EMPTY_CLASS_ARGS = new Class[0];
     public static final Object[] EMPTY_METH_ARGS = new Object[0];
+    public static final String[][] EMPTY_STRING_MATRIX = new String[0][0];
 
     /**
      * <p>
@@ -70,6 +71,8 @@ public class RIConstants {
     public static final String VIEWID_KEY_NAME = FACES_PREFIX + "viewId";
 
     public static final String PUSH_RESOURCE_URLS_KEY_NAME = FACES_PREFIX + "resourceUrls";
+
+    public static final String RESOURCE_NOT_FOUND = "RES_NOT_FOUND";
 
     /**
      * Marker used when saving the list of component adds and removes.

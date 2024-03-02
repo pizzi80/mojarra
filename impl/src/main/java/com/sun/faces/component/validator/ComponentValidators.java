@@ -18,7 +18,7 @@ package com.sun.faces.component.validator;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,13 +55,13 @@ public class ComponentValidators {
      * <code>ValidatorInfo</code> instance will be popped and thus have no impact on other
      * <code>EditableValueHolder</code>s.
      */
-    private LinkedList<ValidatorInfo> validatorStack = null;
+    private final List<ValidatorInfo> validatorStack;
 
     // ------------------------------------------------------------ Constructors
 
     public ComponentValidators() {
 
-        validatorStack = new LinkedList<>();
+        validatorStack = new ArrayList<>(4); // which is the usual size?
 
     }
 
@@ -69,7 +69,7 @@ public class ComponentValidators {
 
     /**
      * @param context the <code>FacesContext</code> for the current request
-     * @param createIfNull flag indicating whether or not a <code>ComponentValidators</code> instance should be created or
+     * @param createIfNull flag indicating whether a <code>ComponentValidators</code> instance should be created or
      * not
      * @return a <code>ComponentValidators</code> instance for processing a view request. If <code>createIfNull</code> is
      * <code>false</code> and no <code>ComponentValidators</code> has been created, this method will return
@@ -102,14 +102,22 @@ public class ComponentValidators {
     public static void addDefaultValidatorsToComponent(FacesContext ctx, EditableValueHolder editableValueHolder) {
 
         if (ComponentSupport.isBuildingNewComponentTree(ctx)) {
-            Set<String> keySet = ctx.getApplication().getDefaultValidatorInfo().keySet();
-            List<String> validatorIds = new ArrayList<>(keySet.size());
+            Set<String> defaultValidatorIds = ctx.getApplication().getDefaultValidatorInfo().keySet();
             Set<String> disabledValidatorIds = (Set<String>) RequestStateManager.remove(ctx, RequestStateManager.DISABLED_VALIDATORS);
-            for (String key : keySet) {
-                if (disabledValidatorIds != null && disabledValidatorIds.contains(key)) {
-                    continue;
+            List<String> validatorIds;
+
+            // if there are NO disabled validators -> use all the defined validators
+            if ( disabledValidatorIds == null || disabledValidatorIds.isEmpty() ) {
+                validatorIds = new ArrayList<>(defaultValidatorIds);
+            }
+            // otherwise only the NON disabled ones
+            else {
+                validatorIds = new ArrayList<>(defaultValidatorIds.size() - disabledValidatorIds.size() );
+                for (String key : defaultValidatorIds) {
+                    if ( !disabledValidatorIds.contains(key) ) {
+                        validatorIds.add(key);
+                    }
                 }
-                validatorIds.add(key);
             }
 
             addValidatorsToComponent(ctx, validatorIds, editableValueHolder, null);
@@ -128,33 +136,37 @@ public class ComponentValidators {
     @SuppressWarnings({ "unchecked" })
     public void addValidators(FacesContext ctx, EditableValueHolder editableValueHolder) {
 
-        if (validatorStack == null || validatorStack.isEmpty()) {
+        if (validatorStack.isEmpty()) {
             addDefaultValidatorsToComponent(ctx, editableValueHolder);
             return;
         }
 
         Application application = ctx.getApplication();
         Map<String, String> defaultValidatorInfo = application.getDefaultValidatorInfo();
-        Set<String> keySet = defaultValidatorInfo.keySet();
 
-        List<String> validatorIds = new ArrayList<>(keySet.size());
-        validatorIds.addAll(keySet);
+        // start with all the defined Validators
+        Set<String> validatorIds = new LinkedHashSet<>(defaultValidatorInfo.keySet());
 
-        Set<String> disabledIds = (Set<String>) RequestStateManager.remove(ctx, RequestStateManager.DISABLED_VALIDATORS);
-        int count = validatorStack.size();
-        for (int i = count - 1; i >= 0; i--) {
+        // Remove all the disabled Validators
+        Set<String> disabledValidatorIds = (Set<String>) RequestStateManager.remove(ctx, RequestStateManager.DISABLED_VALIDATORS);
+        if ( disabledValidatorIds != null ) {
+            validatorIds.removeAll(disabledValidatorIds);
+        }
+
+        // Add or remove a Validator (from the last one to the first one)
+        int lastIndex = validatorStack.size()-1;
+        for (int i = lastIndex; i >= 0; i--) {
             ValidatorInfo info = validatorStack.get(i);
-            if (!info.isEnabled() || disabledIds != null && disabledIds.contains(info.getValidatorId())) {
+            if ( !info.isEnabled() ) {
                 validatorIds.remove(info.getValidatorId());
-            } else {
-                if (!validatorIds.contains(info.getValidatorId())) {
-                    validatorIds.add(info.getValidatorId());
-                }
+            }
+            else {
+                validatorIds.add(info.getValidatorId());
             }
         }
 
         // add the validators to the EditableValueHolder.
-        addValidatorsToComponent(ctx, validatorIds, editableValueHolder, validatorStack == null || validatorStack.isEmpty() ? null : validatorStack);
+        addValidatorsToComponent(ctx, validatorIds, editableValueHolder, validatorStack.isEmpty() ? null : validatorStack);
 
     }
 
@@ -178,8 +190,9 @@ public class ComponentValidators {
      */
     public void popValidatorInfo() {
 
-        if (validatorStack.size() > 0) {
-            validatorStack.removeLast();
+        if ( !validatorStack.isEmpty() ) {
+            // todo: with Java 21 change to removeLast
+            validatorStack.remove( validatorStack.size()-1 );
         }
 
     }
@@ -196,8 +209,7 @@ public class ComponentValidators {
      * @param editableValueHolder the target component to which the validators installed
      * @param validatorStack current stack of ValidatorInfo instances
      */
-    private static void addValidatorsToComponent(FacesContext ctx, Collection<String> validatorIds, EditableValueHolder editableValueHolder,
-            LinkedList<ValidatorInfo> validatorStack) {
+    private static void addValidatorsToComponent(FacesContext ctx, Collection<String> validatorIds, EditableValueHolder editableValueHolder, List<ValidatorInfo> validatorStack) {
 
         if (validatorIds == null || validatorIds.isEmpty()) {
             return;
@@ -218,13 +230,13 @@ public class ComponentValidators {
         }
 
         // we now have the complete List of Validator IDs to add to the
-        // target EditablValueHolder
+        // target EditableValueHolder
         for (String id : validatorIds) {
             Validator<?> v = application.createValidator(id);
             // work backwards up the stack of ValidatorInfo to find the
             // nearest matching ValidatorInfo to apply attributes
             if (validatorStack != null) {
-                for (int i = validatorStack.size() - 1; i >= 0; i--) {
+                for (int i = validatorStack.size()-1; i >= 0; i--) {
                     ValidatorInfo info = validatorStack.get(i);
                     if (id.equals(info.getValidatorId())) {
                         info.applyAttributes(v);
@@ -232,6 +244,7 @@ public class ComponentValidators {
                     }
                 }
             }
+
             editableValueHolder.addValidator(v);
         }
 
@@ -274,7 +287,7 @@ public class ComponentValidators {
 
         }
 
-        public void applyAttributes(Validator v) {
+        public void applyAttributes(Validator<?> v) {
 
             owner.setAttributes(ctx, v);
 

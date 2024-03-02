@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.util.FacesLogger;
 
@@ -166,7 +167,7 @@ public abstract class ScriptStyleBaseRenderer extends Renderer implements Compon
         Map<String, Object> attributes = component.getAttributes();
         String name = (String) attributes.get("name");
 
-        if (null == name) {
+        if (name == null) {
             return;
         }
 
@@ -189,12 +190,12 @@ public abstract class ScriptStyleBaseRenderer extends Renderer implements Compon
         }
 
         Resource resource = resourceHandler.createResource(name, library);
-        String resourceUrl = "RES_NOT_FOUND";
+        String resourceUrl = RIConstants.RESOURCE_NOT_FOUND;
 
         ResponseWriter writer = context.getResponseWriter();
         startExternalElement(context, writer, component);
 
-        if (library == null && name != null && ApplicationAssociate.getInstance(context).getResourceManager().isContractsResource(name)) {
+        if (library == null && ApplicationAssociate.getInstance(context).getResourceManager().isContractsResource(name)) {
             if (context.isProjectStage(ProjectStage.Development)) {
                 String msg = "Illegal path, direct contract references are not allowed: " + name;
                 context.addMessage(component.getClientId(context), new FacesMessage(FacesMessage.SEVERITY_ERROR, msg, msg));
@@ -210,7 +211,7 @@ public abstract class ScriptStyleBaseRenderer extends Renderer implements Compon
         } else {
             resourceUrl = resource.getRequestPath();
             if (query != null) {
-                resourceUrl = resourceUrl + (resourceUrl.indexOf("?") > -1 ? "&amp;" : "?") + query;
+                resourceUrl = resourceUrl + (resourceUrl.indexOf('?') > -1 ? "&amp;" : '?') + query;
             }
             resourceUrl = context.getExternalContext().encodeResourceURL(resourceUrl);
         }

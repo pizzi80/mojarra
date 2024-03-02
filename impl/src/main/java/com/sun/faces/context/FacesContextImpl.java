@@ -16,9 +16,12 @@
 
 package com.sun.faces.context;
 
+import static java.util.Collections.emptyIterator;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,6 +32,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import com.sun.faces.cdi.CdiExtension;
 import com.sun.faces.cdi.FacesContextProducer;
@@ -141,8 +145,8 @@ public class FacesContextImpl extends FacesContext {
         if (null != application) {
             return application;
         }
-        ApplicationFactory aFactory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
-        application = aFactory.getApplication();
+        ApplicationFactory factory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
+        application = factory.getApplication();
         assert null != application;
         return application;
     }
@@ -253,7 +257,7 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public Iterator<String> getClientIdsWithMessages() {
         assertNotReleased();
-        return componentMessageLists == null ? Collections.emptyIterator() : componentMessageLists.keySet().iterator();
+        return componentMessageLists == null ? emptyIterator() : componentMessageLists.keySet().iterator();
     }
 
     /**
@@ -285,15 +289,7 @@ public class FacesContextImpl extends FacesContext {
 
         assertNotReleased();
 
-        if (null == componentMessageLists) {
-            return Collections.unmodifiableList(Collections.<FacesMessage>emptyList());
-        } else {
-            List<FacesMessage> messages = new ArrayList<>();
-            for (List<FacesMessage> list : componentMessageLists.values()) {
-                messages.addAll(list);
-            }
-            return Collections.unmodifiableList(messages);
-        }
+        return componentMessageLists == null ? emptyList() : componentMessageLists.values().stream().flatMap(Collection::stream).toList();
 
     }
 
@@ -305,11 +301,12 @@ public class FacesContextImpl extends FacesContext {
 
         assertNotReleased();
 
-        if (null == componentMessageLists) {
-            return Collections.unmodifiableList(Collections.<FacesMessage>emptyList());
-        } else {
+        if (componentMessageLists == null) {
+            return emptyList();
+        }
+        else {
             List<FacesMessage> list = componentMessageLists.get(clientId);
-            return Collections.unmodifiableList(list != null ? list : Collections.<FacesMessage>emptyList());
+            return list != null ? Collections.unmodifiableList(list) : emptyList();
         }
 
     }
@@ -320,14 +317,14 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public Iterator<FacesMessage> getMessages() {
         assertNotReleased();
-        if (null == componentMessageLists) {
-            return Collections.emptyIterator();
+        if (componentMessageLists == null) {
+            return emptyIterator();
         }
 
-        if (componentMessageLists.size() > 0) {
+        if (!componentMessageLists.isEmpty()) {
             return new ComponentMessagesIterator(componentMessageLists);
         } else {
-            return Collections.emptyIterator();
+            return emptyIterator();
         }
     }
 
@@ -340,15 +337,12 @@ public class FacesContextImpl extends FacesContext {
 
         // If no messages have been enqueued at all,
         // return an empty List Iterator
-        if (null == componentMessageLists) {
-            return Collections.emptyIterator();
+        if (componentMessageLists == null) {
+            return emptyIterator();
         }
 
         List<FacesMessage> list = componentMessageLists.get(clientId);
-        if (list == null) {
-            return Collections.emptyIterator();
-        }
-        return list.iterator();
+        return list == null ? emptyIterator() : list.iterator();
     }
 
     /**
@@ -397,7 +391,7 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public void setResponseStream(ResponseStream responseStream) {
         assertNotReleased();
-        Util.notNull("responseStrean", responseStream);
+        Util.notNull("responseStream", responseStream);
         this.responseStream = responseStream;
     }
 
@@ -419,10 +413,13 @@ public class FacesContextImpl extends FacesContext {
         Util.notNull("root", root);
 
         if (viewRoot != null && !viewRoot.equals(root)) {
+            // if exists, retrieve the view map
             Map<String, Object> viewMap = viewRoot.getViewMap(false);
-            if (viewMap != null) {
-                viewMap.clear();
-            }
+
+            // if exists, clear the view map
+            if (viewMap != null) viewMap.clear();
+
+            // clear the relevant request attributes
             RequestStateManager.clearAttributesOnChangeOfView(this);
         }
 
@@ -471,7 +468,7 @@ public class FacesContextImpl extends FacesContext {
         }
 
         // Add this message to our internal queue
-        componentMessageLists.computeIfAbsent(clientId, k -> new ArrayList<>()).add(message);
+        componentMessageLists.computeIfAbsent(clientId, k -> new ArrayList<>(2)).add(message); // 2 messages for each component is enough on average?
 
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Adding Message[sourceId=" + (clientId != null ? clientId : "<<NONE>>") + ",summary=" + message.getSummary() + ")");
@@ -597,7 +594,7 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public List<String> getResourceLibraryContracts() {
         assertNotReleased();
-        return null == resourceLibraryContracts ? Collections.emptyList() : resourceLibraryContracts;
+        return null == resourceLibraryContracts ? emptyList() : resourceLibraryContracts;
     }
 
     @Override

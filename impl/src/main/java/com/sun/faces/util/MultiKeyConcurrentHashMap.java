@@ -16,6 +16,8 @@
 
 package com.sun.faces.util;
 
+import java.io.Serial;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -26,11 +28,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * single value.
  *
  * <ul>
- * <li>This Map implemenation does not support iteration through keys and/or values.
- * <li>
- * <li>This Map implementation is <em>NOT</em> Serialziable.
- * <li>
- * <li>This cannot be cast as a general Map implementation.</li>
+ *   <li>This Map implementation does not support iteration through keys and/or values.</li>
+ *   <li>This Map implementation is <em>NOT</em> Serializable.</li>
+ *   <li>This cannot be cast as a general Map implementation.</li>
  * </ul>
  */
 public class MultiKeyConcurrentHashMap<K, V> {
@@ -90,7 +90,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
     /**
      * The segments, each of which is a specialized hash table
      */
-    final Segment[] segments;
+    final Segment<K,V>[] segments;
 
     /* ---------------- Small Utilities -------------- */
 
@@ -129,7 +129,6 @@ public class MultiKeyConcurrentHashMap<K, V> {
      * @return the segment
      */
     final Segment<K, V> segmentFor(int hash) {
-        // noinspection unchecked
         return segments[hash >>> segmentShift & segmentMask];
     }
 
@@ -192,9 +191,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
          * As a guide, all critical volatile reads and writes to the count field are marked in code comments.
          */
 
-        /**
-         *
-         */
+        @Serial
         private static final long serialVersionUID = -5546647604753877171L;
 
         /**
@@ -219,7 +216,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
          * The per-segment table. Declared as a raw type, casted to HashEntry<K,V> on each use.
          */
         @SuppressWarnings({ "NonSerializableFieldInSerializableClass" })
-        volatile HashEntry[] table;
+        volatile HashEntry<K,V>[] table;
 
         /**
          * The load factor for the hash table. Even though this value is same for all segments, it is replicated to avoid
@@ -237,7 +234,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
         /**
          * Set table to new HashEntry array. Call only while holding lock or in constructor.
          */
-        void setTable(HashEntry[] newTable) {
+        void setTable(HashEntry<K,V>[] newTable) {
             threshold = (int) (newTable.length * loadFactor);
             table = newTable;
         }
@@ -246,9 +243,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
          * Return properly casted first entry of bin for given hash
          */
         HashEntry<K, V> getFirst(int hash) {
-            HashEntry[] tab = table;
-            // noinspection unchecked
-            return tab[hash & tab.length - 1];
+            return table[hash & table.length - 1];
         }
 
         /**
@@ -303,11 +298,10 @@ public class MultiKeyConcurrentHashMap<K, V> {
 
         boolean containsValue(Object value) {
             if (count != 0) { // read-volatile
-                HashEntry[] tab = table;
+                HashEntry<K,V>[] tab = table;
                 int len = tab.length;
-                for (int i = 0; i < len; i++) {
-                    for (// noinspection unchecked
-                            HashEntry<K, V> e = tab[i]; e != null; e = e.next) {
+                for (HashEntry<K, V> kvHashEntry : tab) {
+                    for (HashEntry<K, V> e = kvHashEntry; e != null; e = e.next) {
                         V v = e.value;
                         if (v == null) // recheck
                         {
@@ -370,9 +364,8 @@ public class MultiKeyConcurrentHashMap<K, V> {
                 {
                     rehash();
                 }
-                HashEntry[] tab = table;
+                HashEntry<K,V>[] tab = table;
                 int index = hash & tab.length - 1;
-                // noinspection unchecked
                 HashEntry<K, V> first = tab[index];
                 HashEntry<K, V> e = first;
                 while (e != null && (e.hash != hash || key1 != null && !key1.equals(e.key1) || key2 != null && !key2.equals(e.key2)
@@ -399,7 +392,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
         }
 
         void rehash() {
-            HashEntry[] oldTable = table;
+            HashEntry<K,V>[] oldTable = table;
             int oldCapacity = oldTable.length;
             if (oldCapacity >= MAXIMUM_CAPACITY) {
                 return;
@@ -414,15 +407,12 @@ public class MultiKeyConcurrentHashMap<K, V> {
              * table right now.
              */
 
-            HashEntry[] newTable = new HashEntry[oldCapacity << 1];
+            HashEntry<K,V>[] newTable = new HashEntry[oldCapacity << 1];
             threshold = (int) (newTable.length * loadFactor);
             int sizeMask = newTable.length - 1;
-            for (int i = 0; i < oldCapacity; i++) {
+            for (HashEntry<K, V> e : oldTable) {
                 // We need to guarantee that any existing reads of old Map can
                 // proceed. So we cannot yet null out each bin.
-                // noinspection unchecked
-                HashEntry<K, V> e = oldTable[i];
-
                 if (e != null) {
                     HashEntry<K, V> next = e.next;
                     int idx = e.hash & sizeMask;
@@ -446,7 +436,6 @@ public class MultiKeyConcurrentHashMap<K, V> {
                         // Clone all remaining nodes
                         for (HashEntry<K, V> p = e; p != lastRun; p = p.next) {
                             int k = p.hash & sizeMask;
-                            // noinspection unchecked
                             HashEntry<K, V> n = newTable[k];
                             newTable[k] = new HashEntry<>(p.key1, p.key2, p.key3, p.key4, p.hash, n, p.value);
                         }
@@ -463,9 +452,8 @@ public class MultiKeyConcurrentHashMap<K, V> {
             lock();
             try {
                 int c = count - 1;
-                HashEntry[] tab = table;
+                HashEntry<K,V>[] tab = table;
                 int index = hash & tab.length - 1;
-                // noinspection unchecked
                 HashEntry<K, V> first = tab[index];
                 HashEntry<K, V> e = first;
                 while (e != null && (e.hash != hash || key1 != null && !key1.equals(e.key1) || key2 != null && !key2.equals(e.key2)
@@ -500,10 +488,8 @@ public class MultiKeyConcurrentHashMap<K, V> {
             if (count != 0) {
                 lock();
                 try {
-                    HashEntry[] tab = table;
-                    for (int i = 0; i < tab.length; i++) {
-                        tab[i] = null;
-                    }
+                    HashEntry<K,V>[] tab = table;
+                    Arrays.fill(tab, null);
                     ++modCount;
                     count = 0; // write-volatile
                 } finally {
@@ -588,7 +574,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
      * @see java.util.Map#isEmpty()
      */
     public boolean isEmpty() {
-        final Segment[] segments = this.segments;
+        final Segment<K,V>[] segments = this.segments;
         /*
          * We keep track of per-segment modCounts to avoid ABA problems in which an element in one segment was added and in
          * another removed during traversal, in which case the table was never actually empty at any point. Note the similar use
@@ -621,7 +607,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
      * @see java.util.Map#size()
      */
     public int size() {
-        final Segment[] segments = this.segments;
+        final Segment<K,V>[] segments = this.segments;
         long sum = 0;
         long check = 0;
         int[] mc = new int[segments.length];
@@ -650,14 +636,14 @@ public class MultiKeyConcurrentHashMap<K, V> {
         }
         if (check != sum) { // Resort to locking all segments
             sum = 0;
-            for (int i = 0; i < segments.length; ++i) {
-                segments[i].lock();
+            for (Segment<K, V> segment : segments) {
+                segment.lock();
             }
-            for (int i = 0; i < segments.length; ++i) {
-                sum += segments[i].count;
+            for (Segment<K, V> segment : segments) {
+                sum += segment.count;
             }
-            for (int i = 0; i < segments.length; ++i) {
-                segments[i].unlock();
+            for (Segment<K, V> segment : segments) {
+                segment.unlock();
             }
         }
         if (sum > Integer.MAX_VALUE) {
@@ -762,7 +748,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
 
         // See explanation of modCount use above
 
-        final Segment[] segments = this.segments;
+        final Segment<K,V>[] segments = this.segments;
         int[] mc = new int[segments.length];
 
         // Try a few times without locking
@@ -1031,8 +1017,8 @@ public class MultiKeyConcurrentHashMap<K, V> {
      * Removes all mappings from this map.
      */
     public void clear() {
-        for (int i = 0; i < segments.length; ++i) {
-            segments[i].clear();
+        for (Segment<K, V> segment : segments) {
+            segment.clear();
         }
     }
 
