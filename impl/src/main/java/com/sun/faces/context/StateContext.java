@@ -348,7 +348,7 @@ public class StateContext {
 
     public class NoopAddRemoveListener extends AddRemoveListener {
 
-        // This is silly. We should be able to use Colletions.emptyMap(),
+        // This is silly. We should be able to use Collections.emptyMap(),
         // but cannot as StateContext.getDynamicComponents() API returns a
         // HashMap instead of a Map.
         private HashMap emptyComponentsMap = new HashMap();
