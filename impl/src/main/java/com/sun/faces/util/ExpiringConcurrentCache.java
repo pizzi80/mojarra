@@ -32,7 +32,7 @@ import jakarta.faces.FacesException;
 
 /**
  * This class implements an abstract ConcurrentCache with objects in the cache potentially expiring. Only non-expired
- * objects will be returned from the cache or considered to be contained in the cache The cache is self-managing, so no
+ * objects will be returned from the cache or considered to be contained in the cache. The cache is self-managing, so no
  * remove() method is defined
  */
 public final class ExpiringConcurrentCache<K, V> extends ConcurrentCache<K, V> {
@@ -66,7 +66,7 @@ public final class ExpiringConcurrentCache<K, V> extends ConcurrentCache<K, V> {
     public V get(final K key) throws ExecutionException {
         // This method uses a design pattern from "Java concurrency in practice".
         // The pattern ensures that only one thread gets to create an object missing in the cache,
-        // while the all the other threads tring to get it are waiting
+        // while the all the other threads trying to get it are waiting
         while (true) {
             boolean newlyCached = false;
 
