@@ -39,6 +39,7 @@ public class UILeaf extends UIComponentBase implements UntargetableComponent {
 
         private static final long serialVersionUID = 2063657587950149152L;
 
+        @Override
         public void putAll(Map<? extends String, ? extends UIComponent> map) {
             // do nothing
         }
