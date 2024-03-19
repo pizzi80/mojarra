@@ -26,6 +26,7 @@ import jakarta.faces.context.FlashFactory;
  */
 public class FlashFactoryImpl extends FlashFactory {
 
+    @Deprecated
     public FlashFactoryImpl() {
         super(null);
     }
