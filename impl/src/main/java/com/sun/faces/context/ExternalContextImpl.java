@@ -755,7 +755,7 @@ public class ExternalContextImpl extends ExternalContext {
         HttpServletResponse res = (HttpServletResponse) response;
 
         Cookie cookie = new Cookie(name, value);
-        if (properties != null && properties.size() != 0) {
+        if (properties != null && !properties.isEmpty() ) {
             for (Map.Entry<String, Object> entry : properties.entrySet()) {
                 String key = entry.getKey();
                 PREDEFINED_COOKIE_PROPERTIES p = PREDEFINED_COOKIE_PROPERTIES.of(key);
