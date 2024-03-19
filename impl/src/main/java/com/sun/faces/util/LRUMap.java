@@ -16,6 +16,7 @@
 
 package com.sun.faces.util;
 
+import java.io.Serial;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -24,20 +25,22 @@ import java.util.Map;
  */
 public class LRUMap<K, V> extends LinkedHashMap<K, V> {
 
+    @Serial
     private static final long serialVersionUID = -7137951139094651602L;
+
     private final int maxCapacity;
 
     // ------------------------------------------------------------ Constructors
 
     public LRUMap(int maxCapacity) {
-        super(maxCapacity, 1.0f, true);
-        this.maxCapacity = maxCapacity;
+        super( (int)(maxCapacity/0.75f)+1 , 0.75f, true);   // to avoid collisions we should keep load factor = 0.75
+        this.maxCapacity = maxCapacity;                                                      // but we want exactly no more than maxCapacity elements
     }
 
     // ---------------------------------------------- Methods from LinkedHashMap
 
     @Override
-    protected boolean removeEldestEntry(Map.Entry eldest) {
+    protected boolean removeEldestEntry(Map.Entry<K,V> eldest) {
         return size() > maxCapacity;
     }
 
