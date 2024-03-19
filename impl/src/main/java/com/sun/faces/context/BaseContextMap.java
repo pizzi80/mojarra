@@ -47,7 +47,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
     // Supported by maps if overridden
     @Override
-    public void putAll(Map t) {
+    public void putAll(Map<? extends String, ? extends V> map) {
         throw new UnsupportedOperationException();
     }
 
@@ -91,16 +91,14 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
     }
 
     protected boolean removeValue(Object value) {
-        boolean valueRemoved = false;
         if (value == null) {
             return false;
         }
-        if (containsValue(value)) {
-            for (Iterator i = entrySet().iterator(); i.hasNext();) {
-                Map.Entry e = (Map.Entry) i.next();
-                if (value.equals(e.getValue())) {
-                    valueRemoved = remove(e.getKey()) != null;
-                }
+
+        boolean valueRemoved = false;
+        for (Map.Entry<String, V> entry : entrySet()) {
+            if (value.equals(entry.getValue())) {
+                valueRemoved = remove(entry.getKey()) != null;
             }
         }
         return valueRemoved;
@@ -309,9 +307,9 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
                 return false;
             }
 
-            Map.Entry<String,V> input = (Map.Entry<String,V>) obj;
-            Object key = input.getKey();
-            Object value = input.getValue();
+            Map.Entry<String,V> entry = (Map.Entry<String,V>) obj;
+            Object key = entry.getKey();
+            Object value = entry.getValue();
 
             return Objects.equals(key, this.key) &&
                    Objects.equals(value, this.value);
