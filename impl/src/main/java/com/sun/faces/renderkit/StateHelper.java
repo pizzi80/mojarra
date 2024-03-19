@@ -164,7 +164,7 @@ public abstract class StateHelper {
      */
     protected static String getStateParamValue(FacesContext context) {
         String pValue = VIEW_STATE_PARAM.getValue(context);
-        if (pValue != null && pValue.length() == 0) {
+        if (pValue != null && pValue.isEmpty()) {
             pValue = null;
         }
 
