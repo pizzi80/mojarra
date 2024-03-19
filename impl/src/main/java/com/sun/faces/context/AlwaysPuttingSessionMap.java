@@ -29,10 +29,10 @@ public class AlwaysPuttingSessionMap extends SessionMap {
     @Override
     public Object put(String key, Object value) {
         HttpSession session = getSession(true);
-        Object result = session.getAttribute(key);
+        Object previousValue = session.getAttribute(key);
         session.setAttribute(key, value);
 
-        return result;
+        return previousValue;
     }
 
 }
