@@ -114,8 +114,8 @@ public class WebConfiguration {
     private FaceletsConfiguration faceletsConfig;
 
     private boolean hasFlows;
-
-    private String specificationVersion;
+    
+    private final String specificationVersion;
 
     // ------------------------------------------------------------ Constructors
 
@@ -342,7 +342,7 @@ public class WebConfiguration {
     }
 
     public void overrideContextInitParameter(WebContextInitParameter param, String value) {
-        if (param == null || value == null || value.length() == 0) {
+        if (param == null || value == null || value.isEmpty()) {
             return;
         }
 
@@ -391,7 +391,7 @@ public class WebConfiguration {
 
     private void discoverResourceLibraryContracts() {
         FacesContext context = FacesContext.getCurrentInstance();
-        ExternalContext extContex = context.getExternalContext();
+        ExternalContext extContext = context.getExternalContext();
         Set<String> foundContracts = new HashSet<>();
         Set<String> candidates;
 
@@ -399,7 +399,7 @@ public class WebConfiguration {
         ApplicationAssociate associate = ApplicationAssociate.getCurrentInstance();
         String contractsDirName = associate.getResourceManager().getBaseContractsPath();
         assert null != contractsDirName;
-        candidates = extContex.getResourcePaths(contractsDirName);
+        candidates = extContext.getResourcePaths(contractsDirName);
         if (null != candidates) {
             int contractsDirNameLen = contractsDirName.length();
             int end;
@@ -473,7 +473,7 @@ public class WebConfiguration {
             contractsToExpose = new ArrayList<>(foundContracts);
             contractMappings.put("*", contractsToExpose);
         }
-        extContex.getApplicationMap().put(FaceletViewHandlingStrategy.RESOURCE_LIBRARY_CONTRACT_DATA_STRUCTURE_KEY, contractMappings);
+        extContext.getApplicationMap().put(FaceletViewHandlingStrategy.RESOURCE_LIBRARY_CONTRACT_DATA_STRUCTURE_KEY, contractMappings);
 
     }
 
@@ -525,7 +525,7 @@ public class WebConfiguration {
             String strValue = servletContext.getInitParameter(param.getQualifiedName());
             boolean value;
 
-            if (strValue != null && strValue.length() > 0 && param.isDeprecated()) {
+            if (strValue != null && !strValue.isEmpty() && param.isDeprecated()) {
                 BooleanWebContextInitParameter alternate = param.getAlternate();
                 if (LOGGER.isLoggable(Level.WARNING)) {
                     if (alternate != null) {
@@ -622,7 +622,7 @@ public class WebConfiguration {
         for (WebContextInitParameter param : WebContextInitParameter.values()) {
             String value = servletContext.getInitParameter(param.getQualifiedName());
 
-            if (value != null && value.length() > 0 && param.isDeprecated()) {
+            if (value != null && !value.isEmpty() && param.isDeprecated()) {
                 WebContextInitParameter alternate = param.getAlternate();
                 DeprecationLoggingStrategy strategy = param.getDeprecationLoggingStrategy();
                 if (strategy == null || strategy.shouldBeLogged(this)) {
@@ -647,14 +647,14 @@ public class WebConfiguration {
                 continue;
             }
 
-            if ((value == null || value.length() == 0) && !param.isDeprecated()) {
+            if ((value == null || value.isEmpty()) && !param.isDeprecated()) {
                 value = param.getDefaultValue();
             }
-            if (value == null || value.length() == 0) {
+            if (value == null || value.isEmpty()) {
                 continue;
             }
 
-            if (value.length() > 0) {
+            if (!value.isEmpty()) {
                 if (LOGGER.isLoggable(loggingLevel)) {
                     LOGGER.log(loggingLevel, "faces.config.webconfig.configinfo", new Object[] { contextName, param.getQualifiedName(), value });
 
@@ -739,7 +739,7 @@ public class WebConfiguration {
 
     /**
      * <p>
-     * An <code>enum</code> of all non-boolean context initalization parameters recognized by the implementation.
+     * An <code>enum</code> of all non-boolean context initialization parameters recognized by the implementation.
      * </p>
      */
     public enum WebContextInitParameter {
@@ -838,7 +838,7 @@ public class WebConfiguration {
 
     /**
      * <p>
-     * An <code>enum</code> of all boolean context initalization parameters recognized by the implementation.
+     * An <code>enum</code> of all boolean context initialization parameters recognized by the implementation.
      * </p>
      */
     public enum BooleanWebContextInitParameter {
@@ -947,7 +947,7 @@ public class WebConfiguration {
 
     /**
      * <p>
-     * An <code>enum</code> of all environment entries (specified in the web.xml) recognized by the implemenetation.
+     * An <code>enum</code> of all environment entries (specified in the web.xml) recognized by the implementation.
      * </p>
      */
     public enum WebEnvironmentEntry {
@@ -1016,7 +1016,7 @@ public class WebConfiguration {
 
         void log();
 
-    } // END DeferredLogginAction
+    } // END DeferredLoggingAction
 
     private class DeferredParameterLoggingAction implements DeferredLoggingAction {
 
@@ -1046,7 +1046,7 @@ public class WebConfiguration {
 
         }
 
-    } // END DeferredParameterLogginAction
+    } // END DeferredParameterLoggingAction
 
     private class DeferredBooleanParameterLoggingAction implements DeferredLoggingAction {
 
