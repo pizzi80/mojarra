@@ -1632,7 +1632,7 @@ public class UIViewRoot extends UIComponentBase implements UniqueIdVendor {
         }
 
         if (viewListeners == null) {
-            viewListeners = new HashMap<>(4, 1.0f);
+            viewListeners = new HashMap<>(6);
         }
 
         viewListeners.computeIfAbsent(systemEvent, k -> new CopyOnWriteArrayList<>())
