@@ -328,12 +328,11 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
                 for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
                     put(serializable, entry.getKey(), entry.getValue());
                 }
-            } else if (value instanceof List) {
+            } else if (value instanceof List<?> values) {
                 defaultMap.remove(serializable);
                 deltaMap.remove(serializable);
 
-                List<?> values = (List<?>) value;
-                values.stream().forEach(o -> add(serializable, o));
+                values.forEach(o -> add(serializable, o));
             } else {
                 put(serializable, value);
                 handleAttribute(serializable.toString(), value);

@@ -48,11 +48,8 @@ public class RequestMap extends BaseContextMap<Object> {
 
     // Supported by maps if overridden
     @Override
-    public void putAll(Map t) {
-        for (Iterator i = t.entrySet().iterator(); i.hasNext();) {
-            Map.Entry entry = (Map.Entry) i.next();
-            request.setAttribute((String) entry.getKey(), entry.getValue());
-        }
+    public void putAll(Map<? extends String, ?> map) {
+        map.forEach(request::setAttribute);
     }
 
     @Override

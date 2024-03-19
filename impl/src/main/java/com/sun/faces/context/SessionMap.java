@@ -18,6 +18,7 @@ package com.sun.faces.context;
 
 import static java.util.Optional.ofNullable;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -66,19 +67,19 @@ public class SessionMap extends BaseContextMap<Object> {
 
     // Supported by maps if overridden
     @Override
-    public void putAll(Map t) {
+    public void putAll(Map<? extends String, ?> map) {
         HttpSession session = getSession(true);
-        for (Iterator i = t.entrySet().iterator(); i.hasNext();) {
-            Map.Entry entry = (Map.Entry) i.next();
-            Object v = entry.getValue();
-            Object k = entry.getKey();
-            if (ProjectStage.Development.equals(stage) && !(v instanceof Serializable)) {
+        for (Object object : map.entrySet()) {
+            Map.Entry entry = (Map.Entry) object;
+            String key = (String)entry.getKey();
+            Object value = entry.getValue();
+            if (ProjectStage.Development.equals(stage) && !(value instanceof Serializable)) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[] { k, v.getClass().getName() });
+                    LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[]{key, value.getClass().getName()});
                 }
             }
             // noinspection NonSerializableObjectBoundToHttpSession
-            session.setAttribute((String) k, v);
+            session.setAttribute(key, value);
         }
     }
 
@@ -94,7 +95,7 @@ public class SessionMap extends BaseContextMap<Object> {
     public Object put(String key, Object value) {
         Util.notNull("key", key);
         HttpSession session = getSession(true);
-        Object result = session.getAttribute(key);
+        Object currentValue = session.getAttribute(key);
         if (value != null && ProjectStage.Development.equals(stage) && !(value instanceof Serializable)) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[] { key, value.getClass().getName() });
@@ -102,15 +103,15 @@ public class SessionMap extends BaseContextMap<Object> {
         }
         // noinspection NonSerializableObjectBoundToHttpSession
         boolean doSet = true;
-        if (null != value && null != result) {
-            int valCode = System.identityHashCode(value);
-            int resultCode = System.identityHashCode(result);
-            doSet = valCode != resultCode;
+        if (value != null && currentValue != null) {
+            int valueHash = System.identityHashCode(value);
+            int currentValueHash = System.identityHashCode(currentValue);
+            doSet = valueHash != currentValueHash;
         }
         if (doSet) {
             session.setAttribute(key, value);
         }
-        return result;
+        return currentValue;
     }
 
     @Override
@@ -121,9 +122,9 @@ public class SessionMap extends BaseContextMap<Object> {
         HttpSession session = getSession(false);
         if (session != null) {
             String keyString = key.toString();
-            Object result = session.getAttribute(keyString);
+            Object currentValue = session.getAttribute(keyString);
             session.removeAttribute(keyString);
-            return result;
+            return currentValue;
         }
         return null;
     }
@@ -192,7 +193,7 @@ public class SessionMap extends BaseContextMap<Object> {
     // ----------------------------------------------------------- Session Mutex
 
     private static final class Mutex implements Serializable {
-        private static final long serialVersionUID = 1L;
+        @Serial private static final long serialVersionUID = 1L;
     }
 
     public static void createMutex(HttpSession session) {
@@ -200,7 +201,7 @@ public class SessionMap extends BaseContextMap<Object> {
     }
 
     public static Object getMutex(Object session) {
-        return session instanceof HttpSession ? ofNullable(((HttpSession) session).getAttribute(MUTEX)).orElse(session) : session;
+        return session instanceof HttpSession httpSession ? ofNullable(httpSession.getAttribute(MUTEX)).orElse(session) : session;
     }
 
     public static void removeMutex(HttpSession session) {

@@ -52,9 +52,9 @@ public class ApplicationMap extends BaseContextMap<Object> {
 
     // Supported by maps if overridden
     @Override
-    public void putAll(Map map) {
+    public void putAll(Map<? extends String, ?> map) {
         Util.notNull("map", map);
-        map.forEach( (key, value) -> servletContext.setAttribute((String) key, value));
+        map.forEach(servletContext::setAttribute);
     }
 
     @Override
