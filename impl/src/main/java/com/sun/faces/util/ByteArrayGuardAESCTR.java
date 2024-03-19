@@ -16,13 +16,13 @@
 
 package com.sun.faces.util;
 
-import java.nio.charset.Charset;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.SortedMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -65,8 +65,6 @@ public final class ByteArrayGuardAESCTR {
 
     private SecretKey sk;
 
-    private Charset utf8;
-
     // ------------------------------------------------------------ Constructors
 
     public ByteArrayGuardAESCTR() {
@@ -84,8 +82,8 @@ public final class ByteArrayGuardAESCTR {
     // ---------------------------------------------------------- Public Methods
 
     /**
-     * This method: Encrypts bytes using a cipher. Generates MAC for intialization vector of the cipher Generates MAC for
-     * encrypted data Returns a byte array consisting of the following concatenated together: |MAC for cnrypted Data | MAC
+     * This method: Encrypts bytes using a cipher. Generates MAC for initialization vector of the cipher Generates MAC for
+     * encrypted data Returns a byte array consisting of the following concatenated together: |MAC for encrypted Data | MAC
      * for Init Vector | Encrypted Data |
      *
      * @param value The value to be encrypted.
@@ -93,7 +91,7 @@ public final class ByteArrayGuardAESCTR {
      */
     public String encrypt(String value) {
         String securedata = null;
-        byte[] bytes = value.getBytes(utf8);
+        byte[] bytes = value.getBytes(UTF_8);
         try {
             SecureRandom rand = new SecureRandom();
             byte[] iv = new byte[16];
@@ -148,7 +146,7 @@ public final class ByteArrayGuardAESCTR {
                     throw new InvalidKeyException("Invalid characters in decrypted value");
                 }
             }
-            return new String(plaindata, utf8);
+            return new String(plaindata, UTF_8);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException
                 | BadPaddingException nsae) {
             throw new InvalidKeyException(nsae);
@@ -187,33 +185,24 @@ public final class ByteArrayGuardAESCTR {
             }
         }
 
-        SortedMap<String, Charset> availableCharsets = Charset.availableCharsets();
-        if (availableCharsets.containsKey("UTF-8")) {
-            utf8 = availableCharsets.get("UTF-8");
-        } else if (availableCharsets.containsKey("UTF8")) {
-            utf8 = availableCharsets.get("UTF8");
-        } else {
-            throw new FacesException("Unable to get UTF-8 Charset.");
-        }
-
     }
 
     /**
      * This method concatenates two byte arrays
      *
-     * @return a byte array of array1||array2
+     * @return a byte array that is the concatenation of array1 and array2
      * @param array1 first byte array to be concatenated
      * @param array2 second byte array to be concatenated
      */
     private static byte[] concatBytes(byte[] array1, byte[] array2) {
-        byte[] cBytes = new byte[array1.length + array2.length];
+        byte[] output = new byte[array1.length + array2.length];
         try {
-            System.arraycopy(array1, 0, cBytes, 0, array1.length);
-            System.arraycopy(array2, 0, cBytes, array1.length, array2.length);
+            System.arraycopy(array1, 0, output, 0, array1.length);
+            System.arraycopy(array2, 0, output, array1.length, array2.length);
         } catch (Exception e) {
             throw new FacesException(e);
         }
-        return cBytes;
+        return output;
     }
 
 }
