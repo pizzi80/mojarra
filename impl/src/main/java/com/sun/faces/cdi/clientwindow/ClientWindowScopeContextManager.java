@@ -166,8 +166,7 @@ public class ClientWindowScopeContextManager {
                 if (clientWindowScopeContexts != null && clientWindowId != null && create) {
                     synchronized (clientWindowScopeContexts) {
                         if (!clientWindowScopeContexts.containsKey(clientWindowId)) {
-                            clientWindowScopeContexts.put(clientWindowId,
-                                    new ConcurrentHashMap<String, ClientWindowScopeContextObject>());
+                            clientWindowScopeContexts.put(clientWindowId, new ConcurrentHashMap<>());
                             if (distributable) {
                                 // If we are distributable, this will result in a dirtying of the
                                 // session data, forcing replication. If we are not distributable,
