@@ -16,8 +16,6 @@
 
 package com.sun.faces.context;
 
-import static java.util.Optional.ofNullable;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
@@ -88,7 +86,6 @@ public class SessionMap extends BaseContextMap<Object> {
         Util.notNull("key", key);
         HttpSession session = getSession(false);
         return session != null ? session.getAttribute(key.toString()) : null;
-
     }
 
     @Override
@@ -196,14 +193,38 @@ public class SessionMap extends BaseContextMap<Object> {
         @Serial private static final long serialVersionUID = 1L;
     }
 
+    // PENDING: to be used when the session is null or invalidated during getMutex access
+    private static final Mutex shared_mutex = new Mutex();
+
     public static void createMutex(HttpSession session) {
         session.setAttribute(MUTEX, new Mutex());
     }
 
     public static Object getMutex(Object session) {
-        return session instanceof HttpSession httpSession ? ofNullable(httpSession.getAttribute(MUTEX)).orElse(session) : session;
+        if ( session == null ) return shared_mutex;             // PENDING: to avoid NPE in synchronized blocks
+        if ( session instanceof HttpSession httpSession ) {
+            try {
+                Mutex mutex = (Mutex) httpSession.getAttribute(MUTEX);
+                // if the mutex was removed in the meantime -> return the shared_mutex...?
+                if ( mutex == null ) {
+                    LOGGER.warning("getMutex(session) is returning a shared mutex because the Mutex attribute was removed from session in the meantime");
+                    return shared_mutex;
+                }
+                return mutex;
+            }
+            catch (IllegalStateException sessionInvalidated) {
+                LOGGER.warning("getMutex(session) is returning a shared mutex because the session has been invalidated in the meantime");
+                return shared_mutex;
+            }
+        }
+        // it the session was not an HttpSession, return the session itself
+        // which is the case?
+        LOGGER.warning("getMutex(session): session it's not an HttpSession. return the session itself as a mutex object");
+        return session;
     }
 
+    // do we really need to remove the mutex from session?
+    // this could create a race condition and / or a NPE in synchronized block calling getMutex
     public static void removeMutex(HttpSession session) {
         session.removeAttribute(MUTEX);
     }
