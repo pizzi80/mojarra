@@ -26,7 +26,7 @@ import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.WARNING;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -118,7 +118,7 @@ public class ViewScopeContextManager {
      * Create the bean.
      *
      * @param <T> the type.
-     * @param facesContext the faces context.
+     * @param facesContext the Faces context.
      * @param contextual the contextual.
      * @param creational the creational.
      * @return the value or null if not found.
@@ -133,7 +133,7 @@ public class ViewScopeContextManager {
         T contextualInstance = contextual.create(creational);
 
         if (contextualInstance != null) {
-            String name = getName(contextualInstance);
+            String name = getBeanName(contextualInstance);
             facesContext.getViewRoot().getViewMap(true).put(name, contextualInstance);
             String passivationCapableId = ((PassivationCapable) contextual).getId();
 
@@ -150,7 +150,7 @@ public class ViewScopeContextManager {
      * @param contextMap the context map.
      */
     private void destroyBeans(Map<String, Object> viewMap, Map<String, ViewScopeContextObject> contextMap) {
-        ArrayList<String> removalNameList = new ArrayList<>();
+        List<String> removalNameList = new ArrayList<>();
 
         if (contextMap != null) {
             for (Map.Entry<String, ViewScopeContextObject> entry : contextMap.entrySet()) {
@@ -176,9 +176,8 @@ public class ViewScopeContextManager {
                 removalNameList.add(contextObject.getName());
             }
 
-            Iterator<String> removalNames = removalNameList.iterator();
-            while (removalNames.hasNext()) {
-                String name = removalNames.next();
+            // remove all collected names from the viewMap
+            for (String name : removalNameList) {
                 viewMap.remove(name);
             }
 
@@ -189,7 +188,7 @@ public class ViewScopeContextManager {
      * Get the value from the view map (or null if not found).
      *
      * @param <T> the type.
-     * @param facesContext the faces context.
+     * @param facesContext the Faces context.
      * @param contextual the contextual.
      * @return the value or null if not found.
      */
@@ -238,39 +237,49 @@ public class ViewScopeContextManager {
 
         ExternalContext externalContext = facesContext.getExternalContext();
         if (externalContext != null) {
-            Map<String, Object> sessionMap = externalContext.getSessionMap();
-            Object session = externalContext.getSession(create);
-
+            final Map<String, Object> sessionMap = externalContext.getSessionMap();
+            final Object session = externalContext.getSession(create);
             if (session != null) {
-                Map<Object, Map<String, ViewScopeContextObject>> activeViewScopeContexts = (Map<Object, Map<String, ViewScopeContextObject>>)
-                    sessionMap.get(ACTIVE_VIEW_CONTEXTS);
-                Map<String, Object> viewMap = facesContext.getViewRoot().getViewMap(false);
-                String viewMapId = (String) facesContext.getViewRoot().getTransientStateHelper().getTransient(VIEW_MAP_ID);
+                try {
 
-                if (activeViewScopeContexts == null && create) {
-                    synchronized (getMutex(session)) {
-                        activeViewScopeContexts = new ConcurrentHashMap<>();
-                        sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewScopeContexts);
+                    // get the global ViewScope Map
+                    Map<Object, Map<String, ViewScopeContextObject>> activeViewScopeContexts = (Map<Object, Map<String, ViewScopeContextObject>>) sessionMap.get(ACTIVE_VIEW_CONTEXTS);
+
+                    // create the ViewScope Map and store in the session
+                    if (activeViewScopeContexts == null && create) {
+                        synchronized (getMutex(session)) {
+                            activeViewScopeContexts = new ConcurrentHashMap<>();
+                            sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewScopeContexts);
+                        }
                     }
-                }
 
-                if (activeViewScopeContexts != null && viewMapId != null && create) {
-                    synchronized (activeViewScopeContexts) {
-                        if (!activeViewScopeContexts.containsKey(viewMapId)) {
-                            activeViewScopeContexts.put(viewMapId,
-                                    new ConcurrentHashMap<String, ViewScopeContextObject>());
-                            if (distributable) {
-                                // If we are distributable, this will result in a dirtying of the
-                                // session data, forcing replication. If we are not distributable,
-                                // this is a no-op.
-                                sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewScopeContexts);
+                    // get / create the ViewScope for the current View
+                    String viewMapId = (String) facesContext.getViewRoot().getTransientStateHelper().getTransient(VIEW_MAP_ID);
+                    if (activeViewScopeContexts != null && viewMapId != null && create) {
+                        synchronized (activeViewScopeContexts) {
+                            if ( !activeViewScopeContexts.containsKey(viewMapId) ) {
+
+                                activeViewScopeContexts.put(viewMapId, new ConcurrentHashMap<>());
+
+                                if (distributable) {
+                                    // If we are distributable, this will result in a dirtying of the
+                                    // session data, forcing replication. If we are not distributable,
+                                    // this is a no-op.
+                                    sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewScopeContexts);
+                                }
                             }
                         }
                     }
-                }
 
-                if (activeViewScopeContexts != null && viewMapId != null) {
-                    result = activeViewScopeContexts.get(viewMapId);
+                    if (activeViewScopeContexts != null && viewMapId != null) {
+                        result = activeViewScopeContexts.get(viewMapId);
+                    }
+
+                }
+                // Session already invalidated
+                catch (Exception e) {
+                    LOGGER.log(WARNING, e.getMessage());
+                    return null;
                 }
             }
         }
@@ -305,16 +314,23 @@ public class ViewScopeContextManager {
 
     /**
      * Get the name of the bean for the given object.
+     * todo: move to {@link com.sun.faces.cdi.CdiUtils}
      *
      * @param instance the object.
      * @return the name.
      */
-    private String getName(Object instance) {
-        String name = instance.getClass().getSimpleName().substring(0, 1).toLowerCase() + instance.getClass().getSimpleName().substring(1);
+    private static String getBeanName(Object instance) {
+        final String name;
 
+        // @Named("beanName") annotation
         Named named = instance.getClass().getAnnotation(Named.class);
-        if (named != null && named.value() != null && !named.value().trim().equals("")) {
+        if (named != null && named.value() != null && !named.value().isBlank()) {
             name = named.value();
+        }
+        // Class name un-capitalized
+        else {
+            String className = instance.getClass().getSimpleName();
+            name = Character.toLowerCase(className.charAt(0)) + className.substring(1);
         }
 
         return name;
@@ -356,4 +372,5 @@ public class ViewScopeContextManager {
     public void fireDestroyedEvent(FacesContext facesContext, UIViewRoot root) {
         getBeanReference(beanManager, ViewScopedCDIEventFireHelperImpl.class).fireDestroyedEvent(root);
     }
+
 }
