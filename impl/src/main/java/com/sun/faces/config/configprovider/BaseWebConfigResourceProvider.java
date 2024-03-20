@@ -57,7 +57,7 @@ public abstract class BaseWebConfigResourceProvider implements ConfigurationReso
         if (paths != null) {
             for (String token : split(context, paths.trim(), getSeparatorRegex())) {
                 String path = token.trim();
-                if (!isExcluded(path) && path.length() != 0) {
+                if (!path.isEmpty() && !isExcluded(path)) {
                     URI u = getContextURLForPath(context, path);
                     if (u != null) {
                         urls.add(u);
