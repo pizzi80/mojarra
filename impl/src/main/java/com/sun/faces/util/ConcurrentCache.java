@@ -20,16 +20,16 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * Defines a concurrent cache with a factory for creating new object instances.
- *
+ * <br>
  * This (combined with ExpiringConcurrentCache) offers functionality similar to com.sun.faces.util.Cache. Two
  * differences:
- *
+ * <br>
  * 1. Cache is concrete/assumes a particular implementation. ConcurrentCache is abstract/allows subclasses to provide
  * the implementation. This facilitates alternative implementations, such as DefaultFaceletCache's NoCache. 2.
  * ConcurrentCache does not provide remove() as part of its contract, since remove behavior may be subclass-specific.
- * For example, ExpiringConcurentCache automatically removes items by checking for expiration rather than requiring
+ * For example, ExpiringConcurrentCache automatically removes items by checking for expiration rather than requiring
  * manual removes.
- *
+ * <br>
  * We should consider consolidating Cache and ConcurrentCache + ExpiringConcurrentCache into a single class hierarchy so
  * that we do not need to duplicate the JCIP scalable result cache code.
  */
@@ -69,7 +69,7 @@ public abstract class ConcurrentCache<K, V> {
     public abstract boolean containsKey(final K key);
 
     /**
-     * Retrieves a <code>Factory</code> instance aasociated with this cache
+     * Retrieves a <code>Factory</code> instance associated with this cache
      *
      * @return <code>Factory</code> instance
      */
