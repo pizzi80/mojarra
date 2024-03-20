@@ -149,22 +149,16 @@ public class Util {
         throw new IllegalStateException();
     }
 
+    @SuppressWarnings("unchecked")
     private static Map<String, Pattern> getPatternCache(Map<String, Object> appMap) {
-        @SuppressWarnings("unchecked")
-        Map<String, Pattern> result = (Map<String, Pattern>) appMap.get(PATTERN_CACHE_KEY);
-        if (result == null) {
-            result = Collections.synchronizedMap(new LRUMap<>(15));
-            appMap.put(PATTERN_CACHE_KEY, result);
-        }
-
-        return result;
+        return (Map<String, Pattern>) appMap.computeIfAbsent( PATTERN_CACHE_KEY , k -> new ConcurrentLRUMap<>() );
     }
 
+    @SuppressWarnings("unchecked")
     private static Map<String, Pattern> getPatternCache(ServletContext sc) {
-        @SuppressWarnings("unchecked")
         Map<String, Pattern> result = (Map<String, Pattern>) sc.getAttribute(PATTERN_CACHE_KEY);
         if (result == null) {
-            result = Collections.synchronizedMap(new LRUMap<>(15));
+            result = new ConcurrentLRUMap<>();
             sc.setAttribute(PATTERN_CACHE_KEY, result);
         }
 
@@ -728,7 +722,7 @@ public class Util {
     @SafeVarargs
     public static <T> boolean isOneOf(T object, T... objects) {
         for (Object other : objects) {
-            if (object == null ? other == null : object.equals(other)) {
+            if (Objects.equals(object, other)) {
                 return true;
             }
         }
@@ -787,6 +781,17 @@ public class Util {
         }
 
         return false;
+    }
+
+    /**
+     * Ported from Java 19+
+     * todo: remove when Faces will be Java 19+
+     *
+     * @param numMappings number of expected elements to be stored in the Map
+     * @return the correct initial capacity of the {@link Map} to avoid a rehash with the default load factor
+     */
+    public static int calculateMapCapacity(int numMappings) {
+        return (int) Math.ceil( numMappings / 0.75 );
     }
 
     /**
@@ -999,7 +1004,7 @@ public class Util {
      *
      * @param e the Throwable to obtain the stacktrace from
      *
-     * @return the String representation ofthe stack trace obtained by calling getStackTrace() on the passed in exception.
+     * @return the String representation of the stack trace obtained by calling getStackTrace() on the passed in exception.
      * If null is passed in, we return the empty String.
      */
     public static String getStackTraceString(Throwable e) {
@@ -1545,9 +1550,10 @@ public class Util {
         }
 
         @Override
-        public Iterator getPrefixes(String namespaceURI) {
+        public Iterator<String> getPrefixes(String namespaceURI) {
             return null;
         }
+
     }
 
     /**
