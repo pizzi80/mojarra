@@ -150,11 +150,6 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
         return false;
     }
 
-    // TODO to be removed once using CDI API 4.x
-    public boolean isNullable() {
-        return false;
-    }
-
     protected CdiProducer<T> name(String name) {
         this.name = name;
         return this;
@@ -182,7 +177,7 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
     }
 
     protected CdiProducer<T> qualifiers(Annotation... qualifiers) {
-        this.qualifiers = asSet(qualifiers);
+        this.qualifiers = Set.of(qualifiers);
         return this;
     }
 
