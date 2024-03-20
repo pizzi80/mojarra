@@ -16,6 +16,8 @@
 
 package com.sun.faces.util;
 
+import static com.sun.faces.util.Util.calculateMapCapacity;
+
 import java.io.Serial;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,9 +34,24 @@ public class LRUMap<K, V> extends LinkedHashMap<K, V> {
 
     // ------------------------------------------------------------ Constructors
 
+    /**
+     * Create a {@link LRUMap} with max capacity of 23 elements,
+     * which translate internally to a {@link LinkedHashMap}
+     * with 32 buckets and the default load factor (0.75)
+     */
+    public LRUMap() {
+        this(23);
+    }
+
+    /**
+     * Create a {@link LRUMap} with the passed maxCapacity
+     */
     public LRUMap(int maxCapacity) {
-        super( (int)(maxCapacity/0.75f)+1 , 0.75f, true);   // to avoid collisions we should keep load factor = 0.75
-        this.maxCapacity = maxCapacity;                                                      // but we want exactly no more than maxCapacity elements
+        // 1) to avoid collisions we should keep the default load factor, which is 0.75f
+        // 2) to avoid the map rehash when inserting the maxCapacity+1 element before removing the eldest one, we use maxCapacity+1
+        super( calculateMapCapacity(maxCapacity+1) , 0.75f, true);
+        // but we want exactly no more than maxCapacity elements inside the Map
+        this.maxCapacity = maxCapacity;
     }
 
     // ---------------------------------------------- Methods from LinkedHashMap
@@ -42,6 +59,20 @@ public class LRUMap<K, V> extends LinkedHashMap<K, V> {
     @Override
     protected boolean removeEldestEntry(Map.Entry<K,V> eldest) {
         return size() > maxCapacity;
+    }
+
+    // ---------------------------------------------- Custom Methods
+
+    /**
+     * Remove and return the eldest element from the Map if we've reached the maximum capacity.
+     * @return the eldest element, if we've reached the maximum capacity, null otherwise.
+     */
+    public V popEldestEntry() {
+        if ( size() == maxCapacity ) {
+            K eldestKey = keySet().iterator().next();   // the eldest key is the first one
+            return remove(eldestKey);                   // remove and return the element
+        }
+        return null;
     }
 
     // TEST: com.sun.faces.TestLRUMap_local

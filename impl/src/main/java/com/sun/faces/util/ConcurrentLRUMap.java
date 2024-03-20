@@ -27,6 +27,18 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
     private final LRUMap<K,V> lru;
     private final Map<K,V> map;
 
+    /**
+     * Create a {@link ConcurrentLRUMap} with max capacity of 23 elements,
+     * which translate internally to a {@link LRUMap}
+     * with 32 buckets and the default load factor (0.75)
+     */
+    public ConcurrentLRUMap() {
+        this(23);
+    }
+
+    /**
+     * Create a {@link ConcurrentLRUMap} with the passed maxCapacity
+     */
     public ConcurrentLRUMap(int maxCapacity) {
         lru = new LRUMap<>(maxCapacity);
         map = Collections.synchronizedMap(lru);
