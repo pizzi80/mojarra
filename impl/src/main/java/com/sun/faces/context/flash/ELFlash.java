@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -108,11 +109,11 @@ public class ELFlash extends Flash {
      * </p>
      *
      */
-    private Map<String, Map<String, Object>> flashInnerMap = null;
+    private Map<String, Map<String, Object>> flashInnerMap;
 
     private final AtomicLong sequenceNumber = new AtomicLong(0);
 
-    private int numberOfConcurentFlashUsers = Integer.parseInt(WebContextInitParameter.NumberOfConcurrentFlashUsers.getDefaultValue());
+    private int numberOfConcurrentFlashUsers = Integer.parseInt(WebContextInitParameter.NumberOfConcurrentFlashUsers.getDefaultValue());
 
     private long numberOfFlashesBetweenFlashReapings = Long.parseLong(WebContextInitParameter.NumberOfFlashesBetweenFlashReapings.getDefaultValue());
 
@@ -151,7 +152,7 @@ public class ELFlash extends Flash {
      */
     static final String FLASH_NOW_REQUEST_KEY = FLASH_ATTRIBUTE_NAME + "n";
 
-    enum CONSTANTS {
+    private enum CONSTANTS {
 
         /**
          * The key in the FacesContext attributes map (hereafter referred to as contextMap) for the request scoped
@@ -200,16 +201,16 @@ public class ELFlash extends Flash {
     }
 
     /** Creates a new instance of ELFlash */
-    ELFlash(ExternalContext extContext) {
+    private ELFlash(ExternalContext extContext) {
         flashInnerMap = new ConcurrentHashMap<>();
         WebConfiguration config = WebConfiguration.getInstance(extContext);
         String value;
         try {
             value = config.getOptionValue(WebContextInitParameter.NumberOfConcurrentFlashUsers);
-            numberOfConcurentFlashUsers = Integer.parseInt(value);
+            numberOfConcurrentFlashUsers = Integer.parseInt(value);
         } catch (NumberFormatException nfe) {
             if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.log(Level.WARNING, "Unable to set number of concurrent flash users.  Defaulting to {0}", numberOfConcurentFlashUsers);
+                LOGGER.log(Level.WARNING, "Unable to set number of concurrent flash users.  Defaulting to {0}", numberOfConcurrentFlashUsers);
             }
 
         }
@@ -258,7 +259,7 @@ public class ELFlash extends Flash {
     static ELFlash getFlash(ExternalContext extContext, boolean create) {
         Map<String, Object> appMap = extContext.getApplicationMap();
         ELFlash flash = (ELFlash) appMap.get(FLASH_ATTRIBUTE_NAME);
-        if (null == flash && create) {
+        if (flash == null && create) {
             synchronized (extContext.getContext()) {
                 if (null == (flash = (ELFlash) appMap.get(FLASH_ATTRIBUTE_NAME))) {
                     flash = new ELFlash(extContext);
@@ -285,10 +286,6 @@ public class ELFlash extends Flash {
 
         return flash;
     }
-
-    // </editor-fold>
-
-    // <editor-fold defaultstate="collapsed" desc="Abstract class overrides">
 
     @Override
     public boolean isKeepMessages() {
@@ -456,10 +453,10 @@ public class ELFlash extends Flash {
 
     @Override
     public Set<Map.Entry<String, Object>> entrySet() {
-        Set<Map.Entry<String, Object>> readingMapEntrySet = getPhaseMapForReading().entrySet(), writingMapEntrySet = getPhaseMapForWriting().entrySet(),
-                result = null;
+        Set<Map.Entry<String, Object>> readingMapEntrySet = getPhaseMapForReading().entrySet();
+        Set<Map.Entry<String, Object>> writingMapEntrySet = getPhaseMapForWriting().entrySet();
 
-        result = new HashSet<>();
+        Set<Map.Entry<String, Object>> result = new HashSet<>(Util.calculateMapCapacity(readingMapEntrySet.size() + writingMapEntrySet.size()));
         result.addAll(readingMapEntrySet);
         result.addAll(writingMapEntrySet);
 
@@ -468,18 +465,18 @@ public class ELFlash extends Flash {
 
     @Override
     public boolean isEmpty() {
-        boolean readingMapIsEmpty = getPhaseMapForReading().isEmpty(), writingMapIsEmpty = getPhaseMapForWriting().isEmpty(), result = false;
-
-        result = readingMapIsEmpty && writingMapIsEmpty;
-
+        boolean readingMapIsEmpty = getPhaseMapForReading().isEmpty();
+        boolean writingMapIsEmpty = getPhaseMapForWriting().isEmpty();
+        boolean result = readingMapIsEmpty && writingMapIsEmpty;
         return result;
     }
 
     @Override
     public Set<String> keySet() {
-        Set<String> readingMapKeySet = getPhaseMapForReading().keySet(), writingMapKeySet = getPhaseMapForWriting().keySet(), result = null;
+        Set<String> readingMapKeySet = getPhaseMapForReading().keySet();
+        Set<String> writingMapKeySet = getPhaseMapForWriting().keySet();
 
-        result = new HashSet<>();
+        Set<String> result = new HashSet<>(Util.calculateMapCapacity(readingMapKeySet.size()+writingMapKeySet.size()));
         result.addAll(readingMapKeySet);
         result.addAll(writingMapKeySet);
 
@@ -496,8 +493,8 @@ public class ELFlash extends Flash {
             Object toKeep;
 
             if (null == (toKeep = requestMap.remove(key))) {
-                FlashInfo flashInfo = null;
-                if (null != (flashInfo = flashManager.getPreviousRequestFlashInfo())) {
+                FlashInfo flashInfo = flashManager.getPreviousRequestFlashInfo();
+                if (flashInfo != null) {
                     toKeep = flashInfo.getFlashMap().get(key);
                 }
             }
@@ -515,10 +512,10 @@ public class ELFlash extends Flash {
     public void putNow(String key, Object value) {
         FacesContext context = FacesContext.getCurrentInstance();
         Map<Object, Object> contextMap = context.getAttributes();
-        PreviousNextFlashInfoManager flashManager;
-        if (null != (flashManager = getCurrentFlashManager(contextMap, true))) {
-            FlashInfo flashInfo = null;
-            if (null != (flashInfo = flashManager.getPreviousRequestFlashInfo())) {
+        final PreviousNextFlashInfoManager flashManager = getCurrentFlashManager(contextMap, true);
+        if (flashManager != null) {
+            final FlashInfo flashInfo = flashManager.getPreviousRequestFlashInfo();
+            if (flashInfo != null) {
                 flashInfo.getFlashMap().put(key, value);
             }
         }
@@ -530,7 +527,7 @@ public class ELFlash extends Flash {
         Map<Object, Object> contextMap = context.getAttributes();
         contextMap.put(CONSTANTS.SavedResponseCompleteFlagValue, context.getResponseComplete());
 
-        Cookie cookie = null;
+        final Cookie cookie;
         if (currentPhase.equals(PhaseId.RESTORE_VIEW)) {
 
             if (null != (cookie = getCookie(context.getExternalContext()))) {
@@ -605,7 +602,7 @@ public class ELFlash extends Flash {
      * </p>
      *
      * @param context the involved faces context
-     * @param outgoingResponseIsRedirect whether outgoing response is redirect
+     * @param outgoingResponseIsRedirect whether outgoing response is a redirect
      */
     public void doLastPhaseActions(FacesContext context, boolean outgoingResponseIsRedirect) {
         Map<Object, Object> contextMap = context.getAttributes();
@@ -680,7 +677,7 @@ public class ELFlash extends Flash {
         return Boolean.TRUE == context.getAttributes().get(CONSTANTS.KeepFlagAttributeName);
     }
 
-    long getNewSequenceNumber() {
+    private long getNewSequenceNumber() {
         long result = sequenceNumber.incrementAndGet();
 
         if (0 == result % numberOfFlashesBetweenFlashReapings) {
@@ -697,7 +694,7 @@ public class ELFlash extends Flash {
 
     private void reapFlashes() {
 
-        if (flashInnerMap.size() < numberOfConcurentFlashUsers) {
+        if (flashInnerMap.size() < numberOfConcurrentFlashUsers) {
             return;
         }
 
@@ -706,7 +703,7 @@ public class ELFlash extends Flash {
         Map<String, Object> curFlash;
         for (String cur : keys) {
             sequenceNumberToTest = Long.parseLong(cur);
-            if (numberOfConcurentFlashUsers < currentSequenceNumber - sequenceNumberToTest) {
+            if (numberOfConcurrentFlashUsers < currentSequenceNumber - sequenceNumberToTest) {
                 if (null != (curFlash = flashInnerMap.get(cur))) {
                     curFlash.clear();
                 }
@@ -725,10 +722,9 @@ public class ELFlash extends Flash {
     }
 
     private boolean responseCompleteWasJustSetTrue(FacesContext context, Map<Object, Object> contextMap) {
-        boolean result = false;
 
         // If it was false, but it's now true, return true
-        result = Boolean.FALSE == contextMap.get(CONSTANTS.SavedResponseCompleteFlagValue) && context.getResponseComplete();
+        boolean result = Boolean.FALSE.equals(contextMap.get(CONSTANTS.SavedResponseCompleteFlagValue)) && context.getResponseComplete();
 
         return result;
     }
@@ -885,7 +881,6 @@ public class ELFlash extends Flash {
 
     }
 
-    @SuppressWarnings(ELEMENT_TYPE_MISMATCH)
     void restoreAllMessages(FacesContext context) {
         Map<String, List<FacesMessage>> allFacesMessages;
         Map<String, Object> phaseMap = getPhaseMapForReading();
@@ -909,9 +904,7 @@ public class ELFlash extends Flash {
      * </p>
      */
     private Cookie getCookie(ExternalContext extContext) {
-        Cookie result = null;
-
-        result = (Cookie) extContext.getRequestCookieMap().get(FLASH_COOKIE_NAME);
+        Cookie result = (Cookie) extContext.getRequestCookieMap().get(FLASH_COOKIE_NAME);
 
         return result;
     }
@@ -947,26 +940,28 @@ public class ELFlash extends Flash {
                     flashManager.expirePrevious();
                 }
             } else {
-                Map<String, Object> properties = new HashMap<>();
-                Object val;
+                final Map<String, Object> properties = new HashMap<>();
+                Object value;
 
-                if (null != (val = toSet.getDomain())) {
-                    properties.put("domain", val);
+                if (null != (value = toSet.getDomain())) {
+                    properties.put("domain", value);
                 }
-                if (null != (val = toSet.getMaxAge())) {
-                    properties.put("maxAge", val);
+
+                if (null != (value = toSet.getPath())) {
+                    properties.put("path", value);
                 }
-                if (extContext.isSecure()) {
+
+                // Cookie max age is never null
+                properties.put("maxAge", toSet.getMaxAge());
+
+                // Cookie secure flag
+                if ( extContext.isSecure() || toSet.getSecure() ) {
                     properties.put("secure", Boolean.TRUE);
-                } else if (null != (val = toSet.getSecure())) {
-                    properties.put("secure", val);
                 }
-                if (null != (val = toSet.getPath())) {
-                    properties.put("path", val);
-                }
+
                 properties.put("httpOnly", Boolean.TRUE);
                 extContext.addResponseCookie(toSet.getName(), toSet.getValue(), !properties.isEmpty() ? properties : null);
-                properties = null;
+
             }
             contextMap.put(CONSTANTS.DidWriteCookieAttributeName, Boolean.TRUE);
         } else {
@@ -979,26 +974,26 @@ public class ELFlash extends Flash {
             return;
         }
         Map<String, Object> properties = new HashMap<>();
-        Object val;
+        Object value;
         toRemove.setMaxAge(0);
 
-        if (null != (val = toRemove.getDomain())) {
-            properties.put("domain", val);
+        if (null != (value = toRemove.getDomain())) {
+            properties.put("domain", value);
         }
-        if (null != (val = toRemove.getMaxAge())) {
-            properties.put("maxAge", val);
-        }
-        if (extContext.isSecure()) {
+
+        // Cookie max age is never null
+        properties.put("maxAge", toRemove.getMaxAge());
+
+        // Cookie secure flag
+        if ( extContext.isSecure() || toRemove.getSecure() ) {
             properties.put("secure", Boolean.TRUE);
-        } else if (null != (val = toRemove.getSecure())) {
-            properties.put("secure", val);
         }
-        if (null != (val = toRemove.getPath())) {
-            properties.put("path", val);
+
+        if (null != (value = toRemove.getPath())) {
+            properties.put("path", value);
         }
         properties.put("httpOnly", Boolean.TRUE);
         extContext.addResponseCookie(toRemove.getName(), toRemove.getValue(), !properties.isEmpty() ? properties : null);
-        properties = null;
 
     }
 
@@ -1008,14 +1003,14 @@ public class ELFlash extends Flash {
 
         FirstTimeThru("f"), SecondTimeThru("s"), IsRedirect("r"), IsNormal("n");
 
-        private static char FIRST_TIME_THRU = 'f';
-        private static char SECOND_TIME_THRU = 's';
-        private static char IS_REDIRECT = 'r';
-        private static char IS_NORMAL = 'n';
+        private static final char FIRST_TIME_THRU = 'f';
+        private static final char SECOND_TIME_THRU = 's';
+        private static final char IS_REDIRECT = 'r';
+        private static final char IS_NORMAL = 'n';
 
-        private String name;
+        private final String name;
 
-        private LifetimeMarker(String name) {
+        LifetimeMarker(String name) {
             this.name = name;
         }
 
@@ -1029,21 +1024,15 @@ public class ELFlash extends Flash {
         }
 
         public static LifetimeMarker decode(char c) {
-            LifetimeMarker result = FirstTimeThru;
+            LifetimeMarker decoded = switch (c) {
+                case FIRST_TIME_THRU -> FirstTimeThru;
+                case SECOND_TIME_THRU -> SecondTimeThru;
+                case IS_REDIRECT -> IsRedirect;
+                case IS_NORMAL -> IsNormal;
+                default -> throw new IllegalStateException("class invariant failed: invalid lifetime marker");
+            };
 
-            if (FIRST_TIME_THRU == c) {
-                result = FirstTimeThru;
-            } else if (SECOND_TIME_THRU == c) {
-                result = SecondTimeThru;
-            } else if (IS_REDIRECT == c) {
-                result = IsRedirect;
-            } else if (IS_NORMAL == c) {
-                result = IsNormal;
-            } else {
-                throw new IllegalStateException("class invariant failed: invalid lifetime marker");
-            }
-
-            return result;
+            return decoded;
         }
 
     }
@@ -1123,7 +1112,7 @@ public class ELFlash extends Flash {
      * </p>
      */
 
-    static final class PreviousNextFlashInfoManager {
+    private static final class PreviousNextFlashInfoManager {
 
         private FlashInfo previousRequestFlashInfo;
 
@@ -1133,18 +1122,18 @@ public class ELFlash extends Flash {
 
         private Map<String, Map<String, Object>> innerMap;
 
-        private ByteArrayGuardAESCTR guard;
+        private final ByteArrayGuardAESCTR guard;
 
         private PreviousNextFlashInfoManager(ByteArrayGuardAESCTR guard) {
             this.guard = guard;
         }
 
-        PreviousNextFlashInfoManager(ByteArrayGuardAESCTR guard, Map<String, Map<String, Object>> innerMap) {
+        private PreviousNextFlashInfoManager(ByteArrayGuardAESCTR guard, Map<String, Map<String, Object>> innerMap) {
             this.guard = guard;
             this.innerMap = innerMap;
         }
 
-        protected PreviousNextFlashInfoManager copyWithoutInnerMap() {
+        private PreviousNextFlashInfoManager copyWithoutInnerMap() {
             PreviousNextFlashInfoManager result = new PreviousNextFlashInfoManager(guard);
             result.innerMap = Collections.emptyMap();
             if (null != previousRequestFlashInfo) {
@@ -1160,24 +1149,24 @@ public class ELFlash extends Flash {
 
         @Override
         public String toString() {
-            String result = null;
 
-            result = "previousRequestSequenceNumber: " + (null != previousRequestFlashInfo ? previousRequestFlashInfo.getSequenceNumber() : "null")
-                    + " nextRequestSequenceNumber: " + (null != nextRequestFlashInfo ? nextRequestFlashInfo.getSequenceNumber() : "null");
+            String result = "previousRequestSequenceNumber: " + (null != previousRequestFlashInfo ? previousRequestFlashInfo.getSequenceNumber() : "null") +
+                            " nextRequestSequenceNumber: " + (null != nextRequestFlashInfo ? nextRequestFlashInfo.getSequenceNumber() : "null");
 
             return result;
         }
 
         void initializeBaseCase(ELFlash flash) {
-            Map<String, Object> flashMap = null;
 
+            final Map<String, Object> previousFlashMap = new HashMap<>();
             previousRequestFlashInfo = new FlashInfo(flash.getNewSequenceNumber(), LifetimeMarker.FirstTimeThru, false);
-            innerMap.put(previousRequestFlashInfo.getSequenceNumber() + "", flashMap = new HashMap<>());
-            previousRequestFlashInfo.setFlashMap(flashMap);
+            innerMap.put(previousRequestFlashInfo.getSequenceNumberAsString(), previousFlashMap );
+            previousRequestFlashInfo.setFlashMap(previousFlashMap);
 
+            final Map<String, Object> nextFlashMap = new HashMap<>();
             nextRequestFlashInfo = new FlashInfo(flash.getNewSequenceNumber(), LifetimeMarker.FirstTimeThru, false);
-            innerMap.put(nextRequestFlashInfo.getSequenceNumber() + "", flashMap = new HashMap<>());
-            nextRequestFlashInfo.setFlashMap(flashMap);
+            innerMap.put(nextRequestFlashInfo.getSequenceNumberAsString(), nextFlashMap );
+            nextRequestFlashInfo.setFlashMap(nextFlashMap);
         }
 
         void expirePrevious() {
@@ -1196,17 +1185,17 @@ public class ELFlash extends Flash {
                     flashMap.clear();
                 }
                 // remove it from the flash
-                innerMap.remove(previousRequestFlashInfo.getSequenceNumber() + "");
+                innerMap.remove(previousRequestFlashInfo.getSequenceNumberAsString());
                 previousRequestFlashInfo = null;
             }
         }
 
         void expireNext() {
             // expire next
-            if (null != nextRequestFlashInfo) {
-                Map<String, Object> flashMap;
+            if (nextRequestFlashInfo != null) {
+                final Map<String, Object> flashMap = nextRequestFlashInfo.getFlashMap();
                 // clear the old map
-                if (null != (flashMap = nextRequestFlashInfo.getFlashMap())) {
+                if (flashMap != null) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
                         LOGGER.log(Level.FINEST, "{0} expire next[{1}]",
                                 new Object[] { getLogPrefix(FacesContext.getCurrentInstance()), nextRequestFlashInfo.getSequenceNumber() });
@@ -1237,7 +1226,7 @@ public class ELFlash extends Flash {
                 // clear the old map
                 flashMap.clear();
                 // remove it from the flash
-                innerMap.remove(nextRequestFlashInfo.getSequenceNumber() + "");
+                innerMap.remove(nextRequestFlashInfo.getSequenceNumberAsString());
                 nextRequestFlashInfo = null;
             }
 
@@ -1292,25 +1281,25 @@ public class ELFlash extends Flash {
                 Map<String, Object> flashMap;
                 // If the browser sent a cookie that is valid, but
                 // doesn't correspond to a map in memory...
-                if (null == (flashMap = innerMap.get(previousRequestFlashInfo.getSequenceNumber() + ""))) {
+                if (null == (flashMap = innerMap.get(previousRequestFlashInfo.getSequenceNumberAsString())) ) {
                     // create a new map
                     previousRequestFlashInfo = new FlashInfo();
                     previousRequestFlashInfo.setSequenceNumber(flash.getNewSequenceNumber());
                     previousRequestFlashInfo.setLifetimeMarker(LifetimeMarker.FirstTimeThru);
                     previousRequestFlashInfo.setIsRedirect(false);
                     // put it in the flash
-                    innerMap.put(previousRequestFlashInfo.getSequenceNumber() + "", flashMap = new HashMap<>());
+                    innerMap.put(previousRequestFlashInfo.getSequenceNumberAsString(), flashMap = new HashMap<>());
                 }
                 previousRequestFlashInfo.setFlashMap(flashMap);
                 if (null != nextRequestFlashInfo) {
-                    if (null == (flashMap = innerMap.get(nextRequestFlashInfo.getSequenceNumber() + ""))) {
+                    if (null == (flashMap = innerMap.get(nextRequestFlashInfo.getSequenceNumberAsString()))) {
                         // create a new map
                         nextRequestFlashInfo = new FlashInfo();
                         nextRequestFlashInfo.setSequenceNumber(flash.getNewSequenceNumber());
                         nextRequestFlashInfo.setLifetimeMarker(LifetimeMarker.FirstTimeThru);
                         nextRequestFlashInfo.setIsRedirect(false);
                         // put it in the flash
-                        innerMap.put(nextRequestFlashInfo.getSequenceNumber() + "", flashMap = new HashMap<>());
+                        innerMap.put(nextRequestFlashInfo.getSequenceNumberAsString(), flashMap = new HashMap<>());
                     }
                     nextRequestFlashInfo.setFlashMap(flashMap);
                 }
@@ -1367,8 +1356,8 @@ public class ELFlash extends Flash {
                 nextRequestFlashInfo.setLifetimeMarker(LifetimeMarker.FirstTimeThru);
                 nextRequestFlashInfo.setIsRedirect(false);
                 // put it in the flash
-                Map<String, Object> flashMap = null;
-                innerMap.put(nextRequestFlashInfo.getSequenceNumber() + "", flashMap = new HashMap<>());
+                Map<String, Object> flashMap = new HashMap<>();
+                innerMap.put(nextRequestFlashInfo.getSequenceNumberAsString(), flashMap );
                 nextRequestFlashInfo.setFlashMap(flashMap);
             }
             return nextRequestFlashInfo;
@@ -1393,7 +1382,7 @@ public class ELFlash extends Flash {
      * Encapsulate one of the two maps that back the flash for the current request.
      * </p>
      */
-    static final class FlashInfo {
+    private static final class FlashInfo {
 
         /**
          * <p>
@@ -1443,23 +1432,12 @@ public class ELFlash extends Flash {
 
         @Override
         public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final FlashInfo other = (FlashInfo) obj;
-            if (isRedirect != other.isRedirect) {
-                return false;
-            }
-            if (lifetimeMarker != other.lifetimeMarker && (lifetimeMarker == null || !lifetimeMarker.equals(other.lifetimeMarker))) {
-                return false;
-            }
-            if (sequenceNumber != other.sequenceNumber) {
-                return false;
-            }
-            return true;
+            if (obj == null) return false;
+            if (getClass() != obj.getClass()) return false;
+            final FlashInfo info = (FlashInfo) obj;
+            return  isRedirect == info.isRedirect &&
+                    Objects.equals(lifetimeMarker, info.lifetimeMarker) &&
+                    sequenceNumber == info.sequenceNumber;
         }
 
         @Override
@@ -1472,7 +1450,7 @@ public class ELFlash extends Flash {
         }
 
         void decode(String value) {
-            if (null == value || 0 == value.length()) {
+            if (null == value || value.isEmpty()) {
 
                 // PENDING(edburns): REMOVE THIS
                 return;
@@ -1491,14 +1469,14 @@ public class ELFlash extends Flash {
         }
 
         String encode() {
-            String value = null;
+            final String value;
 
             // The cookie value is an encoding of the sequence number, the
             // lifetime marker, and the redirect flag
             if (isIsRedirect()) {
-                value = Long.toString(getSequenceNumber()) + "X" + getLifetimeMarker().encode() + LifetimeMarker.IsRedirect.encode();
+                value = getSequenceNumber() + "X" + getLifetimeMarker().encode() + LifetimeMarker.IsRedirect.encode();
             } else {
-                value = Long.toString(getSequenceNumber()) + "X" + getLifetimeMarker().encode() + LifetimeMarker.IsNormal.encode();
+                value = getSequenceNumber() + "X" + getLifetimeMarker().encode() + LifetimeMarker.IsNormal.encode();
             }
 
             return value;
@@ -1514,6 +1492,10 @@ public class ELFlash extends Flash {
 
         long getSequenceNumber() {
             return sequenceNumber;
+        }
+
+        String getSequenceNumberAsString() {
+            return Long.toString(sequenceNumber);
         }
 
         void setSequenceNumber(long sequenceNumber) {
