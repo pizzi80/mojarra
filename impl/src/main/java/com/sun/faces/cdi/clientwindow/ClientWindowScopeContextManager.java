@@ -22,15 +22,14 @@ import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.Numb
 import static com.sun.faces.context.SessionMap.getMutex;
 import static java.util.logging.Level.FINEST;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.util.ConcurrentLRUMap;
 import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.LRUMap;
 
 import jakarta.enterprise.context.spi.Contextual;
 import jakarta.enterprise.context.spi.CreationalContext;
@@ -159,7 +158,7 @@ public class ClientWindowScopeContextManager {
                     }
 
                     synchronized (getMutex(session)) {
-                        sessionMap.put(CLIENT_WINDOW_CONTEXTS, Collections.synchronizedMap(new LRUMap<String, Object>(numberOfClientWindows)));
+                        sessionMap.put(CLIENT_WINDOW_CONTEXTS, new ConcurrentLRUMap<>(numberOfClientWindows));
                     }
                 }
 
