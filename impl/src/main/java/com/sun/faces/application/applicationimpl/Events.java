@@ -22,11 +22,11 @@ import static java.util.logging.Level.WARNING;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 import com.sun.faces.application.applicationimpl.events.ComponentSystemEventHelper;
@@ -34,7 +34,9 @@ import com.sun.faces.application.applicationimpl.events.EventInfo;
 import com.sun.faces.application.applicationimpl.events.ReentrantLisneterInvocationGuard;
 import com.sun.faces.application.applicationimpl.events.SystemEventHelper;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
+import jakarta.faces.application.Application;
 import jakarta.faces.application.ProjectStage;
 import jakarta.faces.component.UIViewRoot;
 import jakarta.faces.context.FacesContext;
@@ -45,6 +47,11 @@ import jakarta.faces.event.SystemEvent;
 import jakarta.faces.event.SystemEventListener;
 import jakarta.faces.event.SystemEventListenerHolder;
 
+/**
+ * This class encapsulates the behavior to prevent infinite loops when the publishing of one event leads to the queueing
+ * of another event of the same type. Special provision is made to allow the case where this guarding mechanisms happens
+ * on a per-FacesContext, per-SystemEvent.class type basis.
+ */
 public class Events {
 
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
@@ -57,15 +64,9 @@ public class Events {
     private final SystemEventHelper systemEventHelper = new SystemEventHelper();
     private final ComponentSystemEventHelper compSysEventHelper = new ComponentSystemEventHelper();
 
-    /*
-     * This class encapsulates the behavior to prevent infinite loops when the publishing of one event leads to the queueing
-     * of another event of the same type. Special provision is made to allow the case where this guaring mechanims happens
-     * on a per-FacesContext, per-SystemEvent.class type basis.
-     */
-
     private final ReentrantLisneterInvocationGuard listenerInvocationGuard = new ReentrantLisneterInvocationGuard();
 
-    /*
+    /**
      * @see jakarta.faces.application.Application#publishEvent(FacesContext, Class, Class, Object)
      */
     public void publishEvent(FacesContext context, Class<? extends SystemEvent> systemEventClass, Class<?> sourceBaseType, Object source,
@@ -105,60 +106,48 @@ public class Events {
 
             // Look for and invoke any listeners not specific to the source class
             invokeListenersFor(systemEventClass, event, source, null, false);
-        } catch (AbortProcessingException ape) {
+        }
+        catch (AbortProcessingException ape) {
             context.getApplication().publishEvent(context, ExceptionQueuedEvent.class, new ExceptionQueuedEventContext(context, ape));
         }
     }
 
-    /*
+    /**
      * @see Application#subscribeToEvent(Class, jakarta.faces.event.SystemEventListener)
      */
     public void subscribeToEvent(Class<? extends SystemEvent> systemEventClass, SystemEventListener listener) {
         subscribeToEvent(systemEventClass, null, listener);
     }
 
-    /*
+    /**
      * @see Application#subscribeToEvent(Class, Class, jakarta.faces.event.SystemEventListener)
      */
     public void subscribeToEvent(Class<? extends SystemEvent> systemEventClass, Class<?> sourceClass, SystemEventListener listener) {
-
         notNull(SYSTEM_EVENT_CLASS, systemEventClass);
         notNull(LISTENER, listener);
 
+        // listeners can't be null
         getListeners(systemEventClass, sourceClass).add(listener);
     }
 
-    /*
+    /**
      * @see Application#unsubscribeFromEvent(Class, Class, jakarta.faces.event.SystemEventListener)
      */
     public void unsubscribeFromEvent(Class<? extends SystemEvent> systemEventClass, Class<?> sourceClass, SystemEventListener listener) {
-
         notNull(SYSTEM_EVENT_CLASS, systemEventClass);
         notNull(LISTENER, listener);
 
-        Set<SystemEventListener> listeners = getListeners(systemEventClass, sourceClass);
-        if (listeners != null) {
-            listeners.remove(listener);
-        }
+        // listeners can't be null
+        getListeners(systemEventClass, sourceClass).remove(listener);
     }
 
     /**
      * @return the SystemEventListeners that should be used for the provided combination of SystemEvent and source.
      */
     private Set<SystemEventListener> getListeners(Class<? extends SystemEvent> systemEvent, Class<?> sourceClass) {
-
-        Set<SystemEventListener> listeners = null;
-        EventInfo sourceInfo = systemEventHelper.getEventInfo(systemEvent, sourceClass);
-        if (sourceInfo != null) {
-            listeners = sourceInfo.getListeners();
-        }
-
+        EventInfo sourceInfo = systemEventHelper.getEventInfo(systemEvent, sourceClass);    // can't be null
+        Set<SystemEventListener> listeners = sourceInfo.getListeners();                     // can't be null
         return listeners;
-
-    }
-
-    private boolean needsProcessing(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
-        return context.isProcessingEvents() || ExceptionQueuedEvent.class.isAssignableFrom(systemEventClass);
     }
 
     /**
@@ -167,9 +156,9 @@ public class Events {
      */
     private SystemEvent invokeComponentListenersFor(Class<? extends SystemEvent> systemEventClass, Object source) {
 
-        if (source instanceof SystemEventListenerHolder) {
+        if (source instanceof SystemEventListenerHolder systemEventListenerHolder) {
 
-            List<SystemEventListener> listeners = ((SystemEventListenerHolder) source).getListenersForEventClass(systemEventClass);
+            List<SystemEventListener> listeners = systemEventListenerHolder.getListenersForEventClass(systemEventClass);
             if (null == listeners) {
                 return null;
             }
@@ -224,13 +213,19 @@ public class Events {
         return event;
     }
 
+    // --------------------------------------------------------------------------- Utils
+
+    private static boolean needsProcessing(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
+        return context.isProcessingEvents() || ExceptionQueuedEvent.class.isAssignableFrom(systemEventClass);
+    }
+
     /**
      * Iterate through and invoke the listeners. If the passed event was <code>null</code>, create the event, and return it.
      */
-    private SystemEvent processListeners(Collection<SystemEventListener> listeners, SystemEvent event, Object source, EventInfo eventInfo) {
+    private static SystemEvent processListeners(Collection<SystemEventListener> listeners, SystemEvent event, Object source, EventInfo eventInfo) {
 
         if (listeners != null && !listeners.isEmpty()) {
-            ArrayList<SystemEventListener> list = new ArrayList<>(listeners);
+            List<SystemEventListener> list = new ArrayList<>(listeners);
 
             for (SystemEventListener curListener : list) {
                 if (curListener != null && curListener.isListenerForSource(source)) {
@@ -249,40 +244,36 @@ public class Events {
 
     }
 
-    private SystemEvent processListenersAccountingForAdds(List<SystemEventListener> listeners, SystemEvent event, Object source, EventInfo eventInfo) {
+    private static SystemEvent processListenersAccountingForAdds(List<SystemEventListener> listeners, SystemEvent event, Object source, EventInfo eventInfo) {
 
-        if (listeners != null && !listeners.isEmpty()) {
+        if ( listeners != null && !listeners.isEmpty() ) {
 
             // copy listeners
-            // go thru copy completely
+            // go through copy completely
             // compare copy to original
             // if original differs from copy, make a new copy.
             // The new copy consists of the original list - processed
 
-            SystemEventListener[] listenersCopy = new SystemEventListener[listeners.size()];
-            int i = 0;
-            for (i = 0; i < listenersCopy.length; i++) {
-                listenersCopy[i] = listeners.get(i);
-            }
+            SystemEventListener[] listenersCopy = listeners.toArray(new SystemEventListener[listeners.size()]);
 
-            Map<SystemEventListener, Boolean> processedListeners = new HashMap<>(listeners.size());
-            boolean processedSomeEvents = false, originalDiffersFromCopy = false;
+            Set<SystemEventListener> processedListeners = new HashSet<>(Util.calculateMapCapacity(listeners.size()));
+
+            boolean processedSomeEvents = false;
+            boolean originalDiffersFromCopy = false;
 
             do {
-                i = 0;
                 originalDiffersFromCopy = false;
                 if (0 < listenersCopy.length) {
-                    for (i = 0; i < listenersCopy.length; i++) {
-                        SystemEventListener curListener = listenersCopy[i];
+                    for (SystemEventListener curListener : listenersCopy) {
                         if (curListener != null && curListener.isListenerForSource(source)) {
                             if (event == null) {
                                 event = eventInfo.createSystemEvent(source);
                             }
                             assert event != null;
-                            if (!processedListeners.containsKey(curListener) && event.isAppropriateListener(curListener)) {
+                            if (!processedListeners.contains(curListener) && event.isAppropriateListener(curListener)) {
                                 processedSomeEvents = true;
                                 event.processListener(curListener);
-                                processedListeners.put(curListener, Boolean.TRUE);
+                                processedListeners.add(curListener);
                             }
                         }
                     }
@@ -298,7 +289,7 @@ public class Events {
 
     }
 
-    private boolean originalDiffersFromCopy(Collection<SystemEventListener> original, SystemEventListener[] copy) {
+    private static boolean originalDiffersFromCopy(Collection<SystemEventListener> original, SystemEventListener[] copy) {
         boolean foundDifference = false;
         int i = 0, originalLen = original.size(), copyLen = copy.length;
 
@@ -317,18 +308,11 @@ public class Events {
         return foundDifference;
     }
 
-    private SystemEventListener[] copyListWithExclusions(Collection<SystemEventListener> original, Map<SystemEventListener, Boolean> excludes) {
-        SystemEventListener[] result = null, temp = new SystemEventListener[original.size()];
-        int i = 0;
-        for (SystemEventListener cur : original) {
-            if (!excludes.containsKey(cur)) {
-                temp[i++] = cur;
-            }
-        }
-        result = new SystemEventListener[i];
-        System.arraycopy(temp, 0, result, 0, i);
+    private static SystemEventListener[] copyListWithExclusions(Collection<SystemEventListener> original, Set<SystemEventListener> excludes) {
 
-        return result;
+        return original.stream()
+                       .filter(Predicate.not(excludes::contains))
+                       .toArray(SystemEventListener[]::new);
     }
 
 }
