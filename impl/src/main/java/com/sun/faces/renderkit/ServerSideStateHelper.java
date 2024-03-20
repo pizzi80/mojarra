@@ -23,6 +23,7 @@ import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParamet
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.NumberOfLogicalViews;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.NumberOfViews;
 import static com.sun.faces.context.SessionMap.getMutex;
+import static com.sun.faces.renderkit.ClientSideStateHelper.STATELESS;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.VIEW_STATE_PARAM;
 import static com.sun.faces.util.Util.notNull;
 import static java.util.logging.Level.FINE;
@@ -35,7 +36,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.security.SecureRandom;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -44,6 +44,7 @@ import java.util.zip.GZIPOutputStream;
 
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.config.WebConfiguration.WebContextInitParameter;
+import com.sun.faces.util.ConcurrentLRUMap;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.LRUMap;
 import com.sun.faces.util.RequestStateManager;
@@ -153,14 +154,14 @@ public class ServerSideStateHelper extends StateHelper {
                 synchronized (getMutex(sessionObj)) {
                     Map<String, Map> logicalMap = TypedCollections.dynamicallyCastMap((Map) sessionMap.get(LOGICAL_VIEW_MAP), String.class, Map.class);
                     if (logicalMap == null) {
-                        logicalMap = Collections.synchronizedMap(new LRUMap<String, Map>(numberOfLogicalViews));
+                        logicalMap = new ConcurrentLRUMap<>(numberOfLogicalViews);
                         sessionMap.put(LOGICAL_VIEW_MAP, logicalMap);
                     }
 
                     Object structure = stateToWrite[0];
                     Object savedState = handleSaveState(stateToWrite[1]);
 
-                    String idInLogicalMap = (String) RequestStateManager.get(ctx, RequestStateManager.LOGICAL_VIEW_MAP);
+                    String idInLogicalMap = RequestStateManager.get(ctx, RequestStateManager.LOGICAL_VIEW_MAP);
                     if (idInLogicalMap == null) {
                         idInLogicalMap = generateUniqueStateIds ? createRandomId() : createIncrementalRequestId(ctx);
                     }
@@ -168,7 +169,7 @@ public class ServerSideStateHelper extends StateHelper {
                     if (ctx.getPartialViewContext().isPartialRequest()) {
                         // If partial request, do not change actual view Id, because page not actually changed.
                         // Otherwise partial requests will soon overflow cache with values that would be never used.
-                        idInActualMap = (String) RequestStateManager.get(ctx, RequestStateManager.ACTUAL_VIEW_MAP);
+                        idInActualMap = RequestStateManager.get(ctx, RequestStateManager.ACTUAL_VIEW_MAP);
                     }
                     if (null == idInActualMap) {
                         idInActualMap = generateUniqueStateIds ? createRandomId() : createIncrementalRequestId(ctx);
@@ -198,7 +199,7 @@ public class ServerSideStateHelper extends StateHelper {
                 id = (String) ctx.getAttributes().get("com.sun.faces.ViewStateValue");
             }
         } else {
-            id = "stateless";
+            id = STATELESS;
         }
 
         if (stateCapture != null) {
@@ -242,8 +243,8 @@ public class ServerSideStateHelper extends StateHelper {
             return null;
         }
 
-        if ("stateless".equals(compoundId)) {
-            return "stateless";
+        if (STATELESS.equals(compoundId)) {
+            return STATELESS;
         }
 
         int sep = compoundId.indexOf(':');
@@ -298,7 +299,7 @@ public class ServerSideStateHelper extends StateHelper {
      * Utility method for obtaining the <code>Integer</code> based configuration values used to change the behavior of the
      * <code>ServerSideStateHelper</code>.
      *
-     * @param param the paramter to parse
+     * @param param the parameter to parse
      * @return the Integer representation of the parameter value
      */
     protected Integer getIntegerConfigValue(WebContextInitParameter param) {
@@ -405,6 +406,6 @@ public class ServerSideStateHelper extends StateHelper {
         }
 
         String compoundId = getStateParamValue(facesContext);
-        return compoundId != null && "stateless".equals(compoundId);
+        return STATELESS.equals(compoundId);
     }
 }
