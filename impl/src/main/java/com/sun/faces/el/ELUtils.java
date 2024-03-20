@@ -57,24 +57,22 @@ public class ELUtils {
     /**
      * The maximum size of the <code>compositeComponentEvaluationCache</code>.
      */
-    private static final int compositeComponentEvaluationCacheMaxSize = 1000;
+    private static final int compositeComponentEvaluationCacheMaxSize = 1500;
 
     /**
      * Helps to determine if a EL expression represents a composite component EL expression.
      */
     private static final Pattern COMPOSITE_COMPONENT_EXPRESSION = Pattern.compile(".(?:[ ]+|[\\[{,(])cc[.].+[}]");
-    // do not use this Matcher, it's only for the Cache Factory
-    private static final Matcher COMPOSITE_COMPONENT_EXPRESSION_MATCHER = COMPOSITE_COMPONENT_EXPRESSION.matcher("");
 
     /**
      * Cache.Factory that initialize an element inside the LRUCache evaluating a Matcher against the input.
-     * We should be able to share a Matcher because the Factory it's executed atomically
+     * We should be able to share a Matcher because the Factory is executed atomically inside the LRUCache get method
      * and this Matcher is used only here
      */
     private static final Cache.Factory<String,Boolean> isCompositeExpressionInit = new Cache.Factory<>() {
 
-        // it would be safer to declare the shared Matcher here, but it requires Java 16+ ... Faces 5.0 ?
-        // private static final Matcher COMPOSITE_COMPONENT_EXPRESSION_MATCHER = COMPOSITE_COMPONENT_EXPRESSION.matcher("");
+        // it is safer to declare the shared Matcher here, but it requires Java 16+ ... Faces 5.0+
+        private static final Matcher COMPOSITE_COMPONENT_EXPRESSION_MATCHER = COMPOSITE_COMPONENT_EXPRESSION.matcher("");
 
         @Override
         public Boolean newInstance(String expression) {
