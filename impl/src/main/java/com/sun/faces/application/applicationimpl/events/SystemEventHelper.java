@@ -37,16 +37,13 @@ public class SystemEventHelper {
 
     // ------------------------------------------------------ Public Methods
 
+    /**
+     * @return get the EventInfo (eventually creating a new one) associated to the systemEventClass and sourceClass
+     */
     public EventInfo getEventInfo(Class<? extends SystemEvent> systemEventClass, Class<?> sourceClass) {
-
-        EventInfo info = null;
-        SystemEventInfo systemEventInfo = systemEventInfoCache.get(systemEventClass);
-        if (systemEventInfo != null) {
-            info = systemEventInfo.getEventInfo(sourceClass);
-        }
-
+        SystemEventInfo systemEventInfo = systemEventInfoCache.get(systemEventClass);   // can't be null
+        EventInfo info = systemEventInfo.getEventInfo(sourceClass);                     // can't be null
         return info;
-
     }
 
     public EventInfo getEventInfo(Class<? extends SystemEvent> systemEventClass, Object source, Class<?> sourceBaseType, boolean useSourceForLookup) {
@@ -56,4 +53,4 @@ public class SystemEventHelper {
 
     }
 
-} // END SystemEventHelper
+}
