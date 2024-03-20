@@ -16,15 +16,12 @@
 
 package com.sun.faces.cdi;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
-import static java.util.Collections.unmodifiableSet;
 
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -52,7 +49,7 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
     // for synthetic beans, the beanClass defaults to the extension that registers them
     private final Class<?> beanClass = CdiExtension.class;
     private Set<Type> types = singleton(Object.class);
-    private Set<Annotation> qualifiers = unmodifiableSet(asSet(new DefaultAnnotationLiteral(), new AnyAnnotationLiteral()));
+    private Set<Annotation> qualifiers = Set.of(new DefaultAnnotationLiteral(), new AnyAnnotationLiteral());
     private Class<? extends Annotation> scope = Dependent.class;
     private Function<CreationalContext<T>, T> create;
 
@@ -150,11 +147,6 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
         return false;
     }
 
-    // TODO to be removed once using CDI API 4.x
-    public boolean isNullable() {
-        return false;
-    }
-
     protected CdiProducer<T> name(String name) {
         this.name = name;
         return this;
@@ -166,12 +158,12 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
     }
 
     protected CdiProducer<T> types(Type... types) {
-        this.types = asSet(types);
+        this.types = Set.of(types);
         return this;
     }
 
     protected CdiProducer<T> qualifiers(Annotation... qualifiers) {
-        this.qualifiers = asSet(qualifiers);
+        this.qualifiers = Set.of(qualifiers);
         return this;
     }
 
@@ -183,11 +175,6 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
     protected CdiProducer<T> addToId(Object object) {
         id = id + " " + object.toString();
         return this;
-    }
-
-    @SafeVarargs
-    private static <T> Set<T> asSet(T... a) {
-        return new HashSet<>(asList(a));
     }
 
 }
