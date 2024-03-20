@@ -29,7 +29,7 @@ import jakarta.faces.event.SystemEvent;
 public class SystemEventInfo {
 
     private Class<? extends SystemEvent> systemEvent;
-    private final Cache<Class<?>, EventInfo> cache = new Cache<>(arg -> new EventInfo(systemEvent, arg));
+    private final Cache<Class<?>, EventInfo> cache = new Cache<>(sourceClass -> new EventInfo(systemEvent, sourceClass));
 
     // -------------------------------------------------------- Constructors
 
