@@ -21,7 +21,6 @@ import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.Numb
 import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.WARNING;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +28,7 @@ import java.util.logging.Logger;
 
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.util.LRUMap;
+import com.sun.faces.util.ConcurrentLRUMap;
 
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.application.ProjectStage;
@@ -218,10 +217,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
      * @return our instance.
      */
     public static ViewScopeManager getInstance(FacesContext facesContext) {
-        if (!facesContext.getExternalContext().getApplicationMap().containsKey(VIEW_SCOPE_MANAGER)) {
-            facesContext.getExternalContext().getApplicationMap().put(VIEW_SCOPE_MANAGER, new ViewScopeManager());
-        }
-        return (ViewScopeManager) facesContext.getExternalContext().getApplicationMap().get(VIEW_SCOPE_MANAGER);
+        return (ViewScopeManager) facesContext.getExternalContext().getApplicationMap().computeIfAbsent(VIEW_SCOPE_MANAGER , k -> new ViewScopeManager());
     }
 
     /**
@@ -288,7 +284,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
                 }
 
                 if (sessionMap.get(ACTIVE_VIEW_MAPS) == null) {
-                    sessionMap.put(ACTIVE_VIEW_MAPS, Collections.synchronizedMap(new LRUMap<String, Object>(size)));
+                    sessionMap.put(ACTIVE_VIEW_MAPS, new ConcurrentLRUMap<>(size));
                 }
 
                 @SuppressWarnings("unchecked")
@@ -303,7 +299,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
                         String eldestViewMapId = viewMaps.keySet().iterator().next();
                         @SuppressWarnings("unchecked")
                         Map<String, Object> eldestViewMap = (Map<String, Object>) viewMaps.remove(eldestViewMapId);
-                        removeEldestViewMap(facesContext, eldestViewMapId, eldestViewMap);
+                        removeEldestViewMap(facesContext, eldestViewMapId, eldestViewMap); // <-- fixme / todo ? this method do nothing!
                     }
 
                     viewMaps.put(viewMapId, viewMap);
