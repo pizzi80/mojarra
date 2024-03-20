@@ -153,22 +153,16 @@ public class Util {
         throw new IllegalStateException();
     }
 
-    private static Map<String, Pattern> getPatternCache(Map<String, Object> appMap) {
     @SuppressWarnings("unchecked")
-        Map<String, Pattern> result = (Map<String, Pattern>) appMap.get(PATTERN_CACHE_KEY);
-        if (result == null) {
-            result = Collections.synchronizedMap(new LRUMap<>(15));
-            appMap.put(PATTERN_CACHE_KEY, result);
-        }
-
-        return result;
+    private static Map<String, Pattern> getPatternCache(Map<String, Object> appMap) {
+        return (Map<String, Pattern>) appMap.computeIfAbsent( PATTERN_CACHE_KEY , k -> new ConcurrentLRUMap<>() );
     }
 
+    @SuppressWarnings("unchecked")
     private static Map<String, Pattern> getPatternCache(ServletContext sc) {
-        @SuppressWarnings("unchecked")
         Map<String, Pattern> result = (Map<String, Pattern>) sc.getAttribute(PATTERN_CACHE_KEY);
         if (result == null) {
-            result = Collections.synchronizedMap(new LRUMap<>(15));
+            result = new ConcurrentLRUMap<>();
             sc.setAttribute(PATTERN_CACHE_KEY, result);
         }
 
@@ -792,6 +786,17 @@ public class Util {
         }
 
         return false;
+    }
+
+    /**
+     * Ported from Java 19+
+     * todo: remove when Faces will be Java 19+
+     *
+     * @param numMappings number of expected elements to be stored in the Map
+     * @return the correct initial capacity of the {@link Map} to avoid a rehash with the default load factor
+     */
+    public static int calculateMapCapacity(int numMappings) {
+        return (int) Math.ceil( numMappings / 0.75 );
     }
 
     /**
