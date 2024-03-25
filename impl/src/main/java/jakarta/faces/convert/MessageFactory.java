@@ -176,7 +176,7 @@ class MessageFactory {
      *
      * @param context - the <code>FacesContext</code> for the current request
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
@@ -218,7 +218,7 @@ class MessageFactory {
     static Object getLabel(FacesContext context, UIComponent component) {
 
         Object o = component.getAttributes().get("label");
-        if (o == null || o instanceof String && ((String) o).length() == 0) {
+        if (o == null || o instanceof String && ((String) o).isEmpty()) {
             o = component.getValueExpression("label");
         }
         // Use the "clientId" if there was no label specified.

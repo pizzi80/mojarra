@@ -16,16 +16,16 @@
 
 package jakarta.faces.model;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * The JUnit tests for CollectionDataModel.
- *
+ * 
  * @author Manfred Riem
  */
 public class CollectionDataModelTest {
@@ -35,9 +35,9 @@ public class CollectionDataModelTest {
      */
     @Test
     public void testGetWrappedData() {
-        CollectionDataModel<Object> model = new CollectionDataModel<>();
+        CollectionDataModel model = new CollectionDataModel();
         assertNull(model.getWrappedData());
-        ArrayList<String> list = new ArrayList<>();
+        ArrayList<String> list = new ArrayList<String>();
         model.setWrappedData(list);
         assertNotNull(model.getWrappedData());
         model.setWrappedData(null);

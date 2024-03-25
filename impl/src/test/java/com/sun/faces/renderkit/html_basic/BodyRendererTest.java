@@ -16,19 +16,18 @@
 
 package com.sun.faces.renderkit.html_basic;
 
-import static org.easymock.EasyMock.expect;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.io.StringWriter;
 import java.util.Collections;
 
-import org.junit.Test;
-import org.powermock.api.easymock.PowerMock;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import jakarta.faces.application.Application;
 import jakarta.faces.application.ProjectStage;
-import jakarta.faces.component.Doctype;
 import jakarta.faces.component.UIViewRoot;
 import jakarta.faces.component.html.HtmlBody;
 import jakarta.faces.context.FacesContext;
@@ -57,23 +56,14 @@ public class BodyRendererTest {
     public void testEncodeBegin() throws Exception {
         StringWriter writer = new StringWriter();
         ResponseWriter testResponseWriter = new TestResponseWriter(writer);
-        FacesContext facesContext = PowerMock.createPartialMock(FacesContext.class, "getResponseWriter");
-        UIViewRoot viewRoot = PowerMock.createMock(UIViewRoot.class);
-        Doctype doctype = PowerMock.createMock(Doctype.class);
+        FacesContext facesContext = Mockito.mock(FacesContext.class);
         BodyRenderer bodyRenderer = new BodyRenderer();
         HtmlBody htmlBody = new HtmlBody();
         htmlBody.getAttributes().put("styleClass", "myclass");
 
-        expect(facesContext.getResponseWriter()).andReturn(testResponseWriter).anyTimes();
-        expect(facesContext.getViewRoot()).andReturn(viewRoot).anyTimes();
-        expect(viewRoot.getDoctype()).andReturn(doctype).anyTimes();
-        expect(doctype.getRootElement()).andReturn("html").anyTimes();
-        expect(doctype.getPublic()).andReturn(null).anyTimes();
-        expect(doctype.getSystem()).andReturn(null).anyTimes();
+        when(facesContext.getResponseWriter()).thenReturn(testResponseWriter);
 
-        PowerMock.replay(facesContext);
         bodyRenderer.encodeBegin(facesContext, htmlBody);
-        PowerMock.verify(facesContext);
         String html = writer.toString();
         assertTrue(html.contains("<body"));
         assertTrue(html.contains("class=\"myclass\""));
@@ -105,23 +95,20 @@ public class BodyRendererTest {
     public void testEncodeEnd() throws Exception {
         StringWriter writer = new StringWriter();
         ResponseWriter testResponseWriter = new TestResponseWriter(writer);
-        FacesContext facesContext = PowerMock.createPartialMockForAllMethodsExcept(FacesContext.class, "getCurrentInstance");
-        UIViewRoot viewRoot = PowerMock.createMock(UIViewRoot.class);
-        Application application = PowerMock.createMock(Application.class);
+        FacesContext facesContext = Mockito.mock(FacesContext.class);
+        UIViewRoot viewRoot = Mockito.mock(UIViewRoot.class);
+        Application application = Mockito.mock(Application.class);
         BodyRenderer bodyRenderer = new BodyRenderer();
         HtmlBody htmlBody = new HtmlBody();
 
-        expect(facesContext.getApplication()).andReturn(application).anyTimes();
-        expect(facesContext.getClientIdsWithMessages()).andReturn(Collections.<String>emptyList().iterator())
-                .anyTimes();
-        expect(facesContext.getResponseWriter()).andReturn(testResponseWriter).anyTimes();
-        expect(facesContext.getViewRoot()).andReturn(viewRoot).anyTimes();
-        expect(facesContext.isProjectStage(ProjectStage.Development)).andReturn(false).anyTimes();
-        expect(viewRoot.getComponentResources(facesContext, "body")).andReturn(Collections.emptyList()).anyTimes();
+        when(facesContext.getApplication()).thenReturn(application);
+        when(facesContext.getClientIdsWithMessages()).thenReturn(Collections.EMPTY_LIST.iterator());
+        when(facesContext.getResponseWriter()).thenReturn(testResponseWriter);
+        when(facesContext.getViewRoot()).thenReturn(viewRoot);
+        when(facesContext.isProjectStage(ProjectStage.Development)).thenReturn(false);
+        when(viewRoot.getComponentResources(facesContext, "body")).thenReturn(Collections.EMPTY_LIST);
 
-        PowerMock.replay(facesContext, viewRoot, application);
         bodyRenderer.encodeEnd(facesContext, htmlBody);
-        PowerMock.verify(facesContext, viewRoot, application);
         String html = writer.toString();
         assertTrue(html.contains("</body>"));
     }
