@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
 import jakarta.faces.component.UIPanel;
 import jakarta.faces.context.FacesContext;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 /**
  * The JUnit tests for the DoubleConverter class.
@@ -37,7 +37,7 @@ public class DoubleConverterTest {
     @Test
     public void testGetAsObject() {
         DoubleConverter converter = new DoubleConverter();
-        converter.getAsObject(null, null, null);
+        assertThrows(NullPointerException.class, () -> converter.getAsObject(null, null, null));
     }
 
     /**
@@ -76,7 +76,7 @@ public class DoubleConverterTest {
     @Test
     public void testGetAsString() {
         DoubleConverter converter = new DoubleConverter();
-        converter.getAsString(null, null, null);
+        assertThrows(NullPointerException.class, () -> converter.getAsString(null, null, null));
     }
 
     /**
