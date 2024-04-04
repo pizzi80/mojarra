@@ -299,7 +299,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
                         String eldestViewMapId = viewMaps.keySet().iterator().next();
                         @SuppressWarnings("unchecked")
                         Map<String, Object> eldestViewMap = (Map<String, Object>) viewMaps.remove(eldestViewMapId);
-                        removeEldestViewMap(facesContext, eldestViewMapId, eldestViewMap); // <-- fixme / todo ? this method do nothing!
+                        removeEldestViewMap(facesContext, eldestViewMapId, eldestViewMap);
                     }
 
                     viewMaps.put(viewMapId, viewMap);
@@ -401,6 +401,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
             contextManager.clear(facesContext, viewMapId, eldestViewMap);
         }
 
+        // fixme / todo ? this method does nothing!
         destroyBeans(facesContext, eldestViewMap);
     }
 }

@@ -31,6 +31,7 @@ import static com.sun.faces.util.MessageUtils.getExceptionMessageString;
 import static jakarta.faces.application.ViewHandler.CHARACTER_ENCODING_KEY;
 import static java.lang.Character.isDigit;
 import static java.util.Collections.emptyList;
+import static java.util.Map.entry;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.SEVERE;
@@ -53,6 +54,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -1639,6 +1641,24 @@ public class Util {
     @SafeVarargs
     public static <E> Set<E> unmodifiableSet(E... elements) {
         return Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(elements)));
+    }
+
+    /**
+     * @return a mutable {@link LinkedHashMap} initialized with the passed entries
+     */
+    @SafeVarargs
+    public static <K,V> Map<K,V> linkedMapOf( Map.Entry<K,V>... entries ) {
+        var map = new LinkedHashMap<K,V>( calculateMapCapacity(entries.length) );
+        for (var entry : entries) map.put(entry.getKey(), entry.getValue());
+        return map;
+    }
+
+    /**
+     * @return an immutable {@link LinkedHashMap} initialized with the passed entries
+     */
+    @SafeVarargs
+    public static <K,V> Map<K,V> unmodifiableLinkedMap( Map.Entry<K,V>... entries ) {
+        return Collections.unmodifiableMap(linkedMapOf(entries));
     }
 
 

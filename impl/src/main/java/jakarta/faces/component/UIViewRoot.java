@@ -17,7 +17,12 @@
 package jakarta.faces.component;
 
 
+import static com.sun.faces.application.view.ViewScopeManager.ACTIVE_VIEW_MAPS;
+import static com.sun.faces.application.view.ViewScopeManager.VIEW_MAP;
+import static com.sun.faces.application.view.ViewScopeManager.VIEW_MAP_ID;
+import static com.sun.faces.util.Util.linkedMapOf;
 import static java.util.Collections.unmodifiableList;
+import static java.util.Map.entry;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 
@@ -27,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
@@ -221,12 +225,12 @@ public class UIViewRoot extends UIComponentBase implements UniqueIdVendor {
     private static final Logger LOGGER = Logger.getLogger("jakarta.faces", "jakarta.faces.LogStrings");
 
     private static final String LOCATION_IDENTIFIER_PREFIX = "jakarta_faces_location_";
-    private static final Map<String, String> LOCATION_IDENTIFIER_MAP = new LinkedHashMap<>(3, 1.0f);
-    static {
-        LOCATION_IDENTIFIER_MAP.put("head", LOCATION_IDENTIFIER_PREFIX + "HEAD");
-        LOCATION_IDENTIFIER_MAP.put("form", LOCATION_IDENTIFIER_PREFIX + "FORM");
-        LOCATION_IDENTIFIER_MAP.put("body", LOCATION_IDENTIFIER_PREFIX + "BODY");
-    }
+
+    private static final Map<String, String> LOCATION_IDENTIFIER_MAP = linkedMapOf(
+            entry("head", LOCATION_IDENTIFIER_PREFIX + "HEAD"),
+            entry("form", LOCATION_IDENTIFIER_PREFIX + "FORM"),
+            entry("body", LOCATION_IDENTIFIER_PREFIX + "BODY")
+    );
 
     enum PropertyKeys {
         /**
@@ -1594,7 +1598,7 @@ public class UIViewRoot extends UIComponentBase implements UniqueIdVendor {
 
         if (create && viewMap == null) {
             viewMap = new ViewMap(getFacesContext().getApplication().getProjectStage());
-            getTransientStateHelper().putTransient("com.sun.faces.application.view.viewMap", viewMap);
+            getTransientStateHelper().putTransient(VIEW_MAP, viewMap);
             getFacesContext().getApplication().publishEvent(getFacesContext(), PostConstructViewMapEvent.class, UIViewRoot.class, this);
         }
 
@@ -1784,21 +1788,26 @@ public class UIViewRoot extends UIComponentBase implements UniqueIdVendor {
 
         String viewMapId = (String) values[1];
 
-        getTransientStateHelper().putTransient("com.sun.faces.application.view.viewMapId", viewMapId);
+        getTransientStateHelper().putTransient(VIEW_MAP_ID, viewMapId);
 
-        Map<String, Object> viewMaps = (Map<String, Object>) context.getExternalContext().getSessionMap().get("com.sun.faces.application.view.activeViewMaps");
+        Map<String, Object> viewMaps = (Map<String, Object>) context.getExternalContext().getSessionMap().get(ACTIVE_VIEW_MAPS);
 
         if (viewMaps != null) {
             Map<String, Object> viewMap = (Map<String, Object>) viewMaps.get(viewMapId);
-            getTransientStateHelper().putTransient("com.sun.faces.application.view.viewMap", viewMap);
+            getTransientStateHelper().putTransient(VIEW_MAP, viewMap);
         }
     }
 
     // --------------------------------------------------------- Private Methods
 
     private static String getIdentifier(String target) {
-        // check map
-        String id = LOCATION_IDENTIFIER_MAP.computeIfAbsent(target, t -> LOCATION_IDENTIFIER_PREFIX + t);
+        // fixme:
+        //  1) why computeIfAbsent?
+        //  2) why LOCATION_IDENTIFIER_PREFIX + t and not t.toUpperCase() ? ... the LOCATION_IDENTIFIER_PREFIX definition uses the uppercase
+        String id = LOCATION_IDENTIFIER_MAP.computeIfAbsent(target, t -> {
+            LOGGER.warning("LOCATION_IDENTIFIER_MAP does not contains the target "+t);
+            return LOCATION_IDENTIFIER_PREFIX + t;
+        });
 
         return id;
     }
