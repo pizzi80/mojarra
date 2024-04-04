@@ -75,8 +75,7 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
     @Override
     public V get(Object key) {
-        requireNonNull(key);
-        return map.get(key);
+        return key == null ? null : map.get(key);
     }
 
     @Override
