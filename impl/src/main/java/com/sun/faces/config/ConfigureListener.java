@@ -44,6 +44,7 @@ import java.io.StringReader;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -168,7 +169,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
         try {
             if (LOGGER.isLoggable(INFO)) {
-                LOGGER.log(INFO, "faces.config.listener.version", servletContext.getContextPath());
+                LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.10_pizzi" , servletContext.getContextPath()) );
             }
 
             if (webConfig.isOptionEnabled(VerifyFacesConfigObjects)) {
