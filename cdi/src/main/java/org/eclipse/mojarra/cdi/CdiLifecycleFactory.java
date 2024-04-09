@@ -15,6 +15,11 @@
  */
 package org.eclipse.mojarra.cdi;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import jakarta.enterprise.inject.literal.NamedLiteral;
 import jakarta.enterprise.inject.spi.AnnotatedType;
 import jakarta.enterprise.inject.spi.Bean;
@@ -23,11 +28,6 @@ import jakarta.enterprise.inject.spi.CDI;
 import jakarta.faces.lifecycle.Lifecycle;
 import jakarta.faces.lifecycle.LifecycleFactory;
 import jakarta.inject.Named;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 
 /**
  * The CDI LifecycleFactory.
@@ -63,9 +63,7 @@ public class CdiLifecycleFactory extends LifecycleFactory {
             BeanManager beanManager = getBeanManager();
             AnnotatedType<Lifecycle> type = beanManager.createAnnotatedType(Lifecycle.class);
             Set<Bean<?>> beans = beanManager.getBeans(type.getBaseType(), NamedLiteral.of(lifecycleId));
-            Iterator<Bean<?>> iterator = beans.iterator();
-            while (iterator.hasNext()) {
-                Bean<?> bean = iterator.next();
+            for (Bean<?> bean : beans) {
                 Named named = bean.getBeanClass().getAnnotation(Named.class);
                 if (named.value().equals(lifecycleId)) {
                     result = (Lifecycle) CDI.current().select(named).get();
@@ -83,32 +81,32 @@ public class CdiLifecycleFactory extends LifecycleFactory {
      * @return the bean manager.
      */
     private BeanManager getBeanManager() {
-        BeanManager beanManager = null;
-        try {
-            InitialContext initialContext = new InitialContext();
-            beanManager = (BeanManager) initialContext.lookup("java:comp/BeanManager");
-        } catch (NamingException ne) {
-        }
-        if (beanManager == null) {
-            try {
-                InitialContext initialContext = new InitialContext();
-                beanManager = (BeanManager) initialContext.lookup("java:comp/env/BeanManager");
-            } catch (NamingException ne) {
-            }
-        }
-        return beanManager;
+//        BeanManager beanManager = null;
+//        try {
+//            InitialContext initialContext = new InitialContext();
+//            beanManager = (BeanManager) initialContext.lookup("java:comp/BeanManager");
+//        } catch (NamingException ignored) {
+//        }
+//        if (beanManager == null) {
+//            try {
+//                InitialContext initialContext = new InitialContext();
+//                beanManager = (BeanManager) initialContext.lookup("java:comp/env/BeanManager");
+//            } catch (NamingException ignored) {
+//            }
+//        }
+//        return beanManager;
+
+        return CDI.current().getBeanManager();
     }
 
     @Override
     public Iterator<String> getLifecycleIds() {
-        ArrayList<String> lifecycleIds = new ArrayList<>();
+        List<String> lifecycleIds = new ArrayList<>();
         getWrapped().getLifecycleIds().forEachRemaining(lifecycleIds::add);
         BeanManager beanManager = getBeanManager();
         AnnotatedType<Lifecycle> type = beanManager.createAnnotatedType(Lifecycle.class);
         Set<Bean<?>> beans = beanManager.getBeans(type.getBaseType());
-        Iterator<Bean<?>> iterator = beans.iterator();
-        while (iterator.hasNext()) {
-            Bean<?> bean = iterator.next();
+        for (Bean<?> bean : beans) {
             if (bean.getBeanClass().isAnnotationPresent(Named.class)) {
                 Named named = bean.getBeanClass().getAnnotation(Named.class);
                 lifecycleIds.add(named.value());
