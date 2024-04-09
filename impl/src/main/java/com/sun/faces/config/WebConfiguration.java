@@ -873,7 +873,7 @@ public class WebConfiguration {
         PartialStateSaving(StateManager.PARTIAL_STATE_SAVING_PARAM_NAME, true),
         GenerateUniqueServerStateIds("com.sun.faces.generateUniqueServerStateIds", true),
         InterpretEmptyStringSubmittedValuesAsNull(UIInput.EMPTY_STRING_AS_NULL_PARAM_NAME, false),
-        AutoCompleteOffOnViewState("com.sun.faces.autoCompleteOffOnViewState", true),
+        AutoCompleteOffOnViewState("com.sun.faces.autoCompleteOffOnViewState", false),
         EnableThreading("com.sun.faces.enableThreading", false),
         AllowTextChildren("com.sun.faces.allowTextChildren", false),
         CacheResourceModificationTimestamp("com.sun.faces.cacheResourceModificationTimestamp", false),
