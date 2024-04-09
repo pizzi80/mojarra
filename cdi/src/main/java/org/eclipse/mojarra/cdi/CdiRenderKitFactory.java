@@ -15,6 +15,11 @@
  */
 package org.eclipse.mojarra.cdi;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import jakarta.enterprise.inject.literal.NamedLiteral;
 import jakarta.enterprise.inject.spi.AnnotatedType;
 import jakarta.enterprise.inject.spi.Bean;
@@ -24,11 +29,6 @@ import jakarta.faces.context.FacesContext;
 import jakarta.faces.render.RenderKit;
 import jakarta.faces.render.RenderKitFactory;
 import jakarta.inject.Named;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 
 /**
  * The CDI RenderKitFactory.
@@ -44,12 +44,14 @@ public class CdiRenderKitFactory extends RenderKitFactory {
     /**
      * Stores the BeanManager.
      */
-    public BeanManager beanManager;
+    public final BeanManager beanManager;
 
     /**
      * Constructor.
      */
+    @Deprecated
     public CdiRenderKitFactory() {
+        beanManager = CDI.current().getBeanManager();
     }
 
     /**
@@ -59,18 +61,19 @@ public class CdiRenderKitFactory extends RenderKitFactory {
      */
     public CdiRenderKitFactory(RenderKitFactory wrapped) {
         super(wrapped);
-        try {
-            InitialContext initialContext = new InitialContext();
-            beanManager = (BeanManager) initialContext.lookup("java:comp/BeanManager");
-        } catch (NamingException ne) {
-        }
-        if (beanManager == null) {
-            try {
-                InitialContext initialContext = new InitialContext();
-                beanManager = (BeanManager) initialContext.lookup("java:comp/env/BeanManager");
-            } catch (NamingException ne) {
-            }
-        }
+//        try {
+//            InitialContext initialContext = new InitialContext();
+//            beanManager = (BeanManager) initialContext.lookup("java:comp/BeanManager");
+//        } catch (NamingException ne) {
+//        }
+//        if (beanManager == null) {
+//            try {
+//                InitialContext initialContext = new InitialContext();
+//                beanManager = (BeanManager) initialContext.lookup("java:comp/env/BeanManager");
+//            } catch (NamingException ne) {
+//            }
+//        }
+        beanManager = CDI.current().getBeanManager();
     }
 
     @Override
@@ -86,9 +89,7 @@ public class CdiRenderKitFactory extends RenderKitFactory {
         } else {
             AnnotatedType<RenderKit> type = beanManager.createAnnotatedType(RenderKit.class);
             Set<Bean<?>> beans = beanManager.getBeans(type.getBaseType(), NamedLiteral.of(renderKitId));
-            Iterator<Bean<?>> iterator = beans.iterator();
-            while (iterator.hasNext()) {
-                Bean<?> bean = iterator.next();
+            for (Bean<?> bean : beans) {
                 Named named = bean.getBeanClass().getAnnotation(Named.class);
                 if (named.value().equals(renderKitId)) {
                     result = (RenderKit) CDI.current().select(named).get();
@@ -101,13 +102,11 @@ public class CdiRenderKitFactory extends RenderKitFactory {
 
     @Override
     public Iterator<String> getRenderKitIds() {
-        ArrayList<String> renderKitIds = new ArrayList<>();
+        List<String> renderKitIds = new ArrayList<>();
         getWrapped().getRenderKitIds().forEachRemaining(renderKitIds::add);
         AnnotatedType<RenderKit> type = beanManager.createAnnotatedType(RenderKit.class);
         Set<Bean<?>> beans = beanManager.getBeans(type.getBaseType());
-        Iterator<Bean<?>> iterator = beans.iterator();
-        while (iterator.hasNext()) {
-            Bean<?> bean = iterator.next();
+        for (Bean<?> bean : beans) {
             if (bean.getBeanClass().isAnnotationPresent(Named.class)) {
                 Named named = bean.getBeanClass().getAnnotation(Named.class);
                 renderKitIds.add(named.value());
