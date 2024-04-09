@@ -59,7 +59,7 @@ import jakarta.faces.flow.builder.FlowDefinition;
 public class FlowDiscoveryCDIExtension implements Extension {
 
     private static final Logger LOGGER = FacesLogger.FLOW.getLogger();
-    private List<Producer<Flow>> flowProducers = new CopyOnWriteArrayList<>();
+    private final List<Producer<Flow>> flowProducers = new CopyOnWriteArrayList<>();
 
 
     void beforeBeanDiscovery(@Observes BeforeBeanDiscovery beforeBeanDiscovery, BeanManager beanManager) {
