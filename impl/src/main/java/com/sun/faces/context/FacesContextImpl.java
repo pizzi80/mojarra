@@ -16,6 +16,7 @@
 
 package com.sun.faces.context;
 
+import static com.sun.faces.util.Util.notNull;
 import static java.util.Collections.emptyIterator;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toSet;
@@ -107,8 +108,8 @@ public class FacesContextImpl extends FacesContext {
     private Map<String, List<FacesMessage>> componentMessageLists;
 
     public FacesContextImpl(ExternalContext ec, Lifecycle lifecycle) {
-        Util.notNull("ec", ec);
-        Util.notNull("lifecycle", lifecycle);
+        notNull("ec", ec);
+        notNull("lifecycle", lifecycle);
         externalContext = ec;
         this.lifecycle = lifecycle;
         setCurrentInstance(this);
@@ -175,8 +176,8 @@ public class FacesContextImpl extends FacesContext {
 
         assertNotReleased();
         if (partialViewContext == null) {
-            PartialViewContextFactory f = (PartialViewContextFactory) FactoryFinder.getFactory(FactoryFinder.PARTIAL_VIEW_CONTEXT_FACTORY);
-            partialViewContext = f.getPartialViewContext(FacesContext.getCurrentInstance());
+            PartialViewContextFactory factory = (PartialViewContextFactory) FactoryFinder.getFactory(FactoryFinder.PARTIAL_VIEW_CONTEXT_FACTORY);
+            partialViewContext = factory.getPartialViewContext(FacesContext.getCurrentInstance());
         }
         return partialViewContext;
 
@@ -290,7 +291,6 @@ public class FacesContextImpl extends FacesContext {
         assertNotReleased();
 
         return componentMessageLists == null ? emptyList() : componentMessageLists.values().stream().flatMap(Collection::stream).toList();
-
     }
 
     /**
@@ -303,8 +303,7 @@ public class FacesContextImpl extends FacesContext {
 
         if (componentMessageLists == null) {
             return emptyList();
-        }
-        else {
+        } else {
             List<FacesMessage> list = componentMessageLists.get(clientId);
             return list != null ? Collections.unmodifiableList(list) : emptyList();
         }
@@ -317,15 +316,7 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public Iterator<FacesMessage> getMessages() {
         assertNotReleased();
-        if (componentMessageLists == null) {
-            return emptyIterator();
-        }
-
-        if (!componentMessageLists.isEmpty()) {
-            return new ComponentMessagesIterator(componentMessageLists);
-        } else {
-            return emptyIterator();
-        }
+        return componentMessageLists == null || componentMessageLists.isEmpty() ? emptyIterator() : new ComponentMessagesIterator(componentMessageLists);
     }
 
     /**
@@ -336,7 +327,7 @@ public class FacesContextImpl extends FacesContext {
         assertNotReleased();
 
         // If no messages have been enqueued at all,
-        // return an empty List Iterator
+        // return an empty Iterator
         if (componentMessageLists == null) {
             return emptyIterator();
         }
@@ -391,7 +382,7 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public void setResponseStream(ResponseStream responseStream) {
         assertNotReleased();
-        Util.notNull("responseStream", responseStream);
+        notNull("responseStream", responseStream);
         this.responseStream = responseStream;
     }
 
@@ -410,7 +401,7 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public void setViewRoot(UIViewRoot root) {
         assertNotReleased();
-        Util.notNull("root", root);
+        notNull("root", root);
 
         if (viewRoot != null && !viewRoot.equals(root)) {
             // if exists, retrieve the view map
@@ -441,7 +432,7 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public void setResponseWriter(ResponseWriter responseWriter) {
         assertNotReleased();
-        Util.notNull("responseWriter", responseWriter);
+        notNull("responseWriter", responseWriter);
         this.responseWriter = responseWriter;
     }
 
@@ -452,7 +443,7 @@ public class FacesContextImpl extends FacesContext {
     public void addMessage(String clientId, FacesMessage message) {
         assertNotReleased();
         // Validate our preconditions
-        Util.notNull("message", message);
+        notNull("message", message);
 
         if (maxSeverity == null) {
             maxSeverity = message.getSeverity();
@@ -473,7 +464,6 @@ public class FacesContextImpl extends FacesContext {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Adding Message[sourceId=" + (clientId != null ? clientId : "<<NONE>>") + ",summary=" + message.getSummary() + ")");
         }
-
     }
 
     /**
@@ -594,14 +584,14 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public List<String> getResourceLibraryContracts() {
         assertNotReleased();
-        return null == resourceLibraryContracts ? emptyList() : resourceLibraryContracts;
+        return resourceLibraryContracts == null ? emptyList() : resourceLibraryContracts;
     }
 
     @Override
     public void setResourceLibraryContracts(List<String> contracts) {
         assertNotReleased();
-        if (null == contracts || contracts.isEmpty()) {
-            if (null != resourceLibraryContracts) {
+        if (contracts == null || contracts.isEmpty()) {
+            if (resourceLibraryContracts != null) {
                 resourceLibraryContracts.clear();
                 resourceLibraryContracts = null;
             }
