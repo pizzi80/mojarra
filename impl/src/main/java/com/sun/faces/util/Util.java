@@ -1521,36 +1521,29 @@ public class Util {
     public static BeanManager getCdiBeanManager(FacesContext facesContext) {
         BeanManager result = null;
 
-        if (facesContext != null && facesContext.getAttributes().containsKey(RIConstants.CDI_BEAN_MANAGER)) {
+        if (facesContext != null) {
+            final Map<String, Object> applicationMap = facesContext.getExternalContext().getApplicationMap();
+
+            // FacesContext attributes
             result = (BeanManager) facesContext.getAttributes().get(RIConstants.CDI_BEAN_MANAGER);
-        } else if (facesContext != null && facesContext.getExternalContext().getApplicationMap().containsKey(RIConstants.CDI_BEAN_MANAGER)) {
-            result = (BeanManager) facesContext.getExternalContext().getApplicationMap().get(RIConstants.CDI_BEAN_MANAGER);
-        } else {
-            try {
-                InitialContext initialContext = new InitialContext();
-                result = (BeanManager) initialContext.lookup("java:comp/BeanManager");
-            } catch (NamingException ne) {
+
+            // ApplicationMap Faces attribute
+            if (result == null) result = (BeanManager) applicationMap.get(RIConstants.CDI_BEAN_MANAGER);
+
+            // ApplicationMap Weld Servlet attribute
+            if (result == null) result = (BeanManager) applicationMap.get("org.jboss.weld.environment.servlet.jakarta.enterprise.inject.spi.BeanManager");
+
+            // CDI
+            if (result == null) {
                 try {
-                    InitialContext initialContext = new InitialContext();
-                    result = (BeanManager) initialContext.lookup("java:comp/env/BeanManager");
-                } catch (NamingException ne2) {
-                    try {
-                        CDI<Object> cdi = CDI.current();
-                        result = cdi.getBeanManager();
-                    }
-                    catch (Exception | LinkageError e) {
-                    }
-                }
+                    result = CDI.current().getBeanManager();
+                } catch (Exception ignored) {}
             }
 
-            if (result == null && facesContext != null) {
-                Map<String, Object> applicationMap = facesContext.getExternalContext().getApplicationMap();
-                result = (BeanManager) applicationMap.get("org.jboss.weld.environment.servlet.jakarta.enterprise.inject.spi.BeanManager");
-            }
-
-            if (result != null && facesContext != null) {
+            // Save the BeanManager inside Faces attributes and ApplicationMap
+            if (result != null) {
                 facesContext.getAttributes().put(RIConstants.CDI_BEAN_MANAGER, result);
-                facesContext.getExternalContext().getApplicationMap().put(RIConstants.CDI_BEAN_MANAGER, result);
+                applicationMap.put(RIConstants.CDI_BEAN_MANAGER, result);
             }
         }
 
