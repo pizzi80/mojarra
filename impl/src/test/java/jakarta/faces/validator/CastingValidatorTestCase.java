@@ -16,6 +16,8 @@
 
 package jakarta.faces.validator;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import org.junit.jupiter.api.Test;
 
 /**
@@ -26,11 +28,11 @@ public class CastingValidatorTestCase extends ValidatorTestCase {
 
     // ------------------------------------------------- Individual Test Methods
     @Test
+    @SuppressWarnings("rawtypes")
     public void testWithGenericCanCastToRaw() {
-
-    	Validator<?> validatorWithGeneric = (context, component, value) -> {};
-
-    	Validator validatorRaw = validatorWithGeneric;
+        Validator<?> validatorWithGeneric = (context, component, value) -> {};
+        Validator validatorRaw = validatorWithGeneric;
+        assertNotNull(validatorRaw);
     }
 
 }

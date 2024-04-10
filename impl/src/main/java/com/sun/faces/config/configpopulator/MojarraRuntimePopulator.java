@@ -1,9 +1,9 @@
 package com.sun.faces.config.configpopulator;
 
+import jakarta.faces.application.ApplicationConfigurationPopulator;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-
-import jakarta.faces.application.ApplicationConfigurationPopulator;
 
 public final class MojarraRuntimePopulator extends ApplicationConfigurationPopulator {
     @Override
@@ -12,6 +12,11 @@ public final class MojarraRuntimePopulator extends ApplicationConfigurationPopul
         Element faces_configElement = toPopulate.getDocumentElement();
         {
             Element factoryElement = toPopulate.createElementNS(ns, "factory");
+            {
+                Element faces_servlet_factoryElement = toPopulate.createElementNS(ns, "faces-servlet-factory");
+                faces_servlet_factoryElement.appendChild(toPopulate.createTextNode("com.sun.faces.webapp.FacesServletFactoryImpl"));
+                factoryElement.appendChild(faces_servlet_factoryElement);
+            }
             {
                 Element application_factoryElement = toPopulate.createElementNS(ns, "application-factory");
                 application_factoryElement.appendChild(toPopulate.createTextNode("com.sun.faces.application.ApplicationFactoryImpl"));
@@ -481,6 +486,20 @@ public final class MojarraRuntimePopulator extends ApplicationConfigurationPopul
             {
                 Element converter_classElement = toPopulate.createElementNS(ns, "converter-class");
                 converter_classElement.appendChild(toPopulate.createTextNode("jakarta.faces.convert.EnumConverter"));
+                converterElement.appendChild(converter_classElement);
+            }
+            faces_configElement.appendChild(converterElement);
+        }
+        {
+            Element converterElement = toPopulate.createElementNS(ns, "converter");
+            {
+                Element converter_for_classElement = toPopulate.createElementNS(ns, "converter-for-class");
+                converter_for_classElement.appendChild(toPopulate.createTextNode("java.util.UUID"));
+                converterElement.appendChild(converter_for_classElement);
+            }
+            {
+                Element converter_classElement = toPopulate.createElementNS(ns, "converter-class");
+                converter_classElement.appendChild(toPopulate.createTextNode("jakarta.faces.convert.UUIDConverter"));
                 converterElement.appendChild(converter_classElement);
             }
             faces_configElement.appendChild(converterElement);

@@ -26,7 +26,7 @@ public class PhaseIdTest {
 
     @Test
     public void testToString() {
-        Iterator valueIter = PhaseId.VALUES.iterator();
+        Iterator<PhaseId> valueIter = PhaseId.VALUES.iterator();
         String cur = null;
         while (valueIter.hasNext()) {
             cur = valueIter.next().toString();

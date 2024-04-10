@@ -40,7 +40,7 @@ public abstract class DataModelTestCaseBase {
     protected BeanTestImpl beans[] = new BeanTestImpl[0];
 
     // The DataModel we are testing
-    protected DataModel model = null;
+    protected DataModel<?> model = null;
 
     // ---------------------------------------------------- Overall Test Methods
     // Configure the properties of the beans we will be wrapping
@@ -50,8 +50,8 @@ public abstract class DataModelTestCaseBase {
             bean.setBooleanProperty((i % 2) == 0);
             bean.setBooleanSecond(!bean.getBooleanProperty());
             bean.setByteProperty((byte) i);
-            bean.setDoubleProperty((i) * 100.0);
-            bean.setFloatProperty((i) * ((float) 10.0));
+            bean.setDoubleProperty(i * 100.0);
+            bean.setFloatProperty(i * ((float) 10.0));
             bean.setIntProperty(1000 * i);
             bean.setLongProperty((long) 10000 * (long) i);
             bean.setStringProperty("This is string " + i);
@@ -81,7 +81,7 @@ public abstract class DataModelTestCaseBase {
     // Test positioning to all rows in ascending order
     @Test
     public void testPositionAscending() throws Exception {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         model.setRowIndex(-1);
         model.addDataModelListener(new ListenerTestImpl());
         ListenerTestImpl.trace(null);
@@ -89,7 +89,7 @@ public abstract class DataModelTestCaseBase {
         int n = model.getRowCount();
         for (int i = 0; i < n; i++) {
             checkRow(i);
-            sb.append("/").append(i);
+            sb.append('/').append(i);
         }
         assertEquals(sb.toString(), ListenerTestImpl.trace());
     }
@@ -97,7 +97,7 @@ public abstract class DataModelTestCaseBase {
     // Test positioning to all rows in descending order
     @Test
     public void testPositionDescending() throws Exception {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         model.setRowIndex(-1);
         model.addDataModelListener(new ListenerTestImpl());
         ListenerTestImpl.trace(null);
@@ -105,7 +105,7 @@ public abstract class DataModelTestCaseBase {
         int n = model.getRowCount();
         for (int i = (n - 1); i >= 0; i--) {
             checkRow(i);
-            sb.append("/").append(i);
+            sb.append('/').append(i);
         }
         assertEquals(sb.toString(), ListenerTestImpl.trace());
     }
@@ -174,6 +174,7 @@ public abstract class DataModelTestCaseBase {
 
     // Test the ability to update through the Map returned by getRowData()
     @Test
+    @SuppressWarnings("unchecked")
     public void testRowData() throws Exception {
         // Retrieve the row data for row zero
         model.setRowIndex(0);
@@ -184,7 +185,7 @@ public abstract class DataModelTestCaseBase {
         BeanTestImpl bean = beans[0];
         bean.setBooleanProperty(!bean.getBooleanProperty());
         if (data instanceof Map) {
-            ((Map) data).put("booleanProperty",
+            ((Map<String, Boolean>) data).put("booleanProperty",
                     bean.getBooleanProperty()
                     ? Boolean.TRUE : Boolean.FALSE);
         } else {
@@ -193,7 +194,7 @@ public abstract class DataModelTestCaseBase {
         }
         bean.setIntProperty(bean.getIntProperty() + 5);
         if (data instanceof Map) {
-            ((Map) data).put("intProperty",
+            ((Map<String, Integer>) data).put("intProperty",
                     bean.getIntProperty());
         } else {
             Method m = data.getClass().getMethod("setIntProperty", Integer.TYPE);
@@ -201,7 +202,7 @@ public abstract class DataModelTestCaseBase {
         }
         bean.setStringProperty(bean.getStringProperty() + "XYZ");
         if (data instanceof Map) {
-            ((Map) data).put("stringProperty",
+            ((Map<String, String>) data).put("stringProperty",
                     bean.getStringProperty() + "XYZ");
         } else {
             Method m = data.getClass().getMethod("setStringProperty", String.class);
@@ -247,7 +248,7 @@ public abstract class DataModelTestCaseBase {
 
     @Test
     public void testIterator() {
-        Iterator iterator = model.iterator();
+        Iterator<?> iterator = model.iterator();
         if (!(model instanceof ScalarDataModel)) {
             for (int i = 0; i < 5; i++) {
                 System.out.println("Index: " + i);
