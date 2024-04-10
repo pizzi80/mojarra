@@ -356,18 +356,18 @@ public class Util {
 
 
     public static final Map<String,Class<?>> primitiveTypes = Map.of(
-            "byte" , byte.class ,
-            "short" , short.class ,
-            "int" , int.class ,
-            "long" , long.class ,
-            "float" , float.class ,
-            "double" , double.class ,
-            "boolean" , boolean.class ,
-            "char" , char.class
+            "byte",     byte.class,
+            "short",    short.class,
+            "int",      int.class,
+            "long",     long.class,
+            "float",    float.class,
+            "double",   double.class,
+            "boolean",  boolean.class,
+            "char",     char.class
     );
 
     public static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
-        ClassLoader loader = Util.getCurrentLoader(fallbackClass);
+        ClassLoader loader = getCurrentLoader(fallbackClass);
         return primitiveTypes.getOrDefault(name, Class.forName(name, true, loader));
     }
 
