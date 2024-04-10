@@ -367,8 +367,13 @@ public class Util {
     );
 
     public static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
+        // Primitive Type
+        Class primitiveType = primitiveTypes.get(name);
+        if (primitiveType != null) return primitiveType;
+
+        // Class.forName
         ClassLoader loader = getCurrentLoader(fallbackClass);
-        return primitiveTypes.getOrDefault(name, Class.forName(name, true, loader));
+        return Class.forName(name, true, loader);
     }
 
     public static Class<?> loadClass2(String name, Object fallbackClass) {
