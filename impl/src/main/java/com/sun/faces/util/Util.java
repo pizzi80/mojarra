@@ -111,6 +111,7 @@ import jakarta.faces.render.ResponseStateManager;
 import jakarta.faces.webapp.FacesServlet;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletRegistration;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletMapping;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.MappingMatch;
@@ -224,7 +225,7 @@ public class Util {
             // ignore
         }
 
-        return applicationContextPath + " " + Thread.currentThread().toString() + " " + System.currentTimeMillis();
+        return applicationContextPath + " " + Thread.currentThread() + " " + System.currentTimeMillis();
 
     }
 
@@ -254,7 +255,7 @@ public class Util {
         }
         if (instance == null && type != null) {
             try {
-                instance = ReflectionUtils.newInstance((String) type.getValue(faces.getELContext()));
+                instance = ReflectionUtils.newInstance(type.getValue(faces.getELContext()));
             } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException e) {
                 throw new AbortProcessingException(e.getMessage(), e);
             }
@@ -406,11 +407,7 @@ public class Util {
     }
 
     private static ClassLoader getContextClassLoader() {
-        if (System.getSecurityManager() == null) {
-            return Thread.currentThread().getContextClassLoader();
-        } else {
-            return (ClassLoader) java.security.AccessController.doPrivileged((PrivilegedAction) () -> Thread.currentThread().getContextClassLoader());
-        }
+        return Thread.currentThread().getContextClassLoader();
     }
 
     /**
@@ -822,7 +819,7 @@ public class Util {
         }
     }
 
-    public static Converter getConverterForIdentifer(String converterId, FacesContext context) {
+    public static Converter getConverterForIdentifier(String converterId, FacesContext context) {
         if (converterId == null) {
             return null;
         }
@@ -838,44 +835,17 @@ public class Util {
         return context.getApplication().getStateManager();
     }
 
-    public static Class getTypeFromString(String type) throws ClassNotFoundException {
-        Class result;
-        switch (type) {
-        case "byte":
-            result = Byte.TYPE;
-            break;
-        case "short":
-            result = Short.TYPE;
-            break;
-        case "int":
-            result = Integer.TYPE;
-            break;
-        case "long":
-            result = Long.TYPE;
-            break;
-        case "float":
-            result = Float.TYPE;
-            break;
-        case "double":
-            result = Double.TYPE;
-            break;
-        case "boolean":
-            result = Boolean.TYPE;
-            break;
-        case "char":
-            result = Character.TYPE;
-            break;
-        case "void":
-            result = Void.TYPE;
-            break;
-        default:
-            if (type.indexOf('.') == -1) {
-                type = "java.lang." + type;
-            }
-            result = Util.loadClass(type, Void.TYPE);
-            break;
+    public static Class<?> getTypeFromString(String type) throws ClassNotFoundException {
+        if ( type == null ) throw new ClassNotFoundException("Type is required");
+
+        Class<?> primitiveClass = primitiveTypes.get(type);
+        if ( primitiveClass != null ) return primitiveClass;
+
+        if (type.indexOf('.') == -1) {
+            type = "java.lang." + type;
         }
 
+        Class<?> result = loadClass(type, Void.TYPE);
         return result;
     }
 
@@ -910,19 +880,10 @@ public class Util {
         if (null == localeStr || localeStr.length() < 2) {
             throw new IllegalArgumentException("Illegal locale String: " + localeStr);
         }
-        Locale result = null;
 
-        try {
-            Method method = Locale.class.getMethod("forLanguageTag", String.class);
-            if (method != null) {
-                result = (Locale) method.invoke(null, localeStr);
-            }
-        } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException throwable) {
-            // if we are NOT running JavaSE 7 we end up here and we will
-            // default to the previous way of determining the Locale below.
-        }
+        Locale result = Locale.forLanguageTag(localeStr);
 
-        if (result == null || result.getLanguage().equals("")) {
+        if (result == null || result.getLanguage().isEmpty()) {
             String lang = null;
             String country = null;
             String variant = null;
@@ -985,8 +946,8 @@ public class Util {
     public static int indexOfSet(String str, char[] set, int fromIndex) {
         int result = -1;
         for (int i = fromIndex, len = str.length(); i < len; i++) {
-            for (int j = 0, innerLen = set.length; j < innerLen; j++) {
-                if (str.charAt(i) == set[j]) {
+            for (char c : set) {
+                if (str.charAt(i) == c) {
                     result = i;
                     break;
                 }
@@ -1015,11 +976,11 @@ public class Util {
         }
 
         StackTraceElement[] stacks = e.getStackTrace();
-        StringBuilder sb = new StringBuilder();
+        StringBuilder builder = new StringBuilder(1024);
         for (StackTraceElement stack : stacks) {
-            sb.append(stack.toString()).append('\n');
+            builder.append(stack).append('\n');
         }
-        return sb.toString();
+        return builder.toString();
     }
 
     /**
@@ -1037,20 +998,20 @@ public class Util {
      * @return the content type of the response
      */
     public static String getContentTypeFromResponse(Object response) {
-        String result = null;
-        if (null != response) {
+        if ( response == null ) return null;
+        if ( response instanceof ServletResponse ) return ((ServletResponse)response).getContentType();
 
-            try {
-                Method method = ReflectionUtils.lookupMethod(response.getClass(), "getContentType", RIConstants.EMPTY_CLASS_ARGS);
-                if (null != method) {
-                    Object obj = method.invoke(response, RIConstants.EMPTY_METH_ARGS);
-                    if (null != obj) {
-                        result = obj.toString();
-                    }
+        String result = null;
+        try {
+            Method method = ReflectionUtils.lookupMethod(response.getClass(), "getContentType", RIConstants.EMPTY_CLASS_ARGS);
+            if (null != method) {
+                Object obj = method.invoke(response, RIConstants.EMPTY_METH_ARGS);
+                if (null != obj) {
+                    result = obj.toString();
                 }
-            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                throw new FacesException(e);
             }
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            throw new FacesException(e);
         }
         return result;
     }
@@ -1127,9 +1088,9 @@ public class Util {
      * @throws NullPointerException if <code>context</code> is null
      */
     public static HttpServletMapping getFacesMapping(FacesContext context) {
-       notNull("context", context);
+        notNull("context", context);
 
-       return ((HttpServletRequest) context.getExternalContext().getRequest()).getHttpServletMapping();
+        return ((HttpServletRequest) context.getExternalContext().getRequest()).getHttpServletMapping();
     }
 
     /**
@@ -1286,20 +1247,16 @@ public class Util {
             while (clazz != Object.class) {
                 try {
                     Field[] fields = clazz.getDeclaredFields();
-                    if (fields != null) {
-                        for (Field field : fields) {
-                            if (field.getAnnotations().length > 0) {
-                                return true;
-                            }
+                    for (Field field : fields) {
+                        if (field.getAnnotations().length > 0) {
+                            return true;
                         }
                     }
 
                     Method[] methods = clazz.getDeclaredMethods();
-                    if (methods != null) {
-                        for (Method method : methods) {
-                            if (method.getDeclaredAnnotations().length > 0) {
-                                return true;
-                            }
+                    for (Method method : methods) {
+                        if (method.getDeclaredAnnotations().length > 0) {
+                            return true;
                         }
                     }
                 }
@@ -1340,29 +1297,29 @@ public class Util {
     }
 
     public static String getViewStateId(FacesContext context) {
-        String result = null;
+        final String result;
         final String viewStateCounterKey = "com.sun.faces.util.ViewStateCounterKey";
         Map<Object, Object> contextAttrs = context.getAttributes();
         Integer counter = (Integer) contextAttrs.get(viewStateCounterKey);
         if (null == counter) {
-            counter = Integer.valueOf(0);
+            counter = 0;
         }
 
         char sep = UINamingContainer.getSeparatorChar(context);
         UIViewRoot root = context.getViewRoot();
-        result = root.getContainerClientId(context) + sep + ResponseStateManager.VIEW_STATE_PARAM + sep + +counter;
+        result = root.getContainerClientId(context) + sep + ResponseStateManager.VIEW_STATE_PARAM + sep + counter;
         contextAttrs.put(viewStateCounterKey, ++counter);
 
         return result;
     }
 
     public static String getClientWindowId(FacesContext context) {
-        String result = null;
+        final String result;
         final String clientWindowIdCounterKey = "com.sun.faces.util.ClientWindowCounterKey";
         Map<Object, Object> contextAttrs = context.getAttributes();
         Integer counter = (Integer) contextAttrs.get(clientWindowIdCounterKey);
         if (null == counter) {
-            counter = Integer.valueOf(0);
+            counter = 0;
         }
 
         char sep = UINamingContainer.getSeparatorChar(context);
@@ -1470,7 +1427,7 @@ public class Util {
                     dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
                     dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 
-                } catch (ParserConfigurationException pce) {
+                } catch (ParserConfigurationException ignored) {
                 }
                 dbf.setNamespaceAware(true);
                 dbf.setValidating(false);
@@ -1486,8 +1443,7 @@ public class Util {
             if (stream != null) {
                 try {
                     stream.close();
-                } catch (IOException ioe) {
-                }
+                } catch (IOException ignored) {}
             }
         }
         return result;
@@ -1514,9 +1470,7 @@ public class Util {
                     dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
                     dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
                     dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-
-                } catch (ParserConfigurationException e) {
-                }
+                } catch (ParserConfigurationException ignored) {}
                 dbf.setNamespaceAware(true);
                 dbf.setValidating(false);
                 dbf.setXIncludeAware(false);
@@ -1530,8 +1484,7 @@ public class Util {
             if (stream != null) {
                 try {
                     stream.close();
-                } catch (IOException ioe) {
-                }
+                } catch (IOException ignored) {}
             }
         }
         return result;
@@ -1555,7 +1508,6 @@ public class Util {
         public Iterator<String> getPrefixes(String namespaceURI) {
             return null;
         }
-
     }
 
     /**
