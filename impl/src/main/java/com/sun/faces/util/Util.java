@@ -32,7 +32,6 @@ import static com.sun.faces.util.MessageUtils.getExceptionMessageString;
 import static jakarta.faces.application.ViewHandler.CHARACTER_ENCODING_KEY;
 import static java.lang.Character.isDigit;
 import static java.util.Collections.emptyList;
-import static java.util.Map.entry;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.SEVERE;
