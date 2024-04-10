@@ -16,11 +16,12 @@
 
 package jakarta.faces.convert;
 
+import static com.sun.faces.util.Util.notNullArgs;
+
+import com.sun.faces.RIConstants;
+
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
-
-import static com.sun.faces.util.RIConstants.NO_VALUE;
-import static com.sun.faces.util.Util.notNullArgs;
 
 /**
  * <p>
@@ -97,7 +98,7 @@ public class CharacterConverter implements Converter<Character> {
 
         // If the specified value is null, return a zero-length String
         if (value == null) {
-            return EMPTY_STRING;
+            return RIConstants.NO_VALUE;
         }
 
         try {
