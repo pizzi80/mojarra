@@ -244,7 +244,7 @@ public final class FactoryFinder {
      * @throws IllegalArgumentException if <code>factoryName</code> does not identify a standard Jakarta Faces
      * factory name
      * @throws IllegalStateException if there is no configured factory implementation class for the specified factory name
-     * @throws NullPointerException if <code>factoryname</code> is null
+     * @throws NullPointerException if <code>factoryName</code> is null
      *
      * @return the found factory instance
      */
