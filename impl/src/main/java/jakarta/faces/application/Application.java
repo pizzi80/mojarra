@@ -16,6 +16,8 @@
 
 package jakarta.faces.application;
 
+import static java.util.Collections.emptyIterator;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -590,7 +592,7 @@ public abstract class Application {
             return defaultApplication.getBehaviorIds();
         }
 
-        return Collections.<String>emptyList().iterator();
+        return emptyIterator();
     }
 
     /**
