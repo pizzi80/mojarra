@@ -979,7 +979,6 @@ public class ExternalContextImpl extends ExternalContext {
         UrlBuilder builder = new UrlBuilder(baseUrl, currentResponseEncoding);
         builder.addParameters(parameters);
         return builder.createUrl();
-
     }
 
     @Override
@@ -988,7 +987,6 @@ public class ExternalContextImpl extends ExternalContext {
         UrlBuilder builder = new UrlBuilder(baseUrl, currentResponseEncoding);
         builder.addParameters(parameters);
         return builder.createUrl();
-
     }
 
     /**
