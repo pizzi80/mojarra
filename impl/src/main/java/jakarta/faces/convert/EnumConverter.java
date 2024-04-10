@@ -16,14 +16,13 @@
 
 package jakarta.faces.convert;
 
-import jakarta.el.ValueExpression;
-import jakarta.faces.component.UIComponent;
-import jakarta.faces.context.FacesContext;
-
-import static com.sun.faces.util.RIConstants.NO_VALUE;
 import static com.sun.faces.util.Util.notNullArgs;
 
 import com.sun.faces.RIConstants;
+
+import jakarta.el.ValueExpression;
+import jakarta.faces.component.UIComponent;
+import jakarta.faces.context.FacesContext;
 
 /**
  * <p>
