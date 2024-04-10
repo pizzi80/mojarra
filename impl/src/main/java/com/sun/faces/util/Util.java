@@ -1712,12 +1712,12 @@ public class Util {
     public static int extractFirstNumericSegment(String clientId, char separatorChar) {
         int nextSeparatorChar = clientId.indexOf(separatorChar);
 
-        while (clientId.length() > 0 && !isDigit(clientId.charAt(0)) && nextSeparatorChar >= 0) {
+        while ( !clientId.isEmpty() && !isDigit(clientId.charAt(0)) && nextSeparatorChar >= 0 ) {
             clientId = clientId.substring(nextSeparatorChar + 1);
             nextSeparatorChar = clientId.indexOf(separatorChar);
         }
 
-        if (clientId.length() > 0 && isDigit(clientId.charAt(0))) {
+        if ( !clientId.isEmpty() && isDigit(clientId.charAt(0)) ) {
             String firstNumericSegment = nextSeparatorChar >= 0 ? clientId.substring(0, nextSeparatorChar) : clientId;
             return Integer.parseInt(firstNumericSegment);
         }
@@ -1786,7 +1786,7 @@ public class Util {
             encoding = defaultEncoding;
 
             // 6. If specified default is null or blank then finally fall back to hardcoded default.
-            if (encoding != null && !encoding.isBlank()) {
+            if ( encoding != null && !encoding.isBlank() ) {
                 if (LOGGER.isLoggable(FINEST)) {
                     LOGGER.log(FINEST, "Using specified default encoding {0}", encoding);
                 }
