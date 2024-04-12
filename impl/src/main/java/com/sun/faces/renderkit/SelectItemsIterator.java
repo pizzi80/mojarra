@@ -40,7 +40,7 @@ import jakarta.faces.model.SelectItem;
  * {@link UISelectOne}.
  * </p>
  *
- * // RELEASE_PENDING (rlubke,driscoll) performanc review
+ * // RELEASE_PENDING (rlubke,driscoll) performance review
  */
 public final class SelectItemsIterator<T extends SelectItem> implements Iterator<SelectItem> {
 
@@ -55,10 +55,8 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      * @param parent The parent {@link UIComponent} whose children will be processed
      */
     public SelectItemsIterator(FacesContext ctx, UIComponent parent) {
-
         kids = parent.getChildren().listIterator();
         this.ctx = ctx;
-
     }
 
     // ------------------------------------------------------ Instance Variables
@@ -75,7 +73,7 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      * Iterator over the children of the parent component.
      * </p>
      */
-    private ListIterator<UIComponent> kids;
+    private final ListIterator<UIComponent> kids;
 
     /**
      * Expose single SelectItems via an Iterator. This iterator will be reset/reused for each individual SelectItem instance
@@ -86,7 +84,7 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
     /**
      * The {@link FacesContext} for the current request.
      */
-    private FacesContext ctx;
+    private final FacesContext ctx;
 
     // -------------------------------------------------------- Iterator Methods
 
@@ -97,7 +95,6 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      */
     @Override
     public boolean hasNext() {
-
         if (items != null) {
             if (items.hasNext()) {
                 return true;
@@ -115,7 +112,6 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
             }
         }
         return false;
-
     }
 
     /**
@@ -127,7 +123,6 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      */
     @Override
     public SelectItem next() {
-
         if (!hasNext()) {
             throw new NoSuchElementException();
         }
@@ -135,12 +130,10 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
             return items.next();
         }
         return next();
-
     }
 
     public UIComponent currentSelectComponent() {
         UIComponent result = items.currentSelectComponent();
-
         return result;
     }
 
@@ -151,9 +144,7 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      */
     @Override
     public void remove() {
-
         throw new UnsupportedOperationException();
-
     }
 
     // --------------------------------------------------------- Private Methods
@@ -165,13 +156,10 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      * </p>
      */
     private void initializeItems(Object kid) {
-
-        if (kid instanceof UISelectItem) {
-            UISelectItem ui = (UISelectItem) kid;
+        if (kid instanceof UISelectItem ui) {
             SelectItem item = (SelectItem) ui.getValue();
             if (item == null) {
-                item = new SelectItem(ui.getItemValue(), ui.getItemLabel(), ui.getItemDescription(), ui.isItemDisabled(), ui.isItemEscaped(),
-                        ui.isNoSelectionOption());
+                item = new SelectItem(ui.getItemValue(), ui.getItemLabel(), ui.getItemDescription(), ui.isItemDisabled(), ui.isItemEscaped(), ui.isNoSelectionOption());
             }
             updateSingeItemIterator(ui, item);
             items = singleItemIterator;
@@ -196,14 +184,12 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
                 items = null;
             }
         }
-
     }
 
     /**
      * @return the next valid child for processing
      */
     private Object findNextValidChild() {
-
         if (kids.hasNext()) {
             Object next = kids.next();
             while (kids.hasNext() && !(next instanceof UISelectItem || next instanceof UISelectItems)) {
@@ -214,7 +200,6 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
             }
         }
         return null;
-
     }
 
     /**
@@ -223,12 +208,10 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      * @param item the {@link SelectItem} to expose as an Iterator
      */
     private void updateSingeItemIterator(UIComponent selectComponent, SelectItem item) {
-
         if (singleItemIterator == null) {
             singleItemIterator = new SingleElementIterator();
         }
         singleItemIterator.updateItem(selectComponent, item);
-
     }
 
     // ---------------------------------------------------------- Nested Classes
@@ -253,37 +236,29 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
 
         @Override
         public boolean hasNext() {
-
             return !nextCalled;
-
         }
 
         @Override
         public SelectItem next() {
-
             if (nextCalled) {
                 throw new NoSuchElementException();
             }
             nextCalled = true;
             return item;
-
         }
 
         @Override
         public void remove() {
-
             throw new UnsupportedOperationException();
-
         }
 
         // ----------------------------------------------------- Private Methods
 
         private void updateItem(UIComponent selectComponent, SelectItem item) {
-
             this.item = item;
             this.selectComponent = selectComponent;
             nextCalled = false;
-
         }
 
     } // END SingleElementIterator
@@ -294,14 +269,13 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      */
     private static final class MapIterator implements ComponentAwareSelectItemIterator<SelectItem> {
 
-        private SelectItem item = new SelectItem();
-        private Iterator iterator;
-        private transient UIComponent parent;
+        private final SelectItem item = new SelectItem();
+        private final Iterator<?> iterator;
+        private final transient UIComponent parent;
 
         // -------------------------------------------------------- Constructors
 
         private MapIterator(Map map, UIComponent parent) {
-
             iterator = map.entrySet().iterator();
             this.parent = parent;
         }
@@ -317,28 +291,22 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
 
         @Override
         public boolean hasNext() {
-
             return iterator.hasNext();
-
         }
 
         @Override
         public SelectItem next() {
-
-            Map.Entry entry = (Map.Entry) iterator.next();
+            Map.Entry<?,?> entry = (Map.Entry<?,?>) iterator.next();
             Object key = entry.getKey();
             Object value = entry.getValue();
             item.setLabel(key != null ? key.toString() : value.toString());
             item.setValue(value != null ? value : "");
             return item;
-
         }
 
         @Override
         public void remove() {
-
             throw new UnsupportedOperationException();
-
         }
 
     } // END MapIterator
@@ -364,9 +332,7 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
         // -------------------------------------------------------- Constructors
 
         protected GenericObjectSelectItemIterator(UISelectItems sourceComponent) {
-
             this.sourceComponent = sourceComponent;
-
         }
 
         // -------------------------------------------------------- Constructors
@@ -379,14 +345,12 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
         // --------------------------------------------------- Protected Methods
 
         protected SelectItem getSelectItemFor(FacesContext ctx, Object value) {
-
             if (genericObjectSI == null) {
                 genericObjectSI = new GenericObjectSelectItem(sourceComponent);
             }
 
             genericObjectSI.updateItem(ctx, value);
             return genericObjectSI;
-
         }
 
         // ------------------------------------------------------ Nested Classes
@@ -409,17 +373,15 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
             /**
              * The request-scoped variable under which the current object will be exposed.
              */
-            private String var;
+            private final String var;
 
-            private UISelectItems sourceComponent;
+            private final UISelectItems sourceComponent;
 
             // -------------------------------------------------------- Constructors
 
             private GenericObjectSelectItem(UISelectItems sourceComponent) {
-
                 var = (String) sourceComponent.getAttributes().get(VAR);
                 this.sourceComponent = sourceComponent;
-
             }
 
             // ----------------------------------------------------- Private Methods
@@ -431,7 +393,6 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
              * @param value the value to build the updated values from
              */
             private void updateItem(FacesContext ctx, Object value) {
-
                 Map<String, Object> reqMap = ctx.getExternalContext().getRequestMap();
                 Object oldVarValue = null;
                 if (var != null) {
@@ -449,10 +410,10 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
                     setValue(itemValueResult != null ? itemValueResult : value);
                     setLabel(itemLabelResult != null ? itemLabelResult.toString() : value.toString());
                     setDescription(itemDescriptionResult != null ? itemDescriptionResult.toString() : null);
-                    setEscape(itemEscapedResult != null ? Boolean.valueOf(itemEscapedResult.toString()) : true);
-                    setDisabled(itemDisabledResult != null ? Boolean.valueOf(itemDisabledResult.toString()) : false);
+                    setEscape(itemEscapedResult != null ? Boolean.parseBoolean(itemEscapedResult.toString()) : true);
+                    setDisabled(itemDisabledResult != null ? Boolean.parseBoolean(itemDisabledResult.toString()) : false);
                     if (null != noSelectionOptionResult) {
-                        setNoSelectionOption(Boolean.valueOf(noSelectionOptionResult.toString()));
+                        setNoSelectionOption(Boolean.parseBoolean(noSelectionOptionResult.toString()));
                     } else if (null != noSelectionValueResult) {
                         setNoSelectionOption(getValue().equals(noSelectionValueResult));
                     }
@@ -465,21 +426,16 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
                         }
                     }
                 }
-
             }
 
             // --------------------------------------- Methods from Serializable
 
             private void writeObject(ObjectOutputStream out) throws IOException {
-
                 throw new NotSerializableException();
-
             }
 
             private void readObject(ObjectInputStream in) throws IOException {
-
                 throw new NotSerializableException();
-
             }
 
         } // END GenericObjectSelectItem
@@ -498,34 +454,29 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
      */
     private static final class ArrayIterator extends GenericObjectSelectItemIterator {
 
-        private FacesContext ctx;
-        private Object array;
-        private int count;
+        private final FacesContext ctx;
+        private final Object array;
+        private final int count;
         private int index;
 
         // -------------------------------------------------------- Constructors
 
         private ArrayIterator(FacesContext ctx, UISelectItems sourceComponent, Object array) {
-
             super(sourceComponent);
             this.ctx = ctx;
             this.array = array;
             count = Array.getLength(array);
-
         }
 
         // ----------------------------------------------- Methods from Iterator
 
         @Override
         public boolean hasNext() {
-
             return index < count;
-
         }
 
         @Override
         public SelectItem next() {
-
             if (index >= count) {
                 throw new NoSuchElementException();
             }
@@ -536,7 +487,6 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
             } else {
                 return getSelectItemFor(ctx, item);
             }
-
         }
 
         @Override
@@ -547,52 +497,44 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
     } // END ArrayIterator
 
     /**
-     * Handles Collections of <code>SelectItem</code>s, generic Objects, or combintations of both.
+     * Handles Collections of <code>SelectItem</code>s, generic Objects, or combinations of both.
      *
      * A single <code>GenericObjectSelectItem</code> will be leverage for any non-<code>SelectItem</code> objects
      * encountered.
      */
     private static final class IterableItemIterator extends GenericObjectSelectItemIterator {
 
-        private FacesContext ctx;
-        private Iterator<?> iterator;
+        private final FacesContext ctx;
+        private final Iterator<?> iterator;
 
         // -------------------------------------------------------- Constructors
 
         private IterableItemIterator(FacesContext ctx, UISelectItems sourceComponent, Iterable<?> iterable) {
-
             super(sourceComponent);
             this.ctx = ctx;
             iterator = iterable.iterator();
-
         }
 
         // ----------------------------------------------- Methods from Iterator
 
         @Override
         public boolean hasNext() {
-
             return iterator.hasNext();
-
         }
 
         @Override
         public SelectItem next() {
-
             Object item = iterator.next();
             if (item instanceof SelectItem) {
                 return (SelectItem) item;
             } else {
                 return getSelectItemFor(ctx, item);
             }
-
         }
 
         @Override
         public void remove() {
-
             throw new UnsupportedOperationException();
-
         }
 
     } // END CollectionItemIterator
