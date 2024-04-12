@@ -44,7 +44,7 @@ public interface ActionSource2 extends ActionSource {
 
     /**
      * <p>
-     * Set the {@link MethodExpression} pointing at the appication action to be invoked, if this {@link UIComponent} is
+     * Set the {@link MethodExpression} pointing at the application action to be invoked, if this {@link UIComponent} is
      * activated by the user, during the <em>Apply Request Values</em> or <em>Invoke Application</em> phase of the request
      * processing lifecycle, depending on the value of the <code>immediate</code> property.
      * </p>
