@@ -47,6 +47,7 @@ import jakarta.faces.context.ResponseWriter;
 
 import com.sun.faces.RIConstants;
 import com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter;
+import com.sun.faces.io.FastStringWriter;
 import com.sun.faces.util.DebugObjectOutputStream;
 import com.sun.faces.util.DebugUtil;
 import com.sun.faces.util.FacesLogger;
@@ -146,7 +147,7 @@ public class ClientSideStateHelper extends StateHelper {
     public void writeState(FacesContext ctx, Object state, StringBuilder stateCapture) throws IOException {
 
         if (stateCapture != null) {
-            doWriteState(ctx, state, new StringBuilderWriter(stateCapture));
+            doWriteState(ctx, state, new FastStringWriter(stateCapture));
         } else {
             ResponseWriter writer = ctx.getResponseWriter();
 
@@ -158,7 +159,7 @@ public class ClientSideStateHelper extends StateHelper {
                 writer.writeAttribute("id", viewStateId, null);
             }
             StringBuilder stateBuilder = new StringBuilder();
-            doWriteState(ctx, state, new StringBuilderWriter(stateBuilder));
+            doWriteState(ctx, state, new FastStringWriter(stateBuilder));
             writer.writeAttribute("value", stateBuilder.toString(), null);
             writer.writeAttribute("autocomplete", webConfig.isOptionEnabled(AutoCompleteOffOnViewState) ? "off" : "one-time-code", null);
             writer.endElement("input");
@@ -497,97 +498,4 @@ public class ClientSideStateHelper extends StateHelper {
         throw new IllegalStateException("Cannot determine whether or not the request is stateless");
     }
 
-    // ----------------------------------------------------------- Inner Classes
-
-    /**
-     * A simple <code>Writer</code> implementation to encapsulate a <code>StringBuilder</code> instance.
-     */
-    protected static final class StringBuilderWriter extends Writer {
-
-        private final StringBuilder sb;
-
-        // -------------------------------------------------------- Constructors
-
-        protected StringBuilderWriter(StringBuilder sb) {
-
-            this.sb = sb;
-
-        }
-
-        // ------------------------------------------------- Methods from Writer
-
-        @Override
-        public void write(int c) throws IOException {
-
-            sb.append((char) c);
-
-        }
-
-        @Override
-        public void write(char[] cbuf) throws IOException {
-
-            sb.append(cbuf);
-
-        }
-
-        @Override
-        public void write(String str) throws IOException {
-
-            sb.append(str);
-
-        }
-
-        @Override
-        public void write(String str, int off, int len) throws IOException {
-
-            sb.append(str.toCharArray(), off, len);
-
-        }
-
-        @Override
-        public Writer append(CharSequence csq) throws IOException {
-
-            sb.append(csq);
-            return this;
-
-        }
-
-        @Override
-        public Writer append(CharSequence csq, int start, int end) throws IOException {
-
-            sb.append(csq, start, end);
-            return this;
-
-        }
-
-        @Override
-        public Writer append(char c) throws IOException {
-
-            sb.append(c);
-            return this;
-
-        }
-
-        @Override
-        public void write(char[] cbuf, int off, int len) throws IOException {
-
-            sb.append(cbuf, off, len);
-
-        }
-
-        @Override
-        public void flush() throws IOException {
-
-            // no-op
-
-        }
-
-        @Override
-        public void close() throws IOException {
-
-            // no-op
-
-        }
-
-    } // END StringBuilderWriter
 }
