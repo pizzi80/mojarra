@@ -115,7 +115,6 @@ public class ServerSideStateHelper extends StateHelper {
         } else {
             random = null;
         }
-
     }
 
     // ------------------------------------------------ Methods from StateHelper
@@ -237,7 +236,7 @@ public class ServerSideStateHelper extends StateHelper {
      */
     @Override
     public Object getState(FacesContext ctx, String viewId) {
-        String compoundId = getStateParamValue(ctx);
+        final String compoundId = getStateParamValue(ctx);
 
         if (compoundId == null) {
             return null;
@@ -254,8 +253,8 @@ public class ServerSideStateHelper extends StateHelper {
         String idInLogicalMap = compoundId.substring(0, sep);
         String idInActualMap = compoundId.substring(sep + 1);
 
-        ExternalContext externalCtx = ctx.getExternalContext();
-        Object sessionObj = externalCtx.getSession(false);
+        final ExternalContext externalCtx = ctx.getExternalContext();
+        final Object sessionObj = externalCtx.getSession(false);
 
         // stop evaluating if the session is not available
         if (sessionObj == null) {
@@ -263,7 +262,6 @@ public class ServerSideStateHelper extends StateHelper {
             return null;
         }
 
-        // noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (getMutex(sessionObj)) {
             Map logicalMap = (Map) externalCtx.getSessionMap().get(LOGICAL_VIEW_MAP);
             if (logicalMap != null) {
@@ -289,7 +287,6 @@ public class ServerSideStateHelper extends StateHelper {
         }
 
         return null;
-
     }
 
     // ------------------------------------------------------- Protected Methods
@@ -408,4 +405,5 @@ public class ServerSideStateHelper extends StateHelper {
         String compoundId = getStateParamValue(facesContext);
         return STATELESS.equals(compoundId);
     }
+
 }
