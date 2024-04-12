@@ -248,7 +248,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.4.0</version> <!-- 3.5.0 requires maven 3.6.3 ... jitpack still uses 3.6.2 o_O -->
                 <executions>
                     <execution>
                         <id>generate-resources</id>
