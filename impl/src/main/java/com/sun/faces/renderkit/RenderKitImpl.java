@@ -70,17 +70,17 @@ public class RenderKitImpl extends RenderKit {
      * Keys are String renderer family. Values are HashMaps. Nested HashMap keys are Strings for the rendererType, and
      * values are the Renderer instances themselves.
      */
-    private ConcurrentHashMap<String, HashMap<String, Renderer>> rendererFamilies = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, HashMap<String, Renderer>> rendererFamilies = new ConcurrentHashMap<>();
 
     /**
      * For Behavior Renderers: Keys are Strings for the behaviorRendererType, and values are the behaviorRenderer instances
      * themselves.
      */
-    private ConcurrentHashMap<String, ClientBehaviorRenderer> behaviorRenderers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ClientBehaviorRenderer> behaviorRenderers = new ConcurrentHashMap<>();
 
     private ResponseStateManager responseStateManager = new ResponseStateManagerImpl();
 
-    private WebConfiguration webConfig;
+    private final WebConfiguration webConfig;
 
     public RenderKitImpl() {
 
@@ -96,11 +96,7 @@ public class RenderKitImpl extends RenderKit {
         Util.notNull("rendererType", rendererType);
         Util.notNull("renderer", renderer);
 
-        HashMap<String, Renderer> renderers = rendererFamilies.get(family);
-        if (renderers == null) {
-            renderers = new HashMap<>();
-            rendererFamilies.put(family, renderers);
-        }
+        Map<String, Renderer> renderers = rendererFamilies.computeIfAbsent(family, k -> new HashMap<>());
 
         if (LOGGER.isLoggable(Level.FINE) && renderers.containsKey(rendererType)) {
             LOGGER.log(Level.FINE, "rendererType {0} has already been registered for family {1}.  Replacing existing renderer class type {2} with {3}.",
@@ -140,19 +136,12 @@ public class RenderKitImpl extends RenderKit {
 
     @Override
     public ClientBehaviorRenderer getClientBehaviorRenderer(String behaviorRendererType) {
-
         Util.notNull("behaviorRendererType", behaviorRendererType);
-
-        return behaviorRenderers != null ? behaviorRenderers.get(behaviorRendererType) : null;
-
+        return behaviorRenderers.get(behaviorRendererType);
     }
 
     @Override
     public Iterator<String> getClientBehaviorRendererTypes() {
-        if (null == behaviorRenderers) {
-            Set<String> empty = Collections.emptySet();
-            return empty.iterator();
-        }
         return behaviorRenderers.keySet().iterator();
     }
 
@@ -349,8 +338,7 @@ public class RenderKitImpl extends RenderKit {
         if (family != null) {
             return family.keySet().iterator();
         } else {
-            Set<String> empty = Collections.emptySet();
-            return empty.iterator();
+            return Collections.emptyIterator();
         }
 
     }
