@@ -114,7 +114,6 @@ public abstract class StateHelper {
         String result = guard.encrypt(clearText);
         result = URLEncoder.encode(result, UTF_8);
         session.setAttribute(TOKEN_NAME, result);
-
     }
 
     private static final String TOKEN_NAME = RIConstants.FACES_PREFIX + "TOKEN";
@@ -163,12 +162,12 @@ public abstract class StateHelper {
      * @return the view state from this request
      */
     protected static String getStateParamValue(FacesContext context) {
-        String pValue = VIEW_STATE_PARAM.getValue(context);
-        if (pValue != null && pValue.isEmpty()) {
-            pValue = null;
+        String value = VIEW_STATE_PARAM.getValue(context);
+        if (value != null && value.isEmpty()) {
+            value = null;
         }
 
-        return pValue;
+        return value;
     }
 
     /**
@@ -195,7 +194,6 @@ public abstract class StateHelper {
             writer.writeAttribute("value", result, "value");
             writer.endElement("input");
         }
-
     }
 
     /**
