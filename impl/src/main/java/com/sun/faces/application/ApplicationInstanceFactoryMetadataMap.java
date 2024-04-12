@@ -37,11 +37,7 @@ public class ApplicationInstanceFactoryMetadataMap<K, V> extends MetadataWrapper
     public boolean hasAnnotations(String key) {
         Object objResult = getMetadata().get(key).get(hasAnnotations);
 
-        if (objResult != null) {
-            return (Boolean) objResult;
-        }
-
-        return false;
+        return objResult != null && (Boolean) objResult;
     }
 
     public void scanForAnnotations(String key, Class<?> value) {
