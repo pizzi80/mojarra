@@ -86,7 +86,7 @@ public class OutcomeTargetButtonRenderer extends OutcomeTargetRenderer {
         writer.writeAttribute("value", label, "value");
 
         String styleClass = (String) component.getAttributes().get("styleClass");
-        if (styleClass != null && styleClass.length() > 0) {
+        if (styleClass != null && !styleClass.isEmpty()) {
             writer.writeAttribute("class", styleClass, "styleClass");
         }
 
@@ -117,7 +117,7 @@ public class OutcomeTargetButtonRenderer extends OutcomeTargetRenderer {
 
         if (onclick != null) {
             onclick = onclick.trim();
-            if (onclick.length() > 0 && !onclick.endsWith(";")) {
+            if (!onclick.isEmpty() && !onclick.endsWith(";")) {
                 onclick += "; ";
             }
         } else {
