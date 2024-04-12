@@ -20,6 +20,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -75,7 +76,6 @@ public final class ByteArrayGuard {
     // ------------------------------------------------------------ Constructors
 
     public ByteArrayGuard() {
-
         try {
             setupKeyAndMac();
         } catch (Exception e) {
@@ -157,7 +157,8 @@ public final class ByteArrayGuard {
             decryptMac.update(iv);
             decryptMac.update(encdata);
             byte[] macBytesCalculated = decryptMac.doFinal();
-            if (areArrayEqualsConstantTime(macBytes, macBytesCalculated)) {
+            // if (areArrayEqualsConstantTime(macBytes, macBytesCalculated)) {
+            if (Arrays.equals(macBytes, macBytesCalculated)) {
                 // continue only if the MAC was valid
                 // System.out.println("Valid MAC found!");
                 byte[] plaindata = decryptCipher.doFinal(encdata);
@@ -173,6 +174,9 @@ public final class ByteArrayGuard {
         }
     }
 
+    // fixme: 1) why not use Arrays.equals(array1,array2) ... ?
+    //        2) why after the first failed equality there is no break statement?
+    //        3) why is not static?
     private boolean areArrayEqualsConstantTime(byte[] array1, byte[] array2) {
         boolean result = true;
         for (int i = 0; i < array1.length; i++) {
@@ -190,9 +194,7 @@ public final class ByteArrayGuard {
      */
     private void setupKeyAndMac() {
 
-        /*
-         * Lets see if an encoded key was given to the application, if so use it and skip the code to generate it.
-         */
+        // Let's see if an encoded key was given to the application, if so use it and skip the code to generate it.
         try {
             InitialContext context = new InitialContext();
             String encodedKeyArray = (String) context.lookup("java:comp/env/faces/ClientSideSecretKey");
@@ -236,21 +238,20 @@ public final class ByteArrayGuard {
     }
 
     private SecretKey getSecretKey(FacesContext facesContext) {
-
         SecretKey result = sk;
-        Object sessionObj;
 
-        if (null != (sessionObj = facesContext.getExternalContext().getSession(false))) {
-            // Don't break on portlets.
-            if (sessionObj instanceof HttpSession) {
-                HttpSession session = (HttpSession) sessionObj;
-                result = (SecretKey) session.getAttribute(SK_SESSION_KEY);
-                if (null == result) {
-                    session.setAttribute(SK_SESSION_KEY, sk);
-                    result = sk;
-                }
+        final Object sessionObj = facesContext.getExternalContext().getSession(false);
+
+        // Don't break on portlets.
+        if (sessionObj instanceof HttpSession session) {
+            result = (SecretKey) session.getAttribute(SK_SESSION_KEY);
+            if (result == null) {
+                session.setAttribute(SK_SESSION_KEY, sk);
+                result = sk;
             }
         }
+
         return result;
     }
+
 }
