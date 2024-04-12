@@ -67,7 +67,7 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
 
         String fragment = (String) component.getAttributes().get("fragment");
         fragment = fragment != null ? fragment.trim() : "";
-        if (fragment.length() > 0) {
+        if ( !fragment.isEmpty() ) {
             fragment = "#" + fragment;
         }
         return fragment;
@@ -245,14 +245,9 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
         for (Param candidate : declaredParams) {
             // QUESTION shouldn't the trimming of name should be done elsewhere?
             // null value is allowed as a way to suppress page parameter
-            if (candidate.name != null && candidate.name.trim().length() > 0) {
+            if (candidate.name != null && !candidate.name.isBlank() ) {
                 candidate.name = candidate.name.trim();
-                List<String> values = params.get(candidate.name);
-                if (values == null) {
-                    values = new ArrayList<>();
-                    params.put(candidate.name, values);
-                }
-                values.add(candidate.value);
+                params.computeIfAbsent(candidate.name, k -> new ArrayList<>()).add(candidate.value);
             }
         }
 
