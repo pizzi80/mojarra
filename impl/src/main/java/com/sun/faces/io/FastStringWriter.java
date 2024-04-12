@@ -30,7 +30,7 @@ import java.io.Writer;
  */
 public class FastStringWriter extends Writer {
 
-    protected StringBuilder builder;
+    protected final StringBuilder builder;
 
     // ------------------------------------------------------------ Constructors
 
@@ -47,9 +47,7 @@ public class FastStringWriter extends Writer {
      * <p>
      * Constructs a new <code>FastStringWriter</code> instance using the specified <code>initialCapacity</code>.
      * </p>
-     *
      * @param initialCapacity specifies the initial capacity of the buffer
-     *
      * @throws IllegalArgumentException if initialCapacity is less than zero
      */
     public FastStringWriter(int initialCapacity) {
@@ -59,34 +57,42 @@ public class FastStringWriter extends Writer {
         builder = new StringBuilder(initialCapacity);
     }
 
+    /**
+     * <p>
+     * Constructs a new <code>FastStringWriter</code> instance using the specified <code>builder</code>.
+     * </p>
+     * @param builder the builder to use as internal buffer
+     */
+    public FastStringWriter(StringBuilder builder) {
+        this.builder = builder;
+    }
+
     // ----------------------------------------------------- Methods from Writer
 
     /**
      * <p>
      * Write a portion of an array of characters.
      * </p>
-     *
-     * @param cbuf Array of characters
-     * @param off Offset from which to start writing characters
-     * @param len Number of characters to write
-     *
+     * @param chars Array of characters
+     * @param off  Offset from which to start writing characters
+     * @param len  Number of characters to write
      * @throws IOException
      */
     @Override
-    public void write(char cbuf[], int off, int len) throws IOException {
-        if (off < 0 || off > cbuf.length || len < 0 || off + len > cbuf.length || off + len < 0) {
+    public void write(char[] chars, int off, int len) throws IOException {
+        // this check it's implemented also in the StringBuilder class ... probably can be removed
+        if (off < 0 || off > chars.length || len < 0 || off + len > chars.length || off + len < 0) {
             throw new IndexOutOfBoundsException();
         } else if (len == 0) {
             return;
         }
-        builder.append(cbuf, off, len);
+        builder.append(chars, off, len);
     }
 
     /**
      * <p>
      * This is a no-op.
      * </p>
-     *
      * @throws IOException
      */
     @Override
@@ -97,7 +103,6 @@ public class FastStringWriter extends Writer {
      * <p>
      * This is a no-op.
      * </p>
-     *
      * @throws IOException
      */
     @Override
@@ -107,8 +112,16 @@ public class FastStringWriter extends Writer {
     // ---------------------------------------------------------- Public Methods
 
     /**
+     * Write a single character.
+     * @param c the String to be written
+     */
+    @Override
+    public void write(int c) throws IOException {
+        builder.append((char)c);
+    }
+
+    /**
      * Write a string.
-     *
      * @param str String to be written
      */
     @Override
@@ -116,21 +129,24 @@ public class FastStringWriter extends Writer {
         builder.append(str);
     }
 
+    @Override
+    public void write(char[] cbuf) throws IOException {
+        builder.append(cbuf);
+    }
+
     /**
      * Write a portion of a string.
-     *
      * @param str A String
      * @param off Offset from which to start writing characters
      * @param len Number of characters to write
      */
     @Override
     public void write(String str, int off, int len) {
-        builder.append(str.substring(off, off + len));
+        builder.append(str, off, off + len);
     }
 
     /**
      * Return the <code>StringBuilder</code> itself.
-     *
      * @return StringBuilder holding the current buffer value.
      */
     public StringBuilder getBuffer() {
@@ -145,6 +161,27 @@ public class FastStringWriter extends Writer {
 
     public void reset() {
         builder.setLength(0);
+    }
+
+
+    // ------------------------------------------------- Append Methods
+
+    @Override
+    public Writer append(CharSequence csq) throws IOException {
+        builder.append(csq);
+        return this;
+    }
+
+    @Override
+    public Writer append(CharSequence csq, int start, int end) throws IOException {
+        builder.append(csq, start, end);
+        return this;
+    }
+
+    @Override
+    public Writer append(char c) throws IOException {
+        builder.append(c);
+        return this;
     }
 
 }
