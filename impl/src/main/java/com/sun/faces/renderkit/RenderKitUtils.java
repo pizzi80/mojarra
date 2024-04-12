@@ -481,9 +481,7 @@ public class RenderKitUtils {
         assert writer != null;
         assert component != null;
 
-        List<String> excludedAttributes = null;
-
-        renderXHTMLStyleBooleanAttributes(writer, component, excludedAttributes);
+        renderXHTMLStyleBooleanAttributes(writer, component, null);
     }
 
     /**
@@ -734,13 +732,7 @@ public class RenderKitUtils {
      * @return <code>true</code> if the attribute name is not in the exclude list.
      */
     private static boolean isExcludedAttribute(String attributeName, List<String> excludedAttributes) {
-        if (null == excludedAttributes) {
-            return false;
-        }
-        if (excludedAttributes.contains(attributeName)) {
-            return true;
-        }
-        return false;
+        return excludedAttributes != null && excludedAttributes.contains(attributeName);
     }
 
     /**
@@ -1331,7 +1323,7 @@ public class RenderKitUtils {
         }
 
         RenderKitUtils.appendQuotedValue(builder, name);
-        builder.append(":");
+        builder.append(':');
 
         if (value == null) {
             builder.append("''");
