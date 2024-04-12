@@ -67,6 +67,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -854,7 +855,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
      */
     protected void initializeMappings() {
         String viewMappings = webConfig.getOptionValue(FaceletsViewMappings);
-        if (viewMappings != null && viewMappings.length() > 0) {
+        if (viewMappings != null && !viewMappings.isEmpty()) {
             Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
 
             String[] mappingsArray = split(appMap, viewMappings, ";");
@@ -1823,11 +1824,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
      * @return true if we are, false otherwise.
      */
     private boolean isServerStateSaving() {
-        if (STATE_SAVING_METHOD_SERVER.equals(webConfig.getOptionValue(StateSavingMethod))) {
-            return true;
-        }
-
-        return false;
+        return STATE_SAVING_METHOD_SERVER.equals(webConfig.getOptionValue(StateSavingMethod));
     }
 
     /**
@@ -1848,7 +1845,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
     /**
      * Gets and if needed initializes the faceletFactory
      *
-     * @return the default faceletFactorys
+     * @return the default faceletFactory
      */
     private DefaultFaceletFactory getFaceletFactory() {
         if (faceletFactory == null) {
@@ -1882,7 +1879,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
     }
 
     /**
-     * Maps the element in the passed in stream of views according to the given options.
+     * Maps the element of the passed stream of views according to the given options.
      *
      * @param views The stream of views to potentially map
      * @param options Options telling if and if so how to map
@@ -1893,11 +1890,13 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             return views;
         }
 
-        return views.map(view -> toImplicitOutcome(view));
+        return views.map(this::toImplicitOutcome);
     }
 
-    private boolean returnAsImplicitOutCome(ViewVisitOption... options) {
-        return stream(options).filter(option -> option == RETURN_AS_MINIMAL_IMPLICIT_OUTCOME).findAny().isPresent();
+    private static boolean returnAsImplicitOutCome(ViewVisitOption... options) {
+        if ( options.length == 0 ) return false;
+        if ( options.length == 1 ) return RETURN_AS_MINIMAL_IMPLICIT_OUTCOME == options[0];
+        return EnumSet.of(options[0],options).contains(RETURN_AS_MINIMAL_IMPLICIT_OUTCOME);
     }
 
     private String toImplicitOutcome(String viewId) {
@@ -1964,7 +1963,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
     /**
      * Mark the initial state if not already marked.
      */
-    private void markInitialStateIfNotMarked(UIComponent component) {
+    private static void markInitialStateIfNotMarked(UIComponent component) {
         if (!component.isTransient()) {
             if (!component.getAttributes().containsKey(DYNAMIC_COMPONENT) && !component.initialStateMarked()) {
                 component.markInitialState();
@@ -1975,4 +1974,5 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             }
         }
     }
+
 }
