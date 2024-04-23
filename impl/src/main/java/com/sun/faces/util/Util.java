@@ -62,14 +62,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.concurrent.locks.Lock;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -483,7 +483,7 @@ public class Util {
         // Do we have a "/"?
         if (-1 != lastSlash) {
 
-            int startOrPreviousSlash = input.lastIndexOf("/", lastSlash - 1);
+            int startOrPreviousSlash = input.lastIndexOf('/', lastSlash - 1);
             startOrPreviousSlash = -1 == startOrPreviousSlash ? 0 : startOrPreviousSlash;
 
             input = input.substring(startOrPreviousSlash, lastSlash);
@@ -493,7 +493,7 @@ public class Util {
     }
 
     public static String removeLastPathSegment(String input) {
-        int slash = input.lastIndexOf("/");
+        int slash = input.lastIndexOf('/');
 
         // Do we have a "/"?
         if (-1 != slash) {
@@ -784,6 +784,8 @@ public class Util {
         return false;
     }
 
+    // Collections --------------------------------------------------------------------------------
+
     /**
      * Ported from Java 19+
      * todo: remove when Faces will be Java 19+
@@ -794,6 +796,49 @@ public class Util {
     public static int calculateMapCapacity(int numMappings) {
         return (int) Math.ceil( numMappings / 0.75 );
     }
+
+    // Concurrency --------------------------------------------------------------------------------
+
+    @FunctionalInterface
+    public interface Action {
+        void execute() throws Exception;
+    }
+
+    /**
+     * Execute the passed task and return the computed result atomically using the passed lock.
+     * @param lock The {@link Lock} to be used for atomic execution
+     * @param task The {@link FunctionalInterface} to be executed atomically (Runn
+     */
+    public static void execAtomic(Lock lock, Action task) {
+        lock.lock();
+
+        try {
+            task.execute();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Execute the passed task and return the computed result atomically using the passed lock.
+     * @param lock The {@link Lock} to be used for atomic execution
+     * @param task The {@link Supplier} to be executed atomically
+     * @return The result of the passed task.
+     */
+    public static <R> R execAtomic(Lock lock, Supplier<R> task) {
+        lock.lock();
+
+        try {
+            return task.get();
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    // Locale --------------------------------------------------------------------------------
 
     /**
      * @param context the <code>FacesContext</code> for the current request
@@ -974,7 +1019,7 @@ public class Util {
      */
     public static String getStackTraceString(Throwable e) {
         if (null == e) {
-            return "";
+            return NO_VALUE;
         }
 
         StackTraceElement[] stacks = e.getStackTrace();

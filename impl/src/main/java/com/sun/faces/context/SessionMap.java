@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,7 +40,7 @@ import jakarta.servlet.http.HttpSession;
 public class SessionMap extends BaseContextMap<Object> {
 
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
-    private static final String MUTEX = Mutex.class.getName();
+    private static final String MUTEX = SessionMap.class.getName()+".MUTEX";
 
     private final HttpServletRequest request;
     private final ProjectStage stage;
@@ -189,22 +191,18 @@ public class SessionMap extends BaseContextMap<Object> {
 
     // ----------------------------------------------------------- Session Mutex
 
-    private static final class Mutex implements Serializable {
-        @Serial private static final long serialVersionUID = 1L;
-    }
-
     // PENDING: to be used when the session is null or invalidated during getMutex access
-    private static final Mutex shared_mutex = new Mutex();
+    private static final Lock shared_mutex = new ReentrantLock();
 
     public static void createMutex(HttpSession session) {
-        session.setAttribute(MUTEX, new Mutex());
+        session.setAttribute(MUTEX, new ReentrantLock());
     }
 
-    public static Object getMutex(Object session) {
+    public static Lock getMutex(Object session) {
         if ( session == null ) return shared_mutex;             // PENDING: to avoid NPE in synchronized blocks
         if ( session instanceof HttpSession httpSession ) {
             try {
-                Mutex mutex = (Mutex) httpSession.getAttribute(MUTEX);
+                Lock mutex = (Lock) httpSession.getAttribute(MUTEX);
                 // if the mutex was removed in the meantime -> return the shared_mutex...?
                 if ( mutex == null ) {
                     LOGGER.warning("getMutex(session) is returning a shared mutex because the Mutex attribute was removed from session in the meantime");
@@ -217,10 +215,11 @@ public class SessionMap extends BaseContextMap<Object> {
                 return shared_mutex;
             }
         }
-        // it the session was not an HttpSession, return the session itself
+        // it the session was not an HttpSession, return the shared mutex
         // which is the case?
-        LOGGER.warning("getMutex(session): session it's not an HttpSession. return the session itself as a mutex object");
-        return session;
+        LOGGER.warning("getMutex(session): session it's not an HttpSession. returning the shared lock as a mutex object");
+        //return session;
+        return shared_mutex;
     }
 
     // do we really need to remove the mutex from session?
