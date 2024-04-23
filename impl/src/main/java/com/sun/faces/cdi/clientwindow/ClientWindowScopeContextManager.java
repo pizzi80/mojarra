@@ -135,7 +135,7 @@ public class ClientWindowScopeContextManager {
         ExternalContext externalContext = facesContext.getExternalContext();
         if (externalContext != null) {
             Map<String, Object> sessionMap = externalContext.getSessionMap();
-            Object session = externalContext.getSession(create);
+            HttpSession session = (HttpSession) externalContext.getSession(create);
 
             if (session != null) {
                 Map<Object, Map<String, ClientWindowScopeContextObject>> clientWindowScopeContexts = (Map<Object, Map<String, ClientWindowScopeContextObject>>)

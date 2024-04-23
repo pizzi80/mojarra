@@ -73,16 +73,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.PushBuilder;
 
-import com.sun.faces.RIConstants;
-import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.context.flash.ELFlash;
-import com.sun.faces.renderkit.html_basic.ScriptRenderer;
-import com.sun.faces.renderkit.html_basic.StylesheetRenderer;
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.MessageUtils;
-import com.sun.faces.util.TypedCollections;
-import com.sun.faces.util.Util;
-
 /**
  * <p>
  * This implementation of {@link ExternalContext} is specific to the servlet implementation.
@@ -865,7 +855,11 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public void setResponseBufferSize(int size) {
-        response.setBufferSize(size);
+        if ( isResponseCommitted() ) {
+            LOGGER.warning("Response set buffer size called after is already committed: \n"+Util.getStackTraceString(new RuntimeException()));
+        } else {
+            response.setBufferSize(size);
+        }
     }
 
     /**
@@ -881,7 +875,11 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public void responseReset() {
-        response.reset();
+        if ( isResponseCommitted() ) {
+            LOGGER.warning("Response reset called after is already committed: \n"+Util.getStackTraceString(new RuntimeException()));
+        } else {
+            response.reset();
+        }
     }
 
     /**
@@ -1016,7 +1014,6 @@ public class ExternalContextImpl extends ExternalContext {
         request = null;
         response = null;
         clientWindow = null;
-
         applicationMap = null;
         sessionMap = null;
         requestMap = null;
@@ -1026,7 +1023,6 @@ public class ExternalContextImpl extends ExternalContext {
         requestHeaderValuesMap = null;
         cookieMap = null;
         initParameterMap = null;
-
         flash = null;
     }
 
@@ -1073,7 +1069,6 @@ public class ExternalContextImpl extends ExternalContext {
         } finally {
             attrs.remove(ELFlash.ACT_AS_DO_LAST_PHASE_ACTIONS);
         }
-
     }
 
     // --------------------------------------------------------- Private Methods
