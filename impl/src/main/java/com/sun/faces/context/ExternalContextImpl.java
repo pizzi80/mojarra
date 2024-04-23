@@ -867,7 +867,11 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public void setResponseBufferSize(int size) {
-        response.setBufferSize(size);
+        if ( isResponseCommitted() ) {
+            LOGGER.warning("Response set buffer size called after is already committed: \n"+Util.getStackTraceString(new RuntimeException()));
+        } else {
+            response.setBufferSize(size);
+        }
     }
 
     /**
@@ -883,7 +887,11 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public void responseReset() {
-        response.reset();
+        if ( isResponseCommitted() ) {
+            LOGGER.warning("Response reset called after is already committed: \n"+Util.getStackTraceString(new RuntimeException()));
+        } else {
+            response.reset();
+        }
     }
 
     /**
@@ -1075,7 +1083,6 @@ public class ExternalContextImpl extends ExternalContext {
         } finally {
             attrs.remove(ELFlash.ACT_AS_DO_LAST_PHASE_ACTIONS);
         }
-
     }
 
     // --------------------------------------------------------- Private Methods
