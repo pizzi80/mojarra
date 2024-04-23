@@ -1,15 +1,26 @@
 package com.sun.faces.util;
 
+import static com.sun.faces.util.Util.execAtomic;
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Spliterator;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
+import java.util.function.IntFunction;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * A simple {@link ConcurrentMap} with LRU policy backed by a {@link Collections#synchronizedMap} over a {@link LRUMap}
@@ -24,8 +35,8 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
     @Serial
     private static final long serialVersionUID = -1282880659063646211L;
 
+    private final Lock lock = new ReentrantLock();
     private final LRUMap<K,V> lru;
-    private final Map<K,V> map;
 
     /**
      * Create a {@link ConcurrentLRUMap} with max capacity of 23 elements,
@@ -41,7 +52,6 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
      */
     public ConcurrentLRUMap(int maxCapacity) {
         lru = new LRUMap<>(maxCapacity);
-        map = Collections.synchronizedMap(lru);
     }
 
     // ------------------------------------------------------- LRUMap Custom methods
@@ -51,39 +61,36 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
      * @return the eldest element, if we've reached the maximum capacity, null otherwise.
      */
     public V popEldestEntry() {
-        synchronized (map) {
-            return lru.popEldestEntry();
-        }
+        return execAtomic(lock, lru::popEldestEntry);
     }
 
     // -------------------------------------------------------  Map interface
 
     @Override
     public int size() {
-        return map.size();
+        return execAtomic( lock, lru::size );
     }
 
     @Override
     public boolean isEmpty() {
-        return map.isEmpty();
+        return execAtomic(lock, lru::isEmpty );
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return key != null && map.containsKey(key);
+        return key != null && execAtomic(lock, () -> lru.containsKey(key) );
     }
 
     @Override
     public V get(Object key) {
-        return key == null ? null : map.get(key);
+        return key == null ? null : execAtomic(lock, () -> lru.get(key) );
     }
 
     @Override
     public V put(K key, V value) {
         requireNonNull(key);
         requireNonNull(value);
-
-        return map.put(key, value);
+        return execAtomic( lock , () -> lru.put(key, value) ); 
     }
 
     @Override
@@ -98,51 +105,51 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
         // skip if empty (this is the case when there was only null key or values)
         if ( m.isEmpty() ) return;
         // putAll non null key/values
-        map.putAll(m);
+        execAtomic( lock , () -> lru.putAll(m) );
     }
 
     @Override
     public boolean containsValue(Object value) {
-        return value != null && map.containsValue(value);
+        return value != null &&  execAtomic( lock , () -> lru.containsValue(value) );
     }
 
     @Override
     public V remove(Object key) {
-        return key == null ? null : map.remove(key);
+        return key == null ? null : execAtomic( lock , () -> lru.remove(key) );
     }
 
     @Override
     public void clear() {
-        map.clear();
+        execAtomic(lock,lru::clear);
     }
 
     @Override
     public Set<K> keySet() {
-        return map.keySet();
+        return new SynchronizedSet<>(lru.keySet(),lock);
     }
 
     @Override
     public Collection<V> values() {
-        return map.values();
+        return new SynchronizedCollection<>(lru.values(),lock);
     }
 
     @Override
     public Set<Entry<K, V>> entrySet() {
-        return map.entrySet();
+        return new SynchronizedSet<>(lru.entrySet(),lock);
     }
 
     @Override
     public V putIfAbsent(K key, V value) {
         requireNonNull(key);
         requireNonNull(value);
-        return map.putIfAbsent(key, value);
+        return execAtomic( lock , () -> lru.putIfAbsent(key, value) );
     }
 
     @Override
     public boolean remove(Object key, Object value) {
         requireNonNull(key);
         requireNonNull(value);
-        return map.remove(key, value);
+        return execAtomic( lock , () -> lru.remove(key, value) );
     }
 
     @Override
@@ -150,14 +157,200 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
         requireNonNull(key);
         requireNonNull(oldValue);
         requireNonNull(newValue);
-        return map.replace(key, oldValue, newValue);
+        return execAtomic( lock , () -> lru.replace(key, oldValue, newValue) );
     }
 
     @Override
     public V replace(K key, V value) {
         requireNonNull(key);
         requireNonNull(value);
-        return map.replace(key, value);
+        return execAtomic( lock , () -> lru.replace(key, value) );
+    }
+
+    // Inner class --------------------------------------------------------------------------------
+
+    public static class SynchronizedCollection<E> implements Collection<E>, Serializable {
+
+        @java.io.Serial
+        private static final long serialVersionUID = -7885887913249312765L;
+
+        final Collection<E> c;  // Backing Collection
+        final Lock mutex;       // Object on which to synchronize
+
+        SynchronizedCollection(Collection<E> c, Lock mutex) {
+            this.c = requireNonNull(c);
+            this.mutex = requireNonNull(mutex);
+        }
+
+        @Override
+        public int size() {
+            return execAtomic(mutex, c::size);
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return execAtomic(mutex, c::isEmpty);
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return execAtomic(mutex, () -> c.contains(o));
+        }
+
+        @Override
+        public Object[] toArray() {
+            return execAtomic(mutex, () -> c.toArray());
+        }
+
+        @Override
+        public <T> T[] toArray(T[] a) {
+            return execAtomic(mutex, () -> c.toArray(a));
+        }
+
+        @Override
+        public <T> T[] toArray(IntFunction<T[]> f) {
+            return execAtomic(mutex, () -> c.toArray(f));
+        }
+
+        @Override
+        public boolean add(E e) {
+            return execAtomic(mutex, () -> c.add(e));
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            return execAtomic(mutex, () -> c.remove(o));
+        }
+
+        @Override
+        public boolean containsAll(Collection<?> coll) {
+            return execAtomic(mutex, () -> c.containsAll(coll));
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends E> coll) {
+            return execAtomic(mutex, () -> c.addAll(coll));
+        }
+
+        @Override
+        public boolean removeAll(Collection<?> coll) {
+            return execAtomic(mutex, () -> c.removeAll(coll));
+        }
+
+        @Override
+        public boolean retainAll(Collection<?> coll) {
+            return execAtomic(mutex, () -> c.retainAll(coll));
+        }
+
+        @Override
+        public void clear() {
+            execAtomic(mutex, c::clear);
+        }
+
+        @Override
+        public String toString() {
+            return execAtomic(mutex, c::toString);
+        }
+
+        @Override
+        public void forEach(Consumer<? super E> consumer) {
+            execAtomic(mutex, () -> c.forEach(consumer));
+        }
+
+        @Override
+        public boolean removeIf(Predicate<? super E> filter) {
+            return execAtomic(mutex, () -> c.removeIf(filter));
+        }
+
+        // iterator ---------------------------------------------
+
+        @Override
+        public Iterator<E> iterator() {
+            return new SynchronizedIterator<>(c.iterator(), mutex);
+        }
+
+        @Override
+        public Spliterator<E> spliterator() {
+            return c.spliterator();
+        }
+
+        @Override
+        public Stream<E> stream() {
+            return c.stream();
+        }
+
+        @Override
+        public Stream<E> parallelStream() {
+            return c.parallelStream();
+        }
+
+        // serialization ----------------------------------------------------
+
+        @java.io.Serial
+        private void writeObject(ObjectOutputStream s) throws IOException {
+            execAtomic(mutex, s::defaultWriteObject);
+        }
+
+    }
+
+    public static class SynchronizedSet<E> extends SynchronizedCollection<E> implements Set<E> {
+
+        @java.io.Serial
+        private static final long serialVersionUID = -2374533697256931095L;
+
+        SynchronizedSet(Collection<E> c, Lock mutex) {
+            super(c, mutex);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            return execAtomic(mutex, () -> c.equals(o));
+        }
+
+        @Override
+        public int hashCode() {
+            return execAtomic(mutex, c::hashCode);
+        }
+
+    }
+
+    public static class SynchronizedIterator<E> implements Iterator<E>, Serializable {
+
+        @java.io.Serial
+        private static final long serialVersionUID = 7441796146522523309L;
+
+        final Iterator<E> i;
+        final Lock lock;
+
+        SynchronizedIterator(Iterator<E> i, Lock lock) {
+            this.i = requireNonNull(i);
+            this.lock = requireNonNull(lock);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return execAtomic(lock, i::hasNext);
+        }
+
+        @Override
+        public E next() {
+            return execAtomic(lock, i::next);
+        }
+
+        @Override
+        public void remove() {
+            execAtomic(lock, i::remove);
+        }
+
+        @Override
+        public void forEachRemaining(Consumer<? super E> action) {
+            execAtomic(lock, () -> {
+                while (i.hasNext()) {
+                    action.accept(i.next());
+                }
+            });
+        }
     }
 
 }

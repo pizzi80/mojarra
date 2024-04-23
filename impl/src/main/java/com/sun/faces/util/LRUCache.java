@@ -15,7 +15,10 @@
  */
 package com.sun.faces.util;
 
-import java.util.Objects;
+import static com.sun.faces.util.Util.execAtomic;
+import static java.util.Objects.requireNonNull;
+
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -28,9 +31,7 @@ public class LRUCache<K,V> {
     // we can't use a read/write lock because getting an element
     // from a LinkedHashMap with access order creates internal
     // structural changes, so we have a unique lock.
-    // We use the fair mode to better serve waiting threads, otherwise
-    // we could simply use a synchronized block over an "Object lock"
-    private final ReentrantLock lock = new ReentrantLock(true);
+    private final Lock lock = new ReentrantLock();
 
     // We use an LRUMap to reuse a common Faces' data structure.
     // this is backed by a LinkedHashMap with access order
@@ -54,51 +55,15 @@ public class LRUCache<K,V> {
      * @return the value from cache if exists, otherwise the newly created and saved value
      */
     public V get(K key) {
-        Objects.requireNonNull(key);
-
-        // lock
-        try {
-            // if a waiting thread is interrupted it will release the lock... server shutdown?
-            // if this introduces a performance penalty we could use lock.lock() and remove the try-catch
-            lock.lockInterruptibly();
-        }
-        catch (InterruptedException e) {
-            // in this case we return null
-            // ...it should be ok, isn't it?
-            return null;
-        }
-
-        // read + (create and store if not exist) atomically
-        try {
-            return cache.computeIfAbsent( key , factory );
-        }
-        finally {
-            lock.unlock();
-        }
+        requireNonNull(key);
+        return execAtomic( lock , () -> cache.computeIfAbsent( key , factory ) );
     }
 
     /**
      * clear the cache
      */
     public void clear() {
-        // lock
-        try {
-            // if a waiting thread is interrupted it will release the lock... server shutdown?
-            // if this introduces a performance penalty we could use lock.lock() and remove the try-catch
-            lock.lockInterruptibly();
-        }
-        // release if interrupted and return
-        catch (InterruptedException ignored) {
-            return;
-        }
-        // clear
-        try {
-            cache.clear();
-        }
-        // always unlock
-        finally {
-            lock.unlock();
-        }
+        execAtomic( lock , cache::clear );
     }
 
     /**
@@ -106,26 +71,8 @@ public class LRUCache<K,V> {
      * the passed key from the cache
      */
     public V remove(final K key) {
-        Objects.requireNonNull(key);
-
-        // lock
-        try {
-            // if a waiting thread is interrupted it will release the lock... server shutdown?
-            // if this introduces a performance penalty we could use lock.lock() and remove the try-catch
-            lock.lockInterruptibly();
-        }
-        // release if interrupted and return
-        catch (InterruptedException ignored) {
-            return null;
-        }
-        // remove
-        try {
-            return cache.remove(key);
-        }
-        // always unlock
-        finally {
-            lock.unlock();
-        }
+        requireNonNull(key);
+        return execAtomic( lock , () -> cache.remove(key) );
     }
 
 }

@@ -37,7 +37,7 @@ public class LRUMap<K, V> extends LinkedHashMap<K, V> {
     /**
      * Create a {@link LRUMap} with max capacity of 23 elements,
      * which translate internally to a {@link LinkedHashMap}
-     * with 32 buckets and the default load factor (0.75)
+     * with 32 buckets using the default load factor (0.75)
      */
     public LRUMap() {
         this(23);
