@@ -15,7 +15,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
@@ -35,7 +34,7 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
     @Serial
     private static final long serialVersionUID = -1282880659063646211L;
 
-    private final Lock lock = new ReentrantLock();
+    private final ReentrantLock lock = new ReentrantLock();
     private final LRUMap<K,V> lru;
 
     /**
@@ -174,10 +173,10 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
         @java.io.Serial
         private static final long serialVersionUID = -7885887913249312765L;
 
-        final Collection<E> c;  // Backing Collection
-        final Lock mutex;       // Object on which to synchronize
+        final Collection<E> c;          // Backing Collection
+        final ReentrantLock mutex;      // Object on which to synchronize (Serializable)
 
-        SynchronizedCollection(Collection<E> c, Lock mutex) {
+        SynchronizedCollection(Collection<E> c, ReentrantLock mutex) {
             this.c = requireNonNull(c);
             this.mutex = requireNonNull(mutex);
         }
@@ -298,7 +297,7 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
         @java.io.Serial
         private static final long serialVersionUID = -2374533697256931095L;
 
-        SynchronizedSet(Collection<E> c, Lock mutex) {
+        SynchronizedSet(Collection<E> c, ReentrantLock mutex) {
             super(c, mutex);
         }
 
@@ -321,9 +320,9 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
         private static final long serialVersionUID = 7441796146522523309L;
 
         final Iterator<E> i;
-        final Lock lock;
+        final ReentrantLock lock;
 
-        SynchronizedIterator(Iterator<E> i, Lock lock) {
+        SynchronizedIterator(Iterator<E> i, ReentrantLock lock) {
             this.i = requireNonNull(i);
             this.lock = requireNonNull(lock);
         }
