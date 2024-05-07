@@ -273,7 +273,7 @@ public class Util {
         return unitTestModeEnabled;
     }
 
-    public static interface ThrowingBiConsumer<T, U> {
+    public interface ThrowingBiConsumer<T, U> {
         void accept(T t, U u) throws Exception;
     }
 
@@ -825,7 +825,7 @@ public class Util {
      * Execute the passed task and return the computed result atomically using the passed lock.
      * @param lock The {@link Lock} to be used for atomic execution
      * @param task The {@link Supplier} to be executed atomically
-     * @return The result of the passed task.
+     * @return The result of the passed task.      
      */
     public static <R> R execAtomic(Lock lock, Supplier<R> task) {
         lock.lock();

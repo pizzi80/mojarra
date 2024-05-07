@@ -22,6 +22,8 @@ import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter
 import java.util.Map;
 import java.util.UUID;
 
+import com.sun.faces.util.Util;
+
 import jakarta.faces.component.UINamingContainer;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
@@ -57,20 +59,18 @@ public class ClientWindowImpl extends ClientWindow {
     }
 
     private String calculateClientWindow(FacesContext context) {
-        synchronized (getMutex(context.getExternalContext().getSession(true))) {
+        return Util.execAtomic(getMutex(context.getExternalContext().getSession(true)), () -> {
             final String clientWindowCounterKey = "com.sun.faces.lifecycle.ClientWindowCounterKey";
             ExternalContext extContext = context.getExternalContext();
             Map<String, Object> sessionAttrs = extContext.getSessionMap();
-            Integer counter = (Integer) sessionAttrs.get(clientWindowCounterKey);
-            if (null == counter) {
-                counter = Integer.valueOf(0);
-            }
+            Integer counter = (Integer) sessionAttrs.getOrDefault(clientWindowCounterKey, 0);
+
             char sep = UINamingContainer.getSeparatorChar(context);
-            id = UUID.randomUUID().toString() + sep + +counter;
+            id = UUID.randomUUID().toString() + sep + counter;
 
             sessionAttrs.put(clientWindowCounterKey, ++counter);
-        }
-        return id;
+            return id;
+        });
     }
 
     @Override

@@ -38,6 +38,7 @@ import java.io.ObjectOutputStream;
 import java.security.SecureRandom;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -138,19 +139,23 @@ public class ServerSideStateHelper extends StateHelper {
     public void writeState(FacesContext ctx, Object state, StringBuilder stateCapture) throws IOException {
         notNull("context", ctx);
 
-        String id;
+        // NOTE: we use a single value String array to use it inside lambdas
+        final String[] id = new String[1];
 
         UIViewRoot viewRoot = ctx.getViewRoot();
 
         if (!viewRoot.isTransient()) {
             if (!ctx.getAttributes().containsKey("com.sun.faces.ViewStateValue")) {
                 notNull("state", state);
-                Object[] stateToWrite = (Object[]) state;
-                ExternalContext externalContext = ctx.getExternalContext();
-                Object sessionObj = externalContext.getSession(true);
-                Map<String, Object> sessionMap = externalContext.getSessionMap();
 
-                synchronized (getMutex(sessionObj)) {
+                final Object[] stateToWrite = (Object[]) state;
+                final ExternalContext externalContext = ctx.getExternalContext();
+                final Object sessionObj = externalContext.getSession(true);
+                final Map<String, Object> sessionMap = externalContext.getSessionMap();
+                final ReentrantLock lock = getMutex(sessionObj);
+
+                Util.execAtomic(lock, () -> {
+
                     Map<String, Map> logicalMap = TypedCollections.dynamicallyCastMap((Map) sessionMap.get(LOGICAL_VIEW_MAP), String.class, Map.class);
                     if (logicalMap == null) {
                         logicalMap = new ConcurrentLRUMap<>(numberOfLogicalViews);
@@ -179,7 +184,7 @@ public class ServerSideStateHelper extends StateHelper {
                         logicalMap.put(idInLogicalMap, actualMap);
                     }
 
-                    id = idInLogicalMap + ':' + idInActualMap;
+                    id[0] = idInLogicalMap + ':' + idInActualMap;
 
                     Object[] stateArray = actualMap.get(idInActualMap);
                     // reuse the array if possible
@@ -192,18 +197,21 @@ public class ServerSideStateHelper extends StateHelper {
 
                     // always call put/setAttribute as we may be in a clustered environment.
                     sessionMap.put(LOGICAL_VIEW_MAP, logicalMap);
-                    ctx.getAttributes().put("com.sun.faces.ViewStateValue", id);
-                }
-            } else {
-                id = (String) ctx.getAttributes().get("com.sun.faces.ViewStateValue");
+                    ctx.getAttributes().put("com.sun.faces.ViewStateValue", id[0]);
+                });
             }
-        } else {
-            id = STATELESS;
+            else {
+                id[0] = (String) ctx.getAttributes().get("com.sun.faces.ViewStateValue");
+            }
+        }
+        else {
+            id[0] = STATELESS;
         }
 
         if (stateCapture != null) {
-            stateCapture.append(id);
-        } else {
+            stateCapture.append(id[0]);
+        }
+        else {
             ResponseWriter writer = ctx.getResponseWriter();
 
             writer.startElement("input", null);
@@ -213,7 +221,7 @@ public class ServerSideStateHelper extends StateHelper {
                 String viewStateId = Util.getViewStateId(ctx);
                 writer.writeAttribute("id", viewStateId, null);
             }
-            writer.writeAttribute("value", id, null);
+            writer.writeAttribute("value", id[0], null);
             if (webConfig.isOptionEnabled(AutoCompleteOffOnViewState)) {
                 writer.writeAttribute("autocomplete", "off", null);
             }
@@ -262,7 +270,7 @@ public class ServerSideStateHelper extends StateHelper {
             return null;
         }
 
-        synchronized (getMutex(sessionObj)) {
+        return Util.execAtomic(getMutex(sessionObj), () -> {
             Map logicalMap = (Map) externalCtx.getSessionMap().get(LOGICAL_VIEW_MAP);
             if (logicalMap != null) {
                 Map actualMap = (Map) logicalMap.get(idInLogicalMap);
@@ -284,9 +292,8 @@ public class ServerSideStateHelper extends StateHelper {
                     return restoredState;
                 }
             }
-        }
-
-        return null;
+            return null;
+        });
     }
 
     // ------------------------------------------------------- Protected Methods
