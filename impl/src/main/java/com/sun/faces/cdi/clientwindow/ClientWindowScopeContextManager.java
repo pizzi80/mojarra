@@ -24,12 +24,15 @@ import static java.util.logging.Level.FINEST;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.util.ConcurrentLRUMap;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 import jakarta.enterprise.context.spi.Contextual;
 import jakarta.enterprise.context.spi.CreationalContext;
@@ -93,7 +96,7 @@ public class ClientWindowScopeContextManager {
      */
     @SuppressWarnings("unchecked")
     public <T> T getBean(FacesContext facesContext, Contextual<T> contextual) {
-        T result = null;
+
         Map<String, ClientWindowScopeContextObject> contextMap = getContextMap(facesContext);
 
         if (contextMap != null) {
@@ -108,7 +111,7 @@ public class ClientWindowScopeContextManager {
             }
         }
 
-        return result;
+        return null;
     }
 
     /**
@@ -134,46 +137,27 @@ public class ClientWindowScopeContextManager {
 
         ExternalContext externalContext = facesContext.getExternalContext();
         if (externalContext != null) {
-            Map<String, Object> sessionMap = externalContext.getSessionMap();
-            HttpSession session = (HttpSession) externalContext.getSession(create);
+            final Map<String, Object> sessionMap = externalContext.getSessionMap();
+            final HttpSession session = (HttpSession) externalContext.getSession(create);
 
             if (session != null) {
-                Map<Object, Map<String, ClientWindowScopeContextObject>> clientWindowScopeContexts = (Map<Object, Map<String, ClientWindowScopeContextObject>>)
-                    sessionMap.get(CLIENT_WINDOW_CONTEXTS);
-                String clientWindowId = getCurrentClientWindowId(facesContext);
 
-                if (clientWindowScopeContexts == null && create) {
-                    Integer numberOfClientWindows = null;
-
-                    try {
-                        numberOfClientWindows = Integer.parseInt(WebConfiguration.getInstance(externalContext).getOptionValue(NumberOfClientWindows));
-                    } catch (NumberFormatException nfe) {
-                        if (LOGGER.isLoggable(Level.WARNING)) {
-                            LOGGER.log(Level.WARNING, "Unable to set number of client windows.  Defaulting to {0}", NumberOfClientWindows.getDefaultValue());
-                        }
-                    }
-
-                    if (numberOfClientWindows == null) {
-                        numberOfClientWindows = Integer.valueOf(NumberOfClientWindows.getDefaultValue());
-                    }
-
-                    synchronized (getMutex(session)) {
-                        sessionMap.put(CLIENT_WINDOW_CONTEXTS, new ConcurrentLRUMap<>(numberOfClientWindows));
-                    }
-                }
+                final Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>> clientWindowScopeContexts = getClientWindowScopeContexts(externalContext, sessionMap, session, create);
+                final String clientWindowId = getCurrentClientWindowId(facesContext);
 
                 if (clientWindowScopeContexts != null && clientWindowId != null && create) {
-                    synchronized (clientWindowScopeContexts) {
-                        if (!clientWindowScopeContexts.containsKey(clientWindowId)) {
-                            clientWindowScopeContexts.put(clientWindowId, new ConcurrentHashMap<>());
-                            if (distributable) {
-                                // If we are distributable, this will result in a dirtying of the
-                                // session data, forcing replication. If we are not distributable,
-                                // this is a no-op.
-                                sessionMap.put(CLIENT_WINDOW_CONTEXTS, clientWindowScopeContexts);
-                            }
+                    clientWindowScopeContexts.computeIfAbsent(clientWindowId , _clientWindowId -> {
+
+                        // If we are distributable, this will result in a dirtying of the
+                        // session data, forcing replication. If we are not distributable,
+                        // this is a no-op.
+                        if (distributable) {
+                            sessionMap.put(CLIENT_WINDOW_CONTEXTS, clientWindowScopeContexts);
                         }
-                    }
+
+                        // create the new ClientWindowScope Map
+                        return new ConcurrentHashMap<>();
+                    });
                 }
 
                 if (clientWindowScopeContexts != null && clientWindowId != null) {
@@ -200,14 +184,45 @@ public class ClientWindowScopeContextManager {
 
         Map<Object, Map<String, ClientWindowScopeContextObject>> clientWindowScopeContexts = (Map<Object, Map<String, ClientWindowScopeContextObject>>)
                 session.getAttribute(CLIENT_WINDOW_CONTEXTS);
+
         if (clientWindowScopeContexts != null) {
             clientWindowScopeContexts.clear();
             session.removeAttribute(CLIENT_WINDOW_CONTEXTS);
         }
     }
 
-    protected String getCurrentClientWindowId(FacesContext facesContext)
-    {
+    // Utils ------------------------------------------------------------------------------------------------------
+
+    @SuppressWarnings("unchecked")
+    private static Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>> getClientWindowScopeContexts(
+            ExternalContext externalContext, Map<String, Object> sessionMap, Object session, boolean create) {
+
+        final ReentrantLock lock = getMutex(session);
+
+        return Util.execAtomic(lock, () -> create ?
+                (Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>>) sessionMap.computeIfAbsent(CLIENT_WINDOW_CONTEXTS, k -> new ConcurrentLRUMap<>(getNumberOfClientWindows(externalContext))) :
+                (Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>>) sessionMap.get(CLIENT_WINDOW_CONTEXTS));
+    }
+
+    /**
+     * Get the number of maximum client windows to be stored in session.
+     */
+    private static int getNumberOfClientWindows(ExternalContext externalContext) {
+        // get from init params
+        try {
+            return Integer.parseInt(WebConfiguration.getInstance(externalContext).getOptionValue(NumberOfClientWindows));
+        }
+        catch (NumberFormatException nfe) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.log(Level.WARNING, "Unable to set number of client windows.  Defaulting to {0}", NumberOfClientWindows.getDefaultValue());
+            }
+        }
+        // get from default value
+        return Integer.parseInt(NumberOfClientWindows.getDefaultValue());
+    }
+
+    protected static String getCurrentClientWindowId(FacesContext facesContext) {
         return facesContext.getExternalContext().getClientWindow().getId();
     }
+
 }

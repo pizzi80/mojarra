@@ -29,10 +29,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 import jakarta.enterprise.context.spi.Contextual;
 import jakarta.enterprise.context.spi.CreationalContext;
@@ -242,33 +245,24 @@ public class ViewScopeContextManager {
             if (session != null) {
                 try {
 
-                    // get the global ViewScope Map
-                    Map<Object, Map<String, ViewScopeContextObject>> activeViewScopeContexts = (Map<Object, Map<String, ViewScopeContextObject>>) sessionMap.get(ACTIVE_VIEW_CONTEXTS);
-
-                    // create the ViewScope Map and store in the session
-                    if (activeViewScopeContexts == null && create) {
-                        synchronized (getMutex(session)) {
-                            activeViewScopeContexts = new ConcurrentHashMap<>();
-                            sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewScopeContexts);
-                        }
-                    }
+                    // get (or create) the global ViewScope Map
+                    final Map<Object, ConcurrentMap<String, ViewScopeContextObject>> activeViewScopeContexts = getViewScopeContextMap(sessionMap, session, create);
 
                     // get / create the ViewScope for the current View
                     String viewMapId = (String) facesContext.getViewRoot().getTransientStateHelper().getTransient(VIEW_MAP_ID);
                     if (activeViewScopeContexts != null && viewMapId != null && create) {
-                        synchronized (activeViewScopeContexts) {
-                            if ( !activeViewScopeContexts.containsKey(viewMapId) ) {
+                        activeViewScopeContexts.computeIfAbsent( viewMapId , _viewMapId -> {
 
-                                activeViewScopeContexts.put(viewMapId, new ConcurrentHashMap<>());
-
-                                if (distributable) {
-                                    // If we are distributable, this will result in a dirtying of the
-                                    // session data, forcing replication. If we are not distributable,
-                                    // this is a no-op.
-                                    sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewScopeContexts);
-                                }
+                            // If we are distributable, this will result in a dirtying of the
+                            // session data, forcing replication. If we are not distributable,
+                            // this is a no-op.
+                            if (distributable) {
+                                sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewScopeContexts);
                             }
-                        }
+
+                            // create the ViewScope Map for the current View
+                            return new ConcurrentHashMap<>();
+                        });
                     }
 
                     if (activeViewScopeContexts != null && viewMapId != null) {
@@ -285,6 +279,16 @@ public class ViewScopeContextManager {
         }
 
         return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<Object, ConcurrentMap<String, ViewScopeContextObject>> getViewScopeContextMap(Map<String, Object> sessionMap, Object session, boolean create) {
+
+        final ReentrantLock lock = getMutex(session);
+
+        return Util.execAtomic(lock, () -> create ?
+               (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>) sessionMap.computeIfAbsent(ACTIVE_VIEW_CONTEXTS, k -> new ConcurrentHashMap<>()) :
+               (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>) sessionMap.get(ACTIVE_VIEW_CONTEXTS));
     }
 
     /**

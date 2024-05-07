@@ -16,13 +16,11 @@
 
 package com.sun.faces.context;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -192,17 +190,18 @@ public class SessionMap extends BaseContextMap<Object> {
     // ----------------------------------------------------------- Session Mutex
 
     // PENDING: to be used when the session is null or invalidated during getMutex access
-    private static final Lock shared_mutex = new ReentrantLock();
+    // NOTE: we have to use ReentrantLock instead of the interface Lock because the latter is not Serializable
+    private static final ReentrantLock shared_mutex = new ReentrantLock();
 
     public static void createMutex(HttpSession session) {
         session.setAttribute(MUTEX, new ReentrantLock());
     }
 
-    public static Lock getMutex(Object session) {
+    public static ReentrantLock getMutex(Object session) {
         if ( session == null ) return shared_mutex;             // PENDING: to avoid NPE in synchronized blocks
         if ( session instanceof HttpSession httpSession ) {
             try {
-                Lock mutex = (Lock) httpSession.getAttribute(MUTEX);
+                ReentrantLock mutex = (ReentrantLock) httpSession.getAttribute(MUTEX);
                 // if the mutex was removed in the meantime -> return the shared_mutex...?
                 if ( mutex == null ) {
                     LOGGER.warning("getMutex(session) is returning a shared mutex because the Mutex attribute was removed from session in the meantime");
