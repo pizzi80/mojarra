@@ -23,9 +23,22 @@ import java.util.Map;
 
 import jakarta.faces.context.FacesContext;
 
-class SharedUtils {
+public enum SharedUtils { ;
 
-    /*
+    public static final String EMPTY_STRING = "";
+    public static final String SPACE_STRING = " ";
+
+    /**
+     * @return the input string trimmed if not blank, null otherwise
+     */
+    public static String trimToNull(String str) {
+        if ( str == null || str.isEmpty() ) return null;    // null or empty -> return null immediately
+        str = str.strip();                                  // strip (unicode trim) the input
+        if ( str.isEmpty() ) return null;                   // if the trimmed input is empty -> return null
+        return str;                                         // return the trimmed input
+    }
+
+    /**
      * Determine whether String is a mixed value binding expression or not.
      */
     static boolean isMixedExpression(String expression) {
@@ -39,7 +52,7 @@ class SharedUtils {
 
     }
 
-    /*
+    /**
      * Determine whether String is a value binding expression or not.
      */
     static boolean isExpression(String expression) {

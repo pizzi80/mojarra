@@ -20,6 +20,7 @@ import static com.sun.faces.util.Util.notNullArgs;
 
 import com.sun.faces.RIConstants;
 
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 
@@ -76,15 +77,18 @@ public class BooleanConverter implements Converter<Boolean> {
     public Boolean getAsObject(FacesContext context, UIComponent component, String value) {
         notNullArgs( context , component );
 
-        // If the specified value is null or zero-length, return null
-        if (value == null || value.isBlank() ) {
+        // strip (trim) the input if not blank, null otherwise
+        value = SharedUtils.trimToNull(value);
+
+        // If the specified value is null, return null
+        if (value == null) {
             return null;
         }
 
         // Let them know that the value being converted is not specifically
         // "true" or "false".
         try {
-            return Boolean.valueOf(value.trim());
+            return Boolean.valueOf(value);
         } catch (Exception e) {
             throw new ConverterException(MessageFactory.getMessage(context, BOOLEAN_ID, value, MessageFactory.getLabel(context, component)), e);
         }

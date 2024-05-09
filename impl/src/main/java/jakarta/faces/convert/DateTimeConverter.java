@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
@@ -166,7 +167,7 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
      * <code>DateTime</code> value to <code>String</code> fails. The message format string for this message may optionally include
      * the following placeholders:
      * <ul>
-     * <li><code>{0}</code> relaced by the unconverted value.</li>
+     * <li><code>{0}</code> replaced by the unconverted value.</li>
      * <li><code>{1}</code> replaced by a <code>String</code> whose value is the label of the input component that produced this
      * message.</li>
      * </ul>
@@ -373,13 +374,11 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
 
         try {
 
-            // If the specified value is null or zero-length, return null
-            if (value == null) {
-                return null;
-            }
+            // strip (trim) the input if not blank, null otherwise
+            value = SharedUtils.trimToNull(value);
 
-            value = value.trim();
-            if (value.length() < 1) {
+            // If the specified value is null, return null
+            if (value == null) {
                 return null;
             }
 
@@ -565,7 +564,7 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
                 if (pattern == null || !ESCAPED_DATE_TIME_PATTERN.matcher(pattern).replaceAll("").contains("uu")) {
                     dtfBuilder.parseDefaulting(ChronoField.ERA, 1);
                 }
-    
+
                 dtf = dtfBuilder.toFormatter(locale).withChronology(IsoChronology.INSTANCE).withResolverStyle(ResolverStyle.STRICT);
             }
 
@@ -652,7 +651,7 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
             throw new NullPointerException();
         }
         if (!initialStateMarked()) {
-            Object values[] = new Object[6];
+            Object[] values = new Object[6];
             values[0] = dateStyle;
             values[1] = locale;
             values[2] = pattern;
@@ -672,7 +671,7 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
             throw new NullPointerException();
         }
         if (state != null) {
-            Object values[] = (Object[]) state;
+            Object[] values = (Object[]) state;
             dateStyle = (String) values[0];
             locale = (Locale) values[1];
             pattern = (String) values[2];

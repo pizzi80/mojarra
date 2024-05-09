@@ -20,6 +20,7 @@ import static com.sun.faces.util.Util.notNullArgs;
 
 import com.sun.faces.RIConstants;
 
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 
@@ -76,13 +77,16 @@ public class IntegerConverter implements Converter<Integer> {
     public Integer getAsObject(FacesContext context, UIComponent component, String value) {
         notNullArgs( context , component );
 
-        // If the specified value is null or blank, return null
-        if ( value == null || value.isBlank() ) {
+        // strip (trim) the input if not blank, null otherwise
+        value = SharedUtils.trimToNull(value);
+
+        // If the specified value is null, return null
+        if (value == null) {
             return null;
         }
 
         try {
-            return Integer.valueOf(value.trim());
+            return Integer.valueOf(value);
         } catch (NumberFormatException nfe) {
             throw new ConverterException(MessageFactory.getMessage(context, INTEGER_ID, value, "9346", MessageFactory.getLabel(context, component)), nfe);
         } catch (Exception e) {

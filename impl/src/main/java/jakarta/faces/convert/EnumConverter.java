@@ -1,3 +1,5 @@
+package jakarta.faces.convert;
+
 /*
  * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
  *
@@ -14,13 +16,12 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
 
-package jakarta.faces.convert;
-
 import static com.sun.faces.util.Util.notNullArgs;
 
 import com.sun.faces.RIConstants;
 
-import jakarta.el.ValueExpression;
+import jakarta.faces.application.SharedUtils;
+import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 
@@ -32,7 +33,7 @@ import jakarta.faces.context.FacesContext;
  *
  * @since 1.2
  */
-public class EnumConverter implements Converter<Enum> {
+public class EnumConverter implements Converter, PartialStateHolder {
 
     /**
      * <p>
@@ -70,6 +71,27 @@ public class EnumConverter implements Converter<Enum> {
      */
     public static final String ENUM_NO_CLASS_ID = "jakarta.faces.converter.EnumConverter.ENUM_NO_CLASS";
 
+    private Class<? extends Enum> targetClass;
+    private boolean isTransient;
+    private boolean initialState;
+
+    /**
+     *  For StateHolder
+     */
+    public EnumConverter() {
+
+    }
+
+    /**
+     * Instantiates an enum converter with a class where enum constants are taken from.
+     *
+     * @param targetClass Class where the enum constants are taken from by the converter methods.
+     */
+    public EnumConverter(Class targetClass) {
+        this.targetClass = targetClass;
+    }
+
+
     // ----------------------------------------------------- Converter Methods
 
     /**
@@ -90,23 +112,23 @@ public class EnumConverter implements Converter<Enum> {
      * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    public Enum getAsObject(FacesContext context, UIComponent component, String value) {
+    public Object getAsObject(FacesContext context, UIComponent component, String value) {
         notNullArgs( context , component );
 
-        // If the specified value is null or zero-length, return null
-        if ( value == null || value.isBlank() ) {
-            return null;
-        }
-
-        // detect the return type
-        final Class<? extends Enum> enumClass = getExpectedValueType(context,component);
-
-        if (enumClass == null) {
+        if (targetClass == null) {
             throw new ConverterException(MessageFactory.getMessage(context, ENUM_NO_CLASS_ID, value, MessageFactory.getLabel(context, component)));
         }
 
+        // strip (trim) the input if not blank, null otherwise
+        value = SharedUtils.trimToNull(value);
+
+        // If the specified value is null, return null
+        if (value == null) {
+            return null;
+        }
+
         try {
-            return Enum.valueOf(enumClass, value.trim());
+            return Enum.valueOf(targetClass, value);
         } catch (IllegalArgumentException iae) {
             throw new ConverterException(MessageFactory.getMessage(context, ENUM_ID, value, value, MessageFactory.getLabel(context, component)), iae);
         }
@@ -127,40 +149,71 @@ public class EnumConverter implements Converter<Enum> {
      * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    public String getAsString(FacesContext context, UIComponent component, Enum value) {
+    public String getAsString(FacesContext context, UIComponent component, Object value) {
         notNullArgs( context , component );
 
-        // If the specified value is null, return the empty string.
+        if (targetClass == null) {
+            throw new ConverterException(MessageFactory.getMessage(context, ENUM_NO_CLASS_ID, value, MessageFactory.getLabel(context, component)));
+        }
+
+        // If the specified value is null, return an empty String
         if (value == null) {
             return RIConstants.NO_VALUE;
         }
 
-        try {
-            return value.name();
-        } catch (Exception e) {
-            throw new ConverterException(MessageFactory.getMessage(context, ENUM_ID, value, value, MessageFactory.getLabel(context, component)));
+        if (targetClass.isInstance(value)) {
+            return ((Enum) value).name();
+        }
+
+        throw new ConverterException(MessageFactory.getMessage(context, ENUM_ID, value, value, MessageFactory.getLabel(context, component)));
+    }
+
+    // ----------------------------------------------------------- StateHolder
+
+    @Override
+    public void restoreState(FacesContext facesContext, Object object) {
+        if (facesContext == null) {
+            throw new NullPointerException();
+        }
+        if (object != null) {
+            targetClass = (Class<? extends Enum>) object;
         }
     }
 
-    // ----------------------------------------------------------------------------- private methods
-
-    private static <T> Class<T> getExpectedValueType(FacesContext context,UIComponent component) {
-        ValueExpression valueExpression = component.getValueExpression("value");
-        if (valueExpression != null) {
-            return getExpectedType(context,valueExpression);
-        } else {
-            Object value = component.getAttributes().get("value");
-            return value != null ? (Class<T>) value.getClass() : null;
+    @Override
+    public Object saveState(FacesContext facesContext) {
+        if (facesContext == null) {
+            throw new NullPointerException();
         }
-    }
-
-    private static <T> Class<T> getExpectedType(FacesContext context,ValueExpression valueExpression) {
-        Class<?> expectedType = valueExpression.getExpectedType();
-        if (expectedType == Object.class) {
-            expectedType = valueExpression.getType(context.getELContext());
+        if (!initialStateMarked()) {
+            return targetClass;
         }
 
-        return (Class<T>) expectedType;
+        return null;
     }
 
+    @Override
+    public void setTransient(boolean b) {
+        isTransient = b;
+    }
+
+    @Override
+    public boolean isTransient() {
+        return isTransient;
+    }
+
+    @Override
+    public void markInitialState() {
+        initialState = true;
+    }
+
+    @Override
+    public boolean initialStateMarked() {
+        return initialState;
+    }
+
+    @Override
+    public void clearInitialState() {
+        initialState = false;
+    }
 }

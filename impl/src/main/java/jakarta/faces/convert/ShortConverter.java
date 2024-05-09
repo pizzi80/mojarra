@@ -20,6 +20,7 @@ import static com.sun.faces.util.Util.notNullArgs;
 
 import com.sun.faces.RIConstants;
 
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 
@@ -77,16 +78,21 @@ public class ShortConverter implements Converter<Short> {
     public Short getAsObject(FacesContext context, UIComponent component, String value) {
         notNullArgs( context , component );
 
-        // If the specified value is null or blank, return null
-        if ( value == null || value.isBlank() ) {
+        // strip (trim) the input if not blank, null otherwise
+        value = SharedUtils.trimToNull(value);
+
+        // If the specified value is null, return null
+        if (value == null) {
             return null;
         }
 
         try {
-            return Short.valueOf(value.trim());
-        } catch (NumberFormatException nfe) {
+            return Short.valueOf(value);
+        }
+        catch (NumberFormatException nfe) {
             throw new ConverterException(MessageFactory.getMessage(context, SHORT_ID, value, "32456", MessageFactory.getLabel(context, component)), nfe);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new ConverterException(e);
         }
     }
@@ -106,8 +112,10 @@ public class ShortConverter implements Converter<Short> {
 
         try {
             return Short.toString(value);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new ConverterException(MessageFactory.getMessage(context, STRING_ID, value, MessageFactory.getLabel(context, component)), e);
         }
     }
+
 }

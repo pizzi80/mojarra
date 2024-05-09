@@ -20,6 +20,7 @@ import static com.sun.faces.util.Util.notNullArgs;
 
 import com.sun.faces.RIConstants;
 
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 
@@ -77,13 +78,16 @@ public class ByteConverter implements Converter<Byte> {
     public Byte getAsObject(FacesContext context, UIComponent component, String value) {
         notNullArgs( context , component );
 
-        // If the specified value is null or zero-length, return null
-        if ( value == null || value.isBlank() ) {
+        // strip (trim) the input if not blank, null otherwise
+        value = SharedUtils.trimToNull(value);
+
+        // If the specified value is null, return null
+        if (value == null) {
             return null;
         }
 
         try {
-            return Byte.valueOf(value.trim());
+            return Byte.valueOf(value);
         } catch (NumberFormatException nfe) {
             throw new ConverterException(MessageFactory.getMessage(context, BYTE_ID, value, "254", MessageFactory.getLabel(context, component)), nfe);
         } catch (Exception e) {
