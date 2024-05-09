@@ -37,6 +37,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
@@ -160,7 +161,7 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
      * <code>DateTime</code> value to <code>String</code> fails. The message format string for this message may optionally include
      * the following placeholders:
      * <ul>
-     * <li><code>{0}</code> relaced by the unconverted value.</li>
+     * <li><code>{0}</code> replaced by the unconverted value.</li>
      * <li><code>{1}</code> replaced by a <code>String</code> whose value is the label of the input component that produced this
      * message.</li>
      * </ul>
@@ -356,13 +357,11 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
 
         try {
 
-            // If the specified value is null or zero-length, return null
-            if (value == null) {
-                return null;
-            }
+            // strip (trim) the input if not blank, null otherwise
+            value = SharedUtils.trimToNull(value);
 
-            value = value.trim();
-            if (value.length() < 1) {
+            // If the specified value is null, return null
+            if (value == null) {
                 return null;
             }
 
@@ -377,26 +376,22 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
 
             // Perform the requested parsing
             returnValue = parser.parse(value);
-        } catch (ParseException | DateTimeParseException e) {
+        }
+        catch (ParseException | DateTimeParseException e) {
             if (type != null) {
                 switch (type) {
                 case "date":
                 case "localDate":
-                    throw new ConverterException(
-                        getMessage(context, DATE_ID, value, parser.formatNow(), getLabel(context, component)),
-                        e);
+                    throw new ConverterException(getMessage(context, DATE_ID, value, parser.formatNow(), getLabel(context, component)), e);
                 case "time":
                 case "localTime":
                 case "offsetTime":
-                    throw new ConverterException(
-                        getMessage(context, TIME_ID, value, parser.formatNow(), getLabel(context, component)),
-                        e);
+                    throw new ConverterException(getMessage(context, TIME_ID, value, parser.formatNow(), getLabel(context, component)), e);
                 case "both":
                 case "localDateTime":
                 case "offsetDateTime":
                 case "zonedDateTime":
-                    throw new ConverterException(getMessage(context, DATETIME_ID, value, parser.formatNow(),
-                        getLabel(context, component)), e);
+                    throw new ConverterException(getMessage(context, DATETIME_ID, value, parser.formatNow(), getLabel(context, component)), e);
                 }
             }
         } catch (Exception e) {
@@ -509,6 +504,7 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
         DateFormat df = null;
         DateTimeFormatter dtf = null;
         TemporalQuery from = null;
+
         if (pattern != null && !isJavaTimeType(type)) {
             df = new SimpleDateFormat(pattern, locale);
         } else if (type.equals("both")) {
@@ -658,7 +654,7 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
             throw new NullPointerException();
         }
         if (!initialStateMarked()) {
-            Object values[] = new Object[6];
+            Object[] values = new Object[6];
             values[0] = dateStyle;
             values[1] = locale;
             values[2] = pattern;
@@ -678,7 +674,7 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
             throw new NullPointerException();
         }
         if (state != null) {
-            Object values[] = (Object[]) state;
+            Object[] values = (Object[]) state;
             dateStyle = (String) values[0];
             locale = (Locale) values[1];
             pattern = (String) values[2];

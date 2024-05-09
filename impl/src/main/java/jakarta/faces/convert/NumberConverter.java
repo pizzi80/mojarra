@@ -16,15 +16,16 @@
 
 package jakarta.faces.convert;
 
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.Currency;
 import java.util.Locale;
 
 import jakarta.el.ValueExpression;
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
@@ -198,9 +199,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the currency code
      */
     public String getCurrencyCode() {
-
         return currencyCode;
-
     }
 
     /**
@@ -211,10 +210,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param currencyCode The new currency code
      */
     public void setCurrencyCode(String currencyCode) {
-
         clearInitialState();
         this.currencyCode = currencyCode;
-
     }
 
     /**
@@ -226,9 +223,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the currency symbol
      */
     public String getCurrencySymbol() {
-
         return currencySymbol;
-
     }
 
     /**
@@ -239,10 +234,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param currencySymbol The new currency symbol
      */
     public void setCurrencySymbol(String currencySymbol) {
-
         clearInitialState();
         this.currencySymbol = currencySymbol;
-
     }
 
     /**
@@ -254,9 +247,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return whether or not grouping is used
      */
     public boolean isGroupingUsed() {
-
         return groupingUsed != null ? groupingUsed : true;
-
     }
 
     /**
@@ -267,10 +258,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param groupingUsed The new grouping used flag
      */
     public void setGroupingUsed(boolean groupingUsed) {
-
         clearInitialState();
         this.groupingUsed = groupingUsed;
-
     }
 
     /**
@@ -282,9 +271,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return whether or not this is integer only
      */
     public boolean isIntegerOnly() {
-
         return integerOnly != null ? integerOnly : false;
-
     }
 
     /**
@@ -296,10 +283,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param integerOnly The new integer-only flag
      */
     public void setIntegerOnly(boolean integerOnly) {
-
         clearInitialState();
         this.integerOnly = integerOnly;
-
     }
 
     /**
@@ -310,9 +295,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the maximum fraction digits
      */
     public int getMaxFractionDigits() {
-
         return maxFractionDigits != null ? maxFractionDigits : 0;
-
     }
 
     /**
@@ -324,10 +307,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param maxFractionDigits The new limit
      */
     public void setMaxFractionDigits(int maxFractionDigits) {
-
         clearInitialState();
         this.maxFractionDigits = maxFractionDigits;
-
     }
 
     /**
@@ -338,9 +319,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the max integer digits
      */
     public int getMaxIntegerDigits() {
-
         return maxIntegerDigits != null ? maxIntegerDigits : 0;
-
     }
 
     /**
@@ -352,10 +331,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param maxIntegerDigits The new limit
      */
     public void setMaxIntegerDigits(int maxIntegerDigits) {
-
         clearInitialState();
         this.maxIntegerDigits = maxIntegerDigits;
-
     }
 
     /**
@@ -366,9 +343,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the min fraction digits
      */
     public int getMinFractionDigits() {
-
         return minFractionDigits != null ? minFractionDigits : 0;
-
     }
 
     /**
@@ -380,10 +355,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param minFractionDigits The new limit
      */
     public void setMinFractionDigits(int minFractionDigits) {
-
         clearInitialState();
         this.minFractionDigits = minFractionDigits;
-
     }
 
     /**
@@ -394,9 +367,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the minimum integer digits
      */
     public int getMinIntegerDigits() {
-
         return minIntegerDigits != null ? minIntegerDigits : 0;
-
     }
 
     /**
@@ -408,10 +379,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param minIntegerDigits The new limit
      */
     public void setMinIntegerDigits(int minIntegerDigits) {
-
         clearInitialState();
         this.minIntegerDigits = minIntegerDigits;
-
     }
 
     /**
@@ -424,12 +393,10 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the {@code Locale} for this converter
      */
     public Locale getLocale() {
-
         if (locale == null) {
             locale = getLocale(FacesContext.getCurrentInstance());
         }
         return locale;
-
     }
 
     /**
@@ -441,10 +408,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param locale The new <code>Locale</code> (or <code>null</code>)
      */
     public void setLocale(Locale locale) {
-
         clearInitialState();
         this.locale = locale;
-
     }
 
     /**
@@ -455,9 +420,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the pattern
      */
     public String getPattern() {
-
         return pattern;
-
     }
 
     /**
@@ -470,10 +433,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param pattern The new format pattern
      */
     public void setPattern(String pattern) {
-
         clearInitialState();
         this.pattern = pattern;
-
     }
 
     /**
@@ -485,9 +446,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @return the type
      */
     public String getType() {
-
         return type;
-
     }
 
     /**
@@ -500,10 +459,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param type The new number style
      */
     public void setType(String type) {
-
         clearInitialState();
         this.type = type;
-
     }
 
     // ------------------------------------------------------- Converter Methods
@@ -524,12 +481,11 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
         try {
 
-            // If the specified value is null or zero-length, return null
+            // strip (trim) the input if not blank, null otherwise
+            value = SharedUtils.trimToNull(value);
+
+            // If the specified value is null, return null
             if (value == null) {
-                return null;
-            }
-            value = value.trim();
-            if (value.length() < 1) {
                 return null;
             }
 
@@ -538,17 +494,16 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
             // Create and configure the parser to be used
             parser = getNumberFormat(locale);
-            if (pattern != null && pattern.length() != 0 || "currency".equals(type)) {
+            if (pattern != null && !pattern.isEmpty() || "currency".equals(type)) {
                 configureCurrency(parser);
             }
             parser.setParseIntegerOnly(isIntegerOnly());
-            boolean groupSepChanged = false;
+            boolean groupSepChanged;
             // BEGIN HACK 4510618
             // This lovely bit of code is for a workaround in some
             // oddities in the JDK's parsing code.
-            // See: http://bugs.sun.com/view_bug.do?bug_id=4510618
-            if (parser instanceof DecimalFormat) {
-                DecimalFormat dParser = (DecimalFormat) parser;
+            // See: https://bugs.java.com/bugdatabase/view_bug?bug_id=4510618
+            if (parser instanceof DecimalFormat decimalParser) {
 
                 // Take a small hit in performance to avoid a loss in
                 // precision due to DecimalFormat.parse() returning Double
@@ -556,26 +511,22 @@ public class NumberConverter implements Converter, PartialStateHolder {
                 if (ve != null) {
                     Class<?> expectedType = ve.getType(context.getELContext());
                     if (expectedType != null && expectedType.isAssignableFrom(BigDecimal.class)) {
-                        dParser.setParseBigDecimal(true);
+                        decimalParser.setParseBigDecimal(true);
                     }
                 }
-                DecimalFormatSymbols symbols = dParser.getDecimalFormatSymbols();
+                DecimalFormatSymbols symbols = decimalParser.getDecimalFormatSymbols();
                 if (symbols.getGroupingSeparator() == '\u00a0') {
                     groupSepChanged = true;
-                    String tValue;
-                    if (value.contains(NBSP)) {
-                        tValue = value.replace('\u00a0', ' ');
-                    } else {
-                        tValue = value;
-                    }
+                    String valueWithoutNBSP = value.contains(NBSP) ? value.replace('\u00a0', ' ') : value;
                     symbols.setGroupingSeparator(' ');
-                    dParser.setDecimalFormatSymbols(symbols);
+                    decimalParser.setDecimalFormatSymbols(symbols);
                     try {
-                        return dParser.parse(tValue);
-                    } catch (ParseException pe) {
+                        return decimalParser.parse(valueWithoutNBSP);
+                    }
+                    catch (ParseException pe) {
                         if (groupSepChanged) {
                             symbols.setGroupingSeparator('\u00a0');
-                            dParser.setDecimalFormatSymbols(symbols);
+                            decimalParser.setDecimalFormatSymbols(symbols);
                         }
                     }
                 }
@@ -584,20 +535,22 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
             // Perform the requested parsing
             returnValue = parser.parse(value);
-        } catch (ParseException e) {
+        }
+        catch (ParseException e) {
             if (pattern != null) {
                 throw new ConverterException(MessageFactory.getMessage(context, PATTERN_ID, value, "#,##0.0#", MessageFactory.getLabel(context, component)), e);
-            } else if (type.equals("currency")) {
-                throw new ConverterException(
-                        MessageFactory.getMessage(context, CURRENCY_ID, value, parser.format(99.99), MessageFactory.getLabel(context, component)), e);
-            } else if (type.equals("number")) {
-                throw new ConverterException(
-                        MessageFactory.getMessage(context, NUMBER_ID, value, parser.format(99), MessageFactory.getLabel(context, component)), e);
-            } else if (type.equals("percent")) {
-                throw new ConverterException(
-                        MessageFactory.getMessage(context, PERCENT_ID, value, parser.format(.75), MessageFactory.getLabel(context, component)), e);
             }
-        } catch (Exception e) {
+            else if (type.equals("currency")) {
+                throw new ConverterException(MessageFactory.getMessage(context, CURRENCY_ID, value, parser.format(99.99), MessageFactory.getLabel(context, component)), e);
+            }
+            else if (type.equals("number")) {
+                throw new ConverterException(MessageFactory.getMessage(context, NUMBER_ID, value, parser.format(99), MessageFactory.getLabel(context, component)), e);
+            }
+            else if (type.equals("percent")) {
+                throw new ConverterException(MessageFactory.getMessage(context, PERCENT_ID, value, parser.format(.75), MessageFactory.getLabel(context, component)), e);
+            }
+        }
+        catch (Exception e) {
             throw new ConverterException(e);
         }
         return returnValue;
@@ -618,7 +571,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
             // If the specified value is null, return a zero-length String
             if (value == null) {
-                return "";
+                return SharedUtils.EMPTY_STRING;
             }
 
             // If the incoming value is still a string, play nice
@@ -632,7 +585,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
             // Create and configure the formatter to be used
             NumberFormat formatter = getNumberFormat(locale);
-            if (pattern != null && pattern.length() != 0 || "currency".equals(type)) {
+            if (pattern != null && !pattern.isEmpty() || "currency".equals(type)) {
                 configureCurrency(formatter);
             }
             configureFormatter(formatter);
@@ -640,26 +593,12 @@ public class NumberConverter implements Converter, PartialStateHolder {
             // Perform the requested formatting
             return formatter.format(value);
 
-        } catch (ConverterException e) {
-            throw new ConverterException(MessageFactory.getMessage(context, STRING_ID, value, MessageFactory.getLabel(context, component)), e);
         } catch (Exception e) {
             throw new ConverterException(MessageFactory.getMessage(context, STRING_ID, value, MessageFactory.getLabel(context, component)), e);
         }
     }
 
     // --------------------------------------------------------- Private Methods
-
-    private static Class<?> currencyClass;
-
-    static {
-        try {
-            currencyClass = Class.forName("java.util.Currency");
-            // container's runtime is J2SE 1.4 or greater
-        } catch (Exception ignored) {
-        }
-    }
-
-    private static final Class<?>[] GET_INSTANCE_PARAM_TYPES = new Class<?>[] { String.class };
 
     /**
      * 
@@ -668,9 +607,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * </p>
      * 
      * <p>
-     * If both "currencyCode" and "currencySymbol" are present, "currencyCode" takes precedence over "currencySymbol" if the
-     * java.util.Currency class is defined in the container's runtime (that is, if the container's runtime is J2SE 1.4 or
-     * greater), and "currencySymbol" takes precendence over "currencyCode" otherwise.
+     * If both "currencyCode" and "currencySymbol" are present, "currencyCode" takes precedence over "currencySymbol"
      * </p>
      * 
      * <p>
@@ -680,17 +617,15 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * <pre>
      * Example:
      * 
-     * JDK    "currencyCode" "currencySymbol" Currency symbol being displayed
+     * "currencyCode" "currencySymbol" Currency symbol being displayed
      * -----------------------------------------------------------------------
-     * all         ---            ---         Locale's default currency symbol
+     *      ---            ---         Locale's default currency symbol
+     *
+     *      EUR            ---         Locale's currency symbol for Euro
+     *
+     *      ---             €          €
      * 
-     * <1.4        EUR            ---         EUR
-     * >=1.4       EUR            ---         Locale's currency symbol for Euro
-     * 
-     * all         ---           \u20AC       \u20AC
-     * 
-     * <1.4        EUR           \u20AC       \u20AC
-     * >=1.4       EUR           \u20AC       Locale's currency symbol for Euro
+     *      EUR             €          Locale's currency symbol for Euro
      * </pre>
      *
      * @param formatter The <code>NumberFormatter</code> to be configured
@@ -707,50 +642,27 @@ public class NumberConverter implements Converter, PartialStateHolder {
         }
 
         if (currencyCode != null && currencySymbol != null) {
-            if (currencyClass != null) {
-                code = currencyCode;
-            } else {
-                symbol = currencySymbol;
-            }
-        } else if (currencyCode == null) {
+            code = currencyCode;
+        }
+        else if (currencyCode == null) {
             symbol = currencySymbol;
-        } else {
-            if (currencyClass != null) {
-                code = currencyCode;
-            } else {
-                symbol = currencyCode;
-            }
+        }
+        else {
+            code = currencyCode;
         }
 
         if (code != null) {
-            Object[] methodArgs = new Object[1];
-
-            /*
-             * java.util.Currency.getInstance()
-             */
-            Method m = currencyClass.getMethod("getInstance", GET_INSTANCE_PARAM_TYPES);
-            methodArgs[0] = code;
-            Object currency = m.invoke(null, methodArgs);
-
-            /*
-             * java.text.NumberFormat.setCurrency()
-             */
-            Class<?>[] paramTypes = new Class[1];
-            paramTypes[0] = currencyClass;
-            Class<?> numberFormatClass = Class.forName("java.text.NumberFormat");
-            m = numberFormatClass.getMethod("setCurrency", paramTypes);
-            methodArgs[0] = currency;
-            m.invoke(formatter, methodArgs);
-        } else {
-            /*
-             * Let potential ClassCastException propagate up (will almost never happen)
-             */
+            Currency currency = Currency.getInstance(code);
+            // set the current currency to the passed formatter
+            formatter.setCurrency(currency);
+        }
+        else {
+            // Let potential ClassCastException propagate up (will almost never happen)
             DecimalFormat df = (DecimalFormat) formatter;
             DecimalFormatSymbols dfs = df.getDecimalFormatSymbols();
             dfs.setCurrencySymbol(symbol);
             df.setDecimalFormatSymbols(dfs);
         }
-
     }
 
     /**
@@ -775,31 +687,22 @@ public class NumberConverter implements Converter, PartialStateHolder {
         if (isMinFractionDigitsSet()) {
             formatter.setMinimumFractionDigits(minFractionDigits);
         }
-
     }
 
     private boolean isMaxIntegerDigitsSet() {
-
         return maxIntegerDigits != null;
-
     }
 
     private boolean isMinIntegerDigitsSet() {
-
         return minIntegerDigits != null;
-
     }
 
     private boolean isMaxFractionDigitsSet() {
-
         return maxFractionDigits != null;
-
     }
 
     private boolean isMinFractionDigitsSet() {
-
         return minFractionDigits != null;
-
     }
 
     /**
@@ -817,7 +720,6 @@ public class NumberConverter implements Converter, PartialStateHolder {
             locale = context.getViewRoot().getLocale();
         }
         return locale;
-
     }
 
     /**
@@ -841,15 +743,17 @@ public class NumberConverter implements Converter, PartialStateHolder {
             DecimalFormatSymbols symbols = new DecimalFormatSymbols(locale);
             return new DecimalFormat(pattern, symbols);
         }
-
         // Create an instance based on the specified type
         else if (type.equals("currency")) {
             return NumberFormat.getCurrencyInstance(locale);
-        } else if (type.equals("number")) {
+        }
+        else if (type.equals("number")) {
             return NumberFormat.getNumberInstance(locale);
-        } else if (type.equals("percent")) {
+        }
+        else if (type.equals("percent")) {
             return NumberFormat.getPercentInstance(locale);
-        } else {
+        }
+        else {
             // PENDING(craigmcc) - i18n
             throw new ConverterException(new IllegalArgumentException(type));
         }
@@ -903,7 +807,6 @@ public class NumberConverter implements Converter, PartialStateHolder {
             pattern = (String) values[9];
             type = (String) values[10];
         }
-
     }
 
     private boolean transientFlag;
@@ -934,4 +837,5 @@ public class NumberConverter implements Converter, PartialStateHolder {
     public void clearInitialState() {
         initialState = false;
     }
+
 }

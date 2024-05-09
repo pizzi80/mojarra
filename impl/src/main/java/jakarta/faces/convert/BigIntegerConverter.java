@@ -22,6 +22,7 @@ import java.math.BigInteger;
 
 import com.sun.faces.RIConstants;
 
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 
@@ -79,13 +80,16 @@ public class BigIntegerConverter implements Converter<BigInteger> {
     public BigInteger getAsObject(FacesContext context, UIComponent component, String value) {
         notNullArgs( context , component );
 
-        // If the specified value is null or zero-length, return null
-        if ( value == null || value.isBlank() ) {
+        // strip (trim) the input if not blank, null otherwise
+        value = SharedUtils.trimToNull(value);
+
+        // If the specified value is null, return null
+        if (value == null) {
             return null;
         }
 
         try {
-            return new BigInteger(value.trim());
+            return new BigInteger(value);
         } catch (NumberFormatException nfe) {
             throw new ConverterException(MessageFactory.getMessage(context, BIGINTEGER_ID, value, "9876", MessageFactory.getLabel(context, component)), nfe);
         } catch (Exception e) {

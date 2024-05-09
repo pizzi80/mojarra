@@ -16,8 +16,13 @@
 
 package jakarta.faces.convert;
 
+import static com.sun.faces.util.Util.notNullArgs;
+
 import java.util.UUID;
 
+import com.sun.faces.RIConstants;
+
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 
@@ -55,7 +60,7 @@ public class UUIDConverter implements Converter<UUID> {
      * The message identifier of the {@link jakarta.faces.application.FacesMessage} to be created if the conversion of the <code>UUID</code> value to <code>String</code> fails.
      * The message format string for this message may optionally include the following placeholders:
      * <ul>
-     * <li><code>{0}</code> relaced by the unconverted value.</li>
+     * <li><code>{0}</code> replaced by the unconverted value.</li>
      * <li><code>{1}</code> replaced by a <code>String</code> whose value is the label of the input component that produced this message.</li>
      * </ul>
      */
@@ -69,20 +74,23 @@ public class UUIDConverter implements Converter<UUID> {
      */
     @Override
     public UUID getAsObject(FacesContext context, UIComponent component, String value) {
+        notNullArgs( context , component );
 
-        if (context == null || component == null) {
-            throw new NullPointerException();
-        }
+        // strip (trim) the input if not blank, null otherwise
+        value = SharedUtils.trimToNull(value);
 
-        if (value == null || value.isBlank()) {
+        // If the specified value is null, return null
+        if (value == null) {
             return null;
         }
 
         try {
             return UUID.fromString(value);
-        } catch (IllegalArgumentException e) {
+        }
+        catch (IllegalArgumentException e) {
             throw new ConverterException(MessageFactory.getMessage(context, UUID_ID, value, "29573f55-4254-4afa-9ca6-6b5ae6c7ab6e", MessageFactory.getLabel(context, component)), e);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new ConverterException(e);
         }
     }
@@ -93,19 +101,19 @@ public class UUIDConverter implements Converter<UUID> {
      */
     @Override
     public String getAsString(FacesContext context, UIComponent component, UUID value) {
+        notNullArgs( context , component );
 
-        if (context == null || component == null) {
-            throw new NullPointerException();
-        }
-
+        // If the specified value is null, return an empty string
         if (value == null) {
-            return "";
+            return RIConstants.NO_VALUE;
         }
 
         try {
             return value.toString();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new ConverterException(MessageFactory.getMessage(context, STRING_ID, value, MessageFactory.getLabel(context, component)), e);
         }
     }
+
 }
