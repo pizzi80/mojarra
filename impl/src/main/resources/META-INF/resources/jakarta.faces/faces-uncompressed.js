@@ -279,16 +279,18 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
          */
         const getScripts = function getScripts(html) {
             const scripts = [];
-            const initialnodes = html.match(SCRIPT_TAG_REGEX);
-            while (!!initialnodes && initialnodes.length > 0) {
-                let scriptStr = [];
-                scriptStr = initialnodes.shift().match(SINGLE_SCRIPT_TAG_REGEX); // todo: multiple shift array ... rewrite this algo
-                // check the type - skip if specified but not text/javascript
-                const type = scriptStr[1].match(TAG_ATTRIBUTE_TYPE_REGEX);
-                if (!!type && type[1] !== "text/javascript") {
-                    continue;
+            const matchingNodes = html.match(SCRIPT_TAG_REGEX);
+
+            if (matchingNodes && matchingNodes.length > 0) {
+                for (const node of matchingNodes) {
+                    const scriptStr = node.match(SINGLE_SCRIPT_TAG_REGEX);
+                    // check the type - skip if specified but not text/javascript (json+ld for example)
+                    const type = scriptStr[1].match(TAG_ATTRIBUTE_TYPE_REGEX);
+                    if (!!type && type[1] !== "text/javascript") {
+                        continue;
+                    }
+                    scripts.push(scriptStr);
                 }
-                scripts.push(scriptStr);
             }
             return scripts;
         };
