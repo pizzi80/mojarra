@@ -16,6 +16,7 @@
 
 package jakarta.faces.component;
 
+import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -1118,27 +1119,17 @@ public class UIInput extends UIOutput implements EditableValueHolder {
      * @return true if it is, false otherwise.
      */
     public static boolean isEmpty(Object value) {
-
         if (value == null) {
             return true;
-        } else if (value instanceof String && ((String) value).length() < 1) {
-            return true;
+        } else if (value instanceof String string) {
+            return string.isEmpty();
         } else if (value.getClass().isArray()) {
-            if (0 == java.lang.reflect.Array.getLength(value)) {
-                return true;
-            }
-        } else if (value instanceof List) {
-            if (((List) value).isEmpty()) {
-                return true;
-            }
-        } else if (value instanceof Collection) {
-            if (((Collection) value).isEmpty()) {
-                return true;
-            }
-        } else if (value instanceof Map && ((Map) value).isEmpty()) {
-            return true;
+            return 0 == Array.getLength(value);
+        } else if (value instanceof Collection collection) {
+            return collection.isEmpty();
+        } else {
+            return value instanceof Map map && map.isEmpty();
         }
-        return false;
     }
 
     /**

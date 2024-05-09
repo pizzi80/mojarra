@@ -16,6 +16,7 @@
 
 package jakarta.faces.validator;
 
+import java.io.Serial;
 import java.util.Collection;
 
 import jakarta.faces.FacesException;
@@ -27,9 +28,14 @@ import jakarta.faces.application.FacesMessage;
  * <code>validate()</code> method of a {@link Validator} to indicate that validation failed.
  */
 public class ValidatorException extends FacesException {
-    // ----------------------------------------------------------- Constructors
 
+    @Serial
     private static final long serialVersionUID = 6459492016772012827L;
+
+    private FacesMessage message;
+    private Collection<FacesMessage> messages;
+
+    // ----------------------------------------------------------- Constructors
 
     /**
      * <p>
@@ -39,7 +45,6 @@ public class ValidatorException extends FacesException {
      * @param message The message for this exception
      */
     public ValidatorException(FacesMessage message) {
-
         super(message.getSummary());
         this.message = message;
     }
@@ -53,7 +58,6 @@ public class ValidatorException extends FacesException {
      *
      * @since 2.0
      */
-
     public ValidatorException(Collection<FacesMessage> messages) {
         this.messages = messages;
     }
@@ -67,7 +71,6 @@ public class ValidatorException extends FacesException {
      * @param cause The root cause for this exception
      */
     public ValidatorException(FacesMessage message, Throwable cause) {
-
         super(message.getSummary(), cause);
         this.message = message;
     }
@@ -82,7 +85,6 @@ public class ValidatorException extends FacesException {
      *
      * @since 2.0
      */
-
     public ValidatorException(Collection<FacesMessage> messages, Throwable cause) {
         super(messages.isEmpty() ? "" : messages.iterator().next().getSummary(), cause);
         this.messages = messages;
@@ -120,6 +122,4 @@ public class ValidatorException extends FacesException {
         return messages;
     }
 
-    private FacesMessage message;
-    private Collection<FacesMessage> messages;
 }
