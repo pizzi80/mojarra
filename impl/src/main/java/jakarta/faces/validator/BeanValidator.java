@@ -434,7 +434,7 @@ public class BeanValidator implements Validator, PartialStateHolder {
         String[] classNames = validationGroupsStr.split(VALIDATION_GROUPS_DELIMITER);
         for (String className : classNames) {
             className = className.trim();
-            if (className.length() == 0) {
+            if (className.isEmpty()) {
                 continue;
             }
 
@@ -465,9 +465,7 @@ public class BeanValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (!initialStateMarked()) {
-            Object values[] = new Object[1];
-            values[0] = validationGroups;
-            return values;
+            return new Object[]{validationGroups};
         }
         return null;
     }
@@ -477,9 +475,8 @@ public class BeanValidator implements Validator, PartialStateHolder {
         if (context == null) {
             throw new NullPointerException();
         }
-        if (state != null) {
-            Object values[] = (Object[]) state;
-            validationGroups = (String) values[0];
+        if (state instanceof Object[] objects) {
+            validationGroups = (String) objects[0];
         }
     }
 
@@ -548,8 +545,8 @@ public class BeanValidator implements Validator, PartialStateHolder {
 
     private static class FacesAwareMessageInterpolator implements MessageInterpolator {
 
-        private FacesContext context;
-        private MessageInterpolator delegate;
+        private final FacesContext context;
+        private final MessageInterpolator delegate;
 
         public FacesAwareMessageInterpolator(FacesContext context, MessageInterpolator delegate) {
             this.context = context;
@@ -578,7 +575,7 @@ public class BeanValidator implements Validator, PartialStateHolder {
         Map<Object, Map<String, Map<String, Object>>> multiFieldCandidates = getMultiFieldValidationCandidates(context, true);
         Map<String, Map<String, Object>> candidate = multiFieldCandidates.getOrDefault(wholeBean, new HashMap<>());
 
-        Map<String, Object> tuple = new HashMap<>(); // new ComponentValueTuple((EditableValueHolder) component, value);
+        Map<String, Object> tuple = new HashMap<>(4); // new ComponentValueTuple((EditableValueHolder) component, value);
         tuple.put("component", component);
         tuple.put("value", propertyValue);
         candidate.put(propertyName, tuple);

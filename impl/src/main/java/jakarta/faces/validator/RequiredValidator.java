@@ -55,13 +55,14 @@ public class RequiredValidator implements Validator {
     public void validate(FacesContext context, UIComponent component, Object value) {
 
         if (UIInput.isEmpty(value)) {
-            FacesMessage msg;
+
             String requiredMessageStr = null;
-            if (component instanceof UIInput) {
-                requiredMessageStr = ((UIInput) component).getRequiredMessage();
+            if (component instanceof UIInput input) {
+                requiredMessageStr = input.getRequiredMessage();
             }
 
             // respect the message string override on the component to emulate required="true" behavior
+            FacesMessage msg;
             if (requiredMessageStr != null) {
                 msg = new FacesMessage(FacesMessage.SEVERITY_ERROR, requiredMessageStr, requiredMessageStr);
             } else {
