@@ -807,7 +807,7 @@ public class Util {
     /**
      * Execute the passed task and return the computed result atomically using the passed lock.
      * @param lock The {@link Lock} to be used for atomic execution
-     * @param task The {@link FunctionalInterface} to be executed atomically (Runn
+     * @param task The {@link FunctionalInterface} to be executed atomically
      */
     public static void execAtomic(Lock lock, Action task) {
         lock.lock();
