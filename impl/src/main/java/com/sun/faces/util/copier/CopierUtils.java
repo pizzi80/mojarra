@@ -100,7 +100,7 @@ public class CopierUtils {
     private static boolean isIdentifier(CharSequence name) {
         String id = name.toString();
 
-        if (id.length() == 0) {
+        if (id.isEmpty()) {
             return false;
         }
         int cp = id.codePointAt(0);

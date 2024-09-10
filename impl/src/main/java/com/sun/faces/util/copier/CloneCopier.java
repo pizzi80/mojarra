@@ -54,7 +54,7 @@ public class CloneCopier implements Copier {
         }
     }
 
-    private Method getMethod(Object object, String name) {
+    private static Method getMethod(Object object, String name) {
         for (Class<?> c = object.getClass(); c != null; c = c.getSuperclass()) {
             for (Method method : c.getDeclaredMethods()) {
                 if (method.getName().equals(name)) {
