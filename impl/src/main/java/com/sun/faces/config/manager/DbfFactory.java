@@ -103,7 +103,7 @@ public class DbfFactory {
          * Contains mapping between grammar name and the local URL to the
          * physical resource.
          */
-        private HashMap<String, String> entities = new HashMap<>(12, 1.0f);
+        private final Map<String, String> entities = new HashMap<>();
 
         // -------------------------------------------------------- Constructors
 
