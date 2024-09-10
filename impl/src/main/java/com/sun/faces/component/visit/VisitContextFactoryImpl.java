@@ -37,13 +37,13 @@ public class VisitContextFactoryImpl extends VisitContextFactory {
 
     @Override
     public VisitContext getVisitContext(FacesContext context, Collection<String> ids, Set<VisitHint> hints) {
-        VisitContext result = null;
+        final VisitContext result;
 
         // If ids null (not empty), we create a FullVisitContext.
         // Otherwise, we create a PartialVisitContext. Note that
         // an empty collection still means partial - the client
         // can add ids to visit after they create the VisitContext.
-        if (null == ids) {
+        if (ids == null) {
             result = new FullVisitContext(context, hints);
         } else {
             result = new PartialVisitContext(context, ids, hints);
