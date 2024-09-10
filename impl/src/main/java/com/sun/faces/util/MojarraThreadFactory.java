@@ -37,9 +37,9 @@ public class MojarraThreadFactory implements ThreadFactory {
     // ------------------------------------------ Methods from ThreadFactory
 
     @Override
-    public Thread newThread(Runnable r) {
+    public Thread newThread(Runnable runnable) {
 
-        Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement());
+        Thread t = new Thread(group, runnable, namePrefix + threadNumber.getAndIncrement());
         t.setDaemon(true);
         if (t.getPriority() != Thread.NORM_PRIORITY) {
             t.setPriority(Thread.NORM_PRIORITY);
@@ -48,4 +48,4 @@ public class MojarraThreadFactory implements ThreadFactory {
 
     }
 
-} // END MojarraThreadFactory
+}
