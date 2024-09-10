@@ -18,7 +18,7 @@ package com.sun.faces.push;
 
 import static com.sun.faces.cdi.CdiUtils.getBeanInstance;
 import static java.util.Collections.emptySet;
-import static java.util.Collections.synchronizedSet;
+import static java.util.concurrent.ConcurrentHashMap.newKeySet;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -64,13 +64,7 @@ public class WebsocketUserManager {
      * @param userId The session based user ID.
      */
     protected void register(Serializable user, String userId) {
-        synchronized (applicationUsers) {
-            if (!applicationUsers.containsKey(user)) {
-                applicationUsers.putIfAbsent(user, synchronizedSet(new HashSet<String>(ESTIMATED_SESSIONS_PER_USER)));
-            }
-
-            applicationUsers.get(user).add(userId);
-        }
+        applicationUsers.computeIfAbsent(user, $ -> newKeySet(ESTIMATED_CHANNELS_IDS_PER_USER)).add(userId);
     }
 
     /**
@@ -81,17 +75,10 @@ public class WebsocketUserManager {
      * @param channelId The channel identifier.
      */
     protected void addChannelId(String userId, String channel, String channelId) {
-        if (!userChannels.containsKey(userId)) {
-            userChannels.putIfAbsent(userId, new ConcurrentHashMap<String, Set<String>>(ESTIMATED_USER_CHANNELS_PER_APPLICATION));
-        }
-
-        ConcurrentMap<String, Set<String>> channelIds = userChannels.get(userId);
-
-        if (!channelIds.containsKey(channel)) {
-            channelIds.putIfAbsent(channel, synchronizedSet(new HashSet<String>(ESTIMATED_USER_CHANNELS_PER_SESSION)));
-        }
-
-        channelIds.get(channel).add(channelId);
+        userChannels
+                .computeIfAbsent(userId, $ -> new ConcurrentHashMap<>(ESTIMATED_USER_CHANNELS_PER_APPLICATION))
+                .computeIfAbsent(channel, $ -> newKeySet(ESTIMATED_USER_CHANNELS_PER_SESSION))
+                .add(channelId);
     }
 
     /**
@@ -142,14 +129,10 @@ public class WebsocketUserManager {
     protected void deregister(Serializable user, String userId) {
         userChannels.remove(userId);
 
-        synchronized (applicationUsers) {
-            Set<String> userIds = applicationUsers.get(user);
+        applicationUsers.computeIfPresent(user, ($, userIds) -> {
             userIds.remove(userId);
-
-            if (userIds.isEmpty()) {
-                applicationUsers.remove(user);
-            }
-        }
+            return userIds.isEmpty() ? null : userIds;
+        });
     }
 
     // Internal (static because package private methods in CDI beans are subject to memory leaks) ---------------------
@@ -167,15 +150,7 @@ public class WebsocketUserManager {
     private Set<String> getApplicationUserChannelIds(String userId, String channel) {
         Map<String, Set<String>> channels = userChannels.get(userId);
 
-        if (channels != null) {
-            Set<String> channelIds = channels.get(channel);
-
-            if (channelIds != null) {
-                return channelIds;
-            }
-        }
-
-        return emptySet();
+        return channels != null ? channels.getOrDefault(channel, emptySet()) : emptySet();
     }
 
 }

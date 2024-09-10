@@ -55,11 +55,11 @@ public class WebsocketPushContext implements PushContext {
 
     // Variables ------------------------------------------------------------------------------------------------------
 
-    private String channel;
-    private Map<String, String> sessionScope;
-    private Map<String, String> viewScope;
-    private WebsocketSessionManager socketSessions;
-    private WebsocketUserManager socketUsers;
+    private final String channel;
+    private final Map<String, String> sessionScope;
+    private final Map<String, String> viewScope;
+    private final WebsocketSessionManager socketSessions;
+    private final WebsocketUserManager socketUsers;
 
     // Constructors ---------------------------------------------------------------------------------------------------
 

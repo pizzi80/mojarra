@@ -183,7 +183,7 @@ public class WebsocketChannelManager implements Serializable {
     public static class ViewScope implements Serializable {
 
         private static final long serialVersionUID = 1L;
-        private ConcurrentMap<String, String> viewScope = new ConcurrentHashMap<>(ESTIMATED_CHANNELS_PER_VIEW);
+        private final ConcurrentMap<String, String> viewScope = new ConcurrentHashMap<>(ESTIMATED_CHANNELS_PER_VIEW);
 
         /**
          * When current view scope is about to be destroyed, deregister all view scope channels and explicitly close any open
