@@ -43,7 +43,7 @@ public class AjaxBehaviors implements Serializable {
 
     private static final String AJAX_BEHAVIORS = "jakarta.faces.component.AjaxBehaviors";
 
-    private ArrayDeque<BehaviorInfo> behaviorStack = null;
+    private final ArrayDeque<BehaviorInfo> behaviorStack;
 
     public AjaxBehaviors() {
         behaviorStack = new ArrayDeque<>();
@@ -66,7 +66,7 @@ public class AjaxBehaviors implements Serializable {
     // Adds AjaxBehaviors to the specified ClientBehaviorHolder
     public void addBehaviors(FacesContext context, ClientBehaviorHolder behaviorHolder) {
 
-        if (behaviorStack == null || behaviorStack.isEmpty()) {
+        if (behaviorStack.isEmpty()) {
             return;
         }
 
@@ -103,7 +103,7 @@ public class AjaxBehaviors implements Serializable {
      * @since 2.0
      */
     public void popBehavior() {
-        if (behaviorStack.size() > 0) {
+        if (!behaviorStack.isEmpty()) {
             behaviorStack.removeLast();
         }
     }
@@ -111,16 +111,18 @@ public class AjaxBehaviors implements Serializable {
     // Helper class for storing and creating/applying inherited
     // AjaxBehaviors
     public static class BehaviorInfo implements Serializable {
-        private String eventName;
-        private Object behaviorState;
+
         private static final long serialVersionUID = -7679229822647712959L;
+
+        private final String eventName;
+        private final Object behaviorState;
 
         public BehaviorInfo(FacesContext context, AjaxBehavior ajaxBehavior, String eventName) {
             this.eventName = eventName;
 
             // We don't actually need the AjaxBehavior - just
             // its state.
-            behaviorState = ajaxBehavior.saveState(context);
+            this.behaviorState = ajaxBehavior.saveState(context);
         }
 
         public void addBehavior(FacesContext context, ClientBehaviorHolder behaviorHolder) {
@@ -186,8 +188,6 @@ public class AjaxBehaviors implements Serializable {
             return behavior;
         }
 
-        private BehaviorInfo() {
-        }
     }
 
 }
