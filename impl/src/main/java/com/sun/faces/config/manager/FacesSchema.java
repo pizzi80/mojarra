@@ -269,10 +269,10 @@ public enum FacesSchema {
         }
 
 
-        private String resourceName;
-        private String fileName;
+        private final String resourceName;
+        private final String fileName;
 
-        private FacesSchema(String resourceName, String fileName) {
+        FacesSchema(String resourceName, String fileName) {
             this.resourceName = resourceName;
             this.fileName = fileName;
         }
