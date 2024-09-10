@@ -96,9 +96,7 @@ public class WebsocketSessionManager {
      * @param channelId The channel identifier to register.
      */
     protected void register(String channelId) {
-        if (!socketSessions.containsKey(channelId)) {
-            socketSessions.putIfAbsent(channelId, new ConcurrentLinkedQueue<Session>());
-        }
+        socketSessions.computeIfAbsent(channelId, $ -> new ConcurrentLinkedQueue<>());
     }
 
     /**

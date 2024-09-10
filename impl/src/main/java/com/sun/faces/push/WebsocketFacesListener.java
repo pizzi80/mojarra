@@ -56,7 +56,7 @@ public class WebsocketFacesListener implements SystemEventListener {
         UIViewRoot view = context.getViewRoot();
         List<SystemEventListener> listeners = view.getListenersForEventClass(PostAddToViewEvent.class);
 
-        if (listeners == null || !listeners.stream().anyMatch(l -> l instanceof WebsocketFacesListener)) {
+        if (listeners == null || listeners.stream().noneMatch(l -> l instanceof WebsocketFacesListener) ) {
             view.subscribeToViewEvent(PreRenderViewEvent.class, new WebsocketFacesListener());
         }
     }
