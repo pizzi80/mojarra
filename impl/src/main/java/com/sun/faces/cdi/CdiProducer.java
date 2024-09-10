@@ -16,18 +16,21 @@
 
 package com.sun.faces.cdi;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.inject.spi.Bean;
+import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.enterprise.inject.spi.InjectionPoint;
 import jakarta.enterprise.inject.spi.PassivationCapable;
 import jakarta.faces.context.FacesContext;
@@ -46,8 +49,7 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
 
     private String id = this.getClass().getName();
     private String name;
-    // for synthetic beans, the beanClass defaults to the extension that registers them
-    private final Class<?> beanClass = CdiExtension.class;
+    private Class<?> beanClass = Object.class;
     private Set<Type> types = singleton(Object.class);
     private Set<Annotation> qualifiers = Set.of(new DefaultAnnotationLiteral(), new AnyAnnotationLiteral());
     private Class<? extends Annotation> scope = Dependent.class;
@@ -147,6 +149,11 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
         return false;
     }
 
+    // TODO to be removed once using CDI API 4.x
+    public boolean isNullable() {
+        return false;
+    }
+
     protected CdiProducer<T> name(String name) {
         this.name = name;
         return this;
@@ -157,13 +164,24 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
         return this;
     }
 
+    protected CdiProducer<T> beanClass(BeanManager beanManager, Class<?> beanClass) {
+        if (CdiUtils.isWeld(beanManager)) {
+            this.beanClass = CdiExtension.class; // See #5457 and #5157
+        } else {
+            this.beanClass = beanClass;
+        }
+
+        return this;
+    }
+
     protected CdiProducer<T> types(Type... types) {
-        this.types = Set.of(types);
+        this.types = asSet(types);
+        this.types.add(getClass()); // Add producer class as well so it can at least be filtered from BeanManager#getBeans().
         return this;
     }
 
     protected CdiProducer<T> qualifiers(Annotation... qualifiers) {
-        this.qualifiers = Set.of(qualifiers);
+        this.qualifiers = asSet(qualifiers);
         return this;
     }
 
@@ -175,6 +193,11 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
     protected CdiProducer<T> addToId(Object object) {
         id = id + " " + object.toString();
         return this;
+    }
+
+    @SafeVarargs
+    private static <T> Set<T> asSet(T... a) {
+        return new HashSet<>(asList(a));
     }
 
 }
