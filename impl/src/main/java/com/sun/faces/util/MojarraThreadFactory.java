@@ -29,19 +29,16 @@ public class MojarraThreadFactory implements ThreadFactory {
     // -------------------------------------------------------- Constructors
 
     public MojarraThreadFactory(String factoryName) {
-
-        SecurityManager s = System.getSecurityManager();
-        group = s != null ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+        group = Thread.currentThread().getThreadGroup();
         namePrefix = "Mojarra-" + factoryName + '-' + poolNumber.getAndIncrement() + "-thread-";
-
     }
 
     // ------------------------------------------ Methods from ThreadFactory
 
     @Override
-    public Thread newThread(Runnable r) {
+    public Thread newThread(Runnable runnable) {
 
-        Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement());
+        Thread t = new Thread(group, runnable, namePrefix + threadNumber.getAndIncrement());
         t.setDaemon(true);
         if (t.getPriority() != Thread.NORM_PRIORITY) {
             t.setPriority(Thread.NORM_PRIORITY);
@@ -50,4 +47,4 @@ public class MojarraThreadFactory implements ThreadFactory {
 
     }
 
-} // END MojarraThreadFactory
+}
