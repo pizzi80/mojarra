@@ -18,7 +18,6 @@ package com.sun.faces.config.configprovider;
 
 import static com.sun.faces.util.Util.getCurrentLoader;
 import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.net.URI;
@@ -64,8 +63,8 @@ public class MetaInfFaceletTaglibraryConfigProvider implements ConfigurationReso
             }
 
             return resourceURLs.stream()
-                               .map( url -> transformToURI(url) )
-                               .collect(toList());
+                               .map(MetaInfFaceletTaglibraryConfigProvider::transformToURI)
+                               .toList();
 
         } catch (IOException ioe) {
             throw new FacesException("Error searching classpath from facelet-taglib documents", ioe);
