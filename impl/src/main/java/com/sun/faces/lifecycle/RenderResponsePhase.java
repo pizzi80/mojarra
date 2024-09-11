@@ -44,7 +44,7 @@ import jakarta.faces.view.ViewDeclarationLanguage;
 public class RenderResponsePhase extends Phase {
 
     // Log instance for this class
-    private static Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
+    private static final Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
 
     // ---------------------------------------------------------- Public Methods
 

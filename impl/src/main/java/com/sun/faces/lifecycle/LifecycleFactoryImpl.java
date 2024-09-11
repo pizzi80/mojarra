@@ -43,7 +43,7 @@ import jakarta.faces.lifecycle.LifecycleFactory;
 public class LifecycleFactoryImpl extends LifecycleFactory {
 
     // Log instance for this class
-    private static Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
+    private static final Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
 
     protected ConcurrentHashMap<String, Lifecycle> lifecycleMap;
 
@@ -69,7 +69,7 @@ public class LifecycleFactoryImpl extends LifecycleFactory {
             throw new NullPointerException(MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "lifecycle"));
         }
         if (null != lifecycleMap.get(lifecycleId)) {
-            Object params[] = { lifecycleId };
+            Object[] params = { lifecycleId };
             String message = MessageUtils.getExceptionMessageString(MessageUtils.LIFECYCLE_ID_ALREADY_ADDED_ID, params);
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.warning(MessageUtils.getExceptionMessageString(MessageUtils.LIFECYCLE_ID_ALREADY_ADDED_ID, params));

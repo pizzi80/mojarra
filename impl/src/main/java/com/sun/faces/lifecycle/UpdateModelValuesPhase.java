@@ -33,7 +33,7 @@ import jakarta.faces.event.PhaseId;
 public class UpdateModelValuesPhase extends Phase {
 
     // Log instance for this class
-    private static Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
+    private static final Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
 
     // ---------------------------------------------------------- Public Methods
 

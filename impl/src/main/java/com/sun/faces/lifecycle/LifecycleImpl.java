@@ -51,16 +51,16 @@ public class LifecycleImpl extends Lifecycle {
     // -------------------------------------------------------- Static Variables
 
     // Log instance for this class
-    private static Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
+    private static final Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
 
     // ------------------------------------------------------ Instance Variables
 
     // The Phase instance for the render() method
-    private Phase response = new RenderResponsePhase();
+    private final Phase response = new RenderResponsePhase();
 
     // The set of Phase instances that are executed by the execute() method
     // in order by the ordinal property of each phase
-    private Phase[] phases = { null, // ANY_PHASE placeholder, not a real Phase
+    private final Phase[] phases = { null, // ANY_PHASE placeholder, not a real Phase
             new RestoreViewPhase(), new ApplyRequestValuesPhase(), new ProcessValidationsPhase(), new UpdateModelValuesPhase(), new InvokeApplicationPhase(),
             response };
 
