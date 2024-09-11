@@ -42,13 +42,15 @@ import com.sun.faces.facelets.util.FastWriter;
  */
 final class StateWriter extends Writer {
 
-    private int initialSize;
+    private static final ThreadLocal<StateWriter> CURRENT_WRITER = new ThreadLocal<>();
+
+    private final int initialSize;
     private Writer out;
     private FastWriter fast;
     private boolean writtenState;
 
-    static public StateWriter getCurrentInstance() {
-        return (StateWriter) CURRENT_WRITER.get();
+    public static StateWriter getCurrentInstance() {
+        return CURRENT_WRITER.get();
     }
 
     public StateWriter(Writer initialOut, int initialSize) {
@@ -125,8 +127,8 @@ final class StateWriter extends Writer {
     }
 
     public void release() {
-        CURRENT_WRITER.set(null);
+        CURRENT_WRITER.remove();
     }
 
-    static private final ThreadLocal CURRENT_WRITER = new ThreadLocal();
+
 }
