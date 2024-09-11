@@ -113,7 +113,7 @@ public class RestoreViewPhase extends Phase {
             throw new FacesException(getExceptionMessageString(NULL_CONTEXT_ERROR_MESSAGE_ID));
         }
 
-        // If an app had explicitely set the tree in the context, use that;
+        // If an app had explicitly set the tree in the context, use that;
 
         UIViewRoot viewRoot = facesContext.getViewRoot();
         if (viewRoot != null) {
