@@ -181,8 +181,10 @@ public final class ReflectionUtils {
         if (methods.size() > 1) {
             // Overloaded methods were found. Try to get a match
             for (Method method : methods) {
-                boolean match = true;
+
                 Class<?>[] candidateParams = method.getParameterTypes();
+
+                boolean match = true;
                 for (int i = 0; i < params.length; i++) {
                     if (!candidateParams[i].isInstance(params[i])) {
                         match = false;
