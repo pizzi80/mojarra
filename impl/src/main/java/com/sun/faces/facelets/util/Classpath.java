@@ -153,7 +153,7 @@ public final class Classpath {
                 }
             }
         }
-        if (!done && prefix.length() > 0) {
+        if (!done && !prefix.isEmpty()) {
             // we add '/' at the end since join adds it as well
             String urlString = url.toExternalForm() + "/";
             String[] split = prefix.split("/");
