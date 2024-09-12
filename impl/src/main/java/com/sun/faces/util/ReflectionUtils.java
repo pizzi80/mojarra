@@ -16,6 +16,7 @@
 
 package com.sun.faces.util;
 
+import static com.sun.faces.util.Util.calculateMapCapacity;
 import static java.beans.Introspector.getBeanInfo;
 import static java.beans.PropertyEditorManager.findEditor;
 
@@ -174,7 +175,7 @@ public final class ReflectionUtils {
         }
 
         if (methods.size() == 1) {
-            return methods.get(0);
+            return methods.getFirst();
         }
 
         if (methods.size() > 1) {
@@ -217,11 +218,11 @@ public final class ReflectionUtils {
         } catch (ClassNotFoundException e) {
             try {
                 return Class.forName(className);
-            } catch (Exception ignore) {
-                ignore = null; // Just continue to IllegalStateException on original ClassNotFoundException.
             }
-
-            throw new IllegalStateException(e);
+            catch (Exception ignore) {
+                // Just continue to IllegalStateException on original ClassNotFoundException.
+                throw new IllegalStateException(e);
+            }
         }
     }
 
@@ -271,9 +272,11 @@ public final class ReflectionUtils {
     }
 
     public static synchronized void initCache(ClassLoader loader) {
-        if (REFLECTION_CACHE.get(loader) == null) {
-            REFLECTION_CACHE.put(loader, new ConcurrentHashMap<>());
-        }
+        REFLECTION_CACHE.computeIfAbsent(loader, $ -> new ConcurrentHashMap<>());
+    }
+
+    private static synchronized ConcurrentMap<String, MetaData> getOrInitCache(ClassLoader loader) {
+        return REFLECTION_CACHE.computeIfAbsent(loader, $ -> new ConcurrentHashMap<>());
     }
 
     /**
@@ -309,12 +312,7 @@ public final class ReflectionUtils {
 
         Class<?> clazz = object.getClass();
 
-        ClassLoader loader = Util.getCurrentLoader(clazz);
-        if (loader == null) {
-            return null;
-        }
-
-        return getMetaData(loader, clazz).lookupMethod(methodName, params);
+        return lookupMethod(clazz, methodName, params);
     }
 
     /**
@@ -427,22 +425,7 @@ public final class ReflectionUtils {
      * @return a <code>MetaData</code> object for the specified Class
      */
     private static MetaData getMetaData(ClassLoader loader, Class<?> clazz) {
-
-        ConcurrentMap<String, MetaData> cache = REFLECTION_CACHE.get(loader);
-
-        if (cache == null) {
-            initCache(loader);
-            cache = REFLECTION_CACHE.get(loader);
-        }
-
-        MetaData meta = cache.get(clazz.getName());
-        if (meta == null) {
-            meta = new MetaData(clazz);
-            cache.put(clazz.getName(), meta);
-        }
-
-        return meta;
-
+        return getOrInitCache(loader).computeIfAbsent(clazz.getName(), ($) -> new MetaData(clazz));
     }
 
     /**
@@ -460,23 +443,17 @@ public final class ReflectionUtils {
      */
     private static MetaData getMetaData(ClassLoader loader, String className) {
 
-        ConcurrentMap<String, MetaData> cache = REFLECTION_CACHE.get(loader);
+        final ConcurrentMap<String, MetaData> cache = getOrInitCache(loader);
 
-        if (cache == null) {
-            initCache(loader);
-            cache = REFLECTION_CACHE.get(loader);
-        }
-
-        MetaData meta = cache.get(className);
-        if (meta == null) {
+        final MetaData meta = cache.computeIfAbsent(className , ($) -> {
             try {
                 Class<?> clazz = Util.loadClass(className, cache);
-                meta = new MetaData(clazz);
-                cache.put(className, meta);
-            } catch (ClassNotFoundException cnfe) {
+                return new MetaData(clazz);
+            }
+            catch (ClassNotFoundException cnfe) {
                 return null;
             }
-        }
+        });
 
         return meta;
     }
@@ -487,11 +464,11 @@ public final class ReflectionUtils {
      */
     private static final class MetaData {
 
-        Map<Integer, Constructor> constructors;
-        Map<String, HashMap<Integer, Method>> methods;
-        Map<String, HashMap<Integer, Method>> declaredMethods;
-        Map<String, PropertyDescriptor> propertyDescriptors;
-        Class<?> clazz;
+        private final Map<Integer, Constructor<?>> constructors;
+        private final Map<String, HashMap<Integer, Method>> methods;
+        private final Map<String, HashMap<Integer, Method>> declaredMethods;
+        private Map<String, PropertyDescriptor> propertyDescriptors;
+        private final Class<?> clazz;
 
         // ------------------------------------------------------------ Constructors
 
@@ -504,35 +481,37 @@ public final class ReflectionUtils {
          */
         public MetaData(Class<?> clazz) {
 
-            String name;
+
             this.clazz = clazz;
             Constructor<?>[] ctors = clazz.getConstructors();
-            constructors = new HashMap<>(ctors.length, 1.0f);
+            constructors = new HashMap<>(calculateMapCapacity(ctors.length));
             for (Constructor<?> ctor : ctors) {
                 constructors.put(getKey(ctor.getParameterTypes()), ctor);
             }
             Method[] meths = clazz.getMethods();
-            methods = new HashMap<>(meths.length, 1.0f);
+            methods = new HashMap<>(calculateMapCapacity(meths.length));
+
+            String name;
             for (Method method : meths) {
                 name = method.getName();
-                methods.computeIfAbsent(name, k -> new HashMap<>(4, 1.0f))
+                methods.computeIfAbsent(name, k -> new HashMap<>(calculateMapCapacity(4)))
                        .put(getKey(method.getParameterTypes()), method);
             }
 
             meths = clazz.getDeclaredMethods();
-            declaredMethods = new HashMap<>(meths.length, 1.0f);
+            declaredMethods = new HashMap<>(calculateMapCapacity(meths.length));
             for (Method meth : meths) {
                 name = meth.getName();
-                declaredMethods.computeIfAbsent(name, k -> new HashMap<>(4, 1.0f))
+                declaredMethods.computeIfAbsent(name, k -> new HashMap<>(calculateMapCapacity(4)))
                                .put(getKey(meth.getParameterTypes()), meth);
             }
 
             try {
-                BeanInfo info = Introspector.getBeanInfo(clazz);
-                PropertyDescriptor[] pds = info.getPropertyDescriptors();
+                final BeanInfo info = Introspector.getBeanInfo(clazz);
+                final PropertyDescriptor[] pds = info.getPropertyDescriptors();
                 if (pds != null) {
                     if (propertyDescriptors == null) {
-                        propertyDescriptors = new HashMap<>(pds.length, 1.0f);
+                        propertyDescriptors = new HashMap<>(calculateMapCapacity(pds.length));
                     }
                     for (PropertyDescriptor pd : pds) {
                         propertyDescriptors.put(pd.getName(), pd);
@@ -574,9 +553,9 @@ public final class ReflectionUtils {
             Map<Integer, Method> map = methods.get(name);
             Integer key = getKey(params);
             Method result = null;
-            if (null == map || null == (result = map.get(key))) {
+            if (map == null || (result = map.get(key)) == null) {
                 map = declaredMethods.get(name);
-                if (null != map) {
+                if (map != null) {
                     result = map.get(key);
                 }
             }
