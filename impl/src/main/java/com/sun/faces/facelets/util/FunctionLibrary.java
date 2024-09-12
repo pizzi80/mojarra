@@ -47,8 +47,8 @@ public class FunctionLibrary implements TagLibrary {
     public final static Set<String> NAMESPACES = unmodifiableSet(JakartaNamespace, JcpNamespace, SunNamespace);
     public final static String DEFAULT_NAMESPACE = JakartaNamespace;
 
-    private String _namespace;
-    private Map<String, Method> functions;
+    private final String _namespace;
+    private final Map<String, Method> functions;
 
     // ------------------------------------------------------------ Constructors
 
