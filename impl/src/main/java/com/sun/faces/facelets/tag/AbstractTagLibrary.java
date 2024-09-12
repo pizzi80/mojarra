@@ -177,11 +177,12 @@ public abstract class AbstractTagLibrary implements TagLibrary {
     }
 
     private static class HandlerFactory implements TagHandlerFactory {
+
         private final static Class[] CONSTRUCTOR_SIG = new Class[] { TagConfig.class };
 
-        protected final Class handlerType;
+        protected final Class<?> handlerType;
 
-        public HandlerFactory(Class handlerType) {
+        public HandlerFactory(Class<?> handlerType) {
             this.handlerType = handlerType;
         }
 
@@ -488,8 +489,8 @@ public abstract class AbstractTagLibrary implements TagLibrary {
 
     public AbstractTagLibrary(String namespace) {
         this.namespace = namespace;
-        factories = new HashMap<String, TagHandlerFactory>();
-        functions = new HashMap<String, Method>();
+        factories = new HashMap<>();
+        functions = new HashMap<>();
     }
 
     /**
