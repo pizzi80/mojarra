@@ -16,6 +16,9 @@
 
 package com.sun.faces.facelets.tag;
 
+import static com.sun.faces.util.Util.calculateMapCapacity;
+import static java.util.Collections.emptyMap;
+
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -36,13 +39,18 @@ public class MetadataTargetImpl extends MetadataTarget {
     private final Map<String, PropertyDescriptor> pd;
     private final Class<?> type;
 
-    public MetadataTargetImpl(Class type) throws IntrospectionException {
+    public MetadataTargetImpl(Class<?> type) throws IntrospectionException {
         this.type = type;
-        pd = new HashMap<>();
-        BeanInfo info = Introspector.getBeanInfo(type);
-        PropertyDescriptor[] pda = info.getPropertyDescriptors();
-        for (int i = 0; i < pda.length; i++) {
-            pd.put(pda[i].getName(), pda[i]);
+
+        final BeanInfo info = Introspector.getBeanInfo(type);
+        final PropertyDescriptor[] pda = info.getPropertyDescriptors();
+        if ( pda != null ) {
+            this.pd = new HashMap<>(calculateMapCapacity(pda.length));
+            for (PropertyDescriptor descriptor : pda) {
+                pd.put(descriptor.getName(), descriptor);
+            }
+        } else {
+            this.pd = emptyMap();
         }
     }
 
