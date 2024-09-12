@@ -40,8 +40,8 @@ import jakarta.servlet.descriptor.JspConfigDescriptor;
 // Mock Object for ServletContext (Version 4.0)
 public class MockServletContext implements ServletContext {
 
-    private Hashtable<String, Object> attributes = new Hashtable<>();
-    private Hashtable<String, String> parameters = new Hashtable<>();
+    private final Hashtable<String, Object> attributes = new Hashtable<>();
+    private final Hashtable<String, String> parameters = new Hashtable<>();
 
     // --------------------------------------------------------- Public Methods
     public void addInitParameter(String name, String value) {
