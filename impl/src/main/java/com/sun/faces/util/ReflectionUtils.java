@@ -175,7 +175,7 @@ public final class ReflectionUtils {
         }
 
         if (methods.size() == 1) {
-            return methods.getFirst();
+            return methods.get(0);
         }
 
         if (methods.size() > 1) {
