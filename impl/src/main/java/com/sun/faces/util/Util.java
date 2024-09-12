@@ -373,9 +373,9 @@ public class Util {
             "char",     char.class
     );
 
-    public static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
+    public static Class<?> loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
         // Primitive Type
-        Class primitiveType = primitiveTypes.get(name);
+        Class<?> primitiveType = primitiveTypes.get(name);
         if (primitiveType != null) return primitiveType;
 
         // Class.forName
@@ -406,10 +406,13 @@ public class Util {
     }
 
     public static ClassLoader getCurrentLoader(Object fallbackClass) {
+        final Class<?> clazz = fallbackClass != null ? fallbackClass.getClass() : null;
+        return getCurrentLoader(clazz);
+    }
+
+    public static ClassLoader getCurrentLoader(Class<?> fallbackClass) {
         ClassLoader loader = getContextClassLoader();
-        if (loader == null) {
-            loader = fallbackClass.getClass().getClassLoader();
-        }
+        if (loader == null && fallbackClass != null) loader = fallbackClass.getClassLoader();
         return loader;
     }
 
@@ -796,7 +799,7 @@ public class Util {
      * todo: remove when Faces will be Java 19+
      *
      * @param numMappings number of expected elements to be stored in the Map
-     * @return the correct initial capacity of the {@link Map} to avoid a rehash with the default load factor
+     * @return the correct initial capacity for a {@link Map} to contain numMappings elements to avoid rehash
      */
     public static int calculateMapCapacity(int numMappings) {
         return (int) Math.ceil( numMappings / 0.75 );
