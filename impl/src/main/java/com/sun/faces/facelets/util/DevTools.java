@@ -17,6 +17,7 @@
 package com.sun.faces.facelets.util;
 
 import static com.sun.faces.util.Util.unmodifiableSet;
+import static java.util.Collections.emptyMap;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -34,7 +35,6 @@ import java.lang.reflect.Method;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -186,10 +186,10 @@ public final class DevTools {
             if (viewMap != null) {
                 writeVariables(writer, viewMap, "View Attributes");
             } else {
-                writeVariables(writer, Collections.<String, Object>emptyMap(), "View Attributes");
+                writeVariables(writer, emptyMap(), "View Attributes");
             }
         } else {
-            writeVariables(writer, Collections.<String, Object>emptyMap(), "View Attributes");
+            writeVariables(writer, emptyMap(), "View Attributes");
         }
         writeVariables(writer, ctx.getRequestMap(), "Request Attributes");
         Flash flash = ctx.getFlash();
@@ -203,12 +203,12 @@ public final class DevTools {
         if (flash != null) {
             writeVariables(writer, flash, "Flash Attributes");
         } else {
-            writeVariables(writer, Collections.<String, Object>emptyMap(), "Flash Attributes");
+            writeVariables(writer, emptyMap(), "Flash Attributes");
         }
         if (ctx.getSession(false) != null) {
             writeVariables(writer, ctx.getSessionMap(), "Session Attributes");
         } else {
-            writeVariables(writer, Collections.<String, Object>emptyMap(), "Session Attributes");
+            writeVariables(writer, emptyMap(), "Session Attributes");
         }
         writeVariables(writer, ctx.getApplicationMap(), "Application Attributes");
 
@@ -228,18 +228,18 @@ public final class DevTools {
             return;
         }
 
-        boolean hasChildren = c.getChildCount() > 0 || c.getFacets().size() > 0;
+        boolean hasChildren = c.getChildCount() > 0 || !c.getFacets().isEmpty();
 
         writeStart(writer, c, hasChildren);
         writer.write("</dt>");
         if (hasChildren) {
-            if (c.getFacets().size() > 0) {
-                for (Map.Entry entry : c.getFacets().entrySet()) {
+            if (!c.getFacets().isEmpty()) {
+                for (Map.Entry<String, UIComponent> entry : c.getFacets().entrySet()) {
                     writer.write("<dd style=\"margin-top: 2px; margin-bottom: 2px;\">");
                     writer.write("<span style=\"font-family: 'Trebuchet MS', Verdana, Arial, Sans-Serif; font-size: small;\">");
                     writer.write((String) entry.getKey());
                     writer.write("</span>");
-                    writeComponent(writer, (UIComponent) entry.getValue());
+                    writeComponent(writer, entry.getValue());
                     writer.write("</dd>");
                 }
             }
