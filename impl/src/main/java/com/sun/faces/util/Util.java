@@ -368,7 +368,7 @@ public class Util {
             "char",     char.class
     );
 
-    public static Class<?> loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
+    public static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
         // Primitive Type
         Class<?> primitiveType = primitiveTypes.get(name);
         if (primitiveType != null) return primitiveType;
