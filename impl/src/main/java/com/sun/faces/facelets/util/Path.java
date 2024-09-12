@@ -22,7 +22,7 @@ package com.sun.faces.facelets.util;
 public final class Path {
 
     public static String normalize(String path) {
-        if (path.length() == 0) {
+        if (path.isEmpty()) {
             return path;
         }
         String n = path;
@@ -56,7 +56,7 @@ public final class Path {
     }
 
     public static String relative(String ctx, String path) {
-        if (path.length() == 0) {
+        if (path.isEmpty()) {
             return context(ctx);
         }
         String c = context(normalize(ctx));

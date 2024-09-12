@@ -26,23 +26,19 @@ import com.sun.faces.config.ConfigurationException;
 import com.sun.faces.util.ReflectionUtils;
 import com.sun.faces.util.Util;
 
-public class ReflectionUtil {
+public final class ReflectionUtil {
 
-    private static final String[] PRIMITIVE_NAMES = new String[] { "boolean", "byte", "char", "double", "float", "int", "long", "short", "void" };
+    // ------------------------------------------------------------ Constructors
 
-    private static final Class<?>[] PRIMITIVES = new Class<?>[] { boolean.class, byte.class, char.class, double.class, float.class, int.class, long.class,
-            short.class, Void.TYPE };
+    private ReflectionUtil() {}
 
-    /**
-     *
-     */
-    private ReflectionUtil() {
-    }
+    // ---------------------------------------------------------- Public Methods
 
-    public static Class forName(String name) throws ClassNotFoundException {
-        if (null == name || "".equals(name)) {
+    public static Class<?> forName(String name) throws ClassNotFoundException {
+        if (null == name || name.isEmpty()) {
             return null;
         }
+
         Class<?> c = forNamePrimitive(name);
         if (c == null) {
             if (name.endsWith("[]")) {
@@ -56,14 +52,8 @@ public class ReflectionUtil {
         return c;
     }
 
-    protected static Class forNamePrimitive(String name) {
-        if (name.length() <= 8) {
-            int p = Arrays.binarySearch(PRIMITIVE_NAMES, name);
-            if (p >= 0) {
-                return PRIMITIVES[p];
-            }
-        }
-        return null;
+    private static Class<?> forNamePrimitive(String name) {
+        return Util.primitiveTypes.get(name);
     }
 
     @SuppressWarnings("unchecked")
@@ -146,9 +136,9 @@ public class ReflectionUtil {
 //        return null;
 //    }
 
-    protected static String paramString(Class<?>[] types) {
+    private static String paramString(Class<?>[] types) {
         if (types != null) {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder( types.length * 16 );
             for (Class<?> type : types) {
                 sb.append(type.getName()).append(", ");
             }
@@ -160,19 +150,19 @@ public class ReflectionUtil {
         return null;
     }
 
-    public static Object decorateInstance(Class clazz, Class rootType, Object root) {
+    public static Object decorateInstance(Class<?> clazz, Class<?> rootType, Object root) {
         Object returnObject = null;
         try {
-            if (returnObject == null) {
-                // Look for an adapter constructor if we've got
-                // an object to adapt
-                if (rootType != null && root != null) {
-                    Constructor construct = ReflectionUtils.lookupConstructor(clazz, rootType);
-                    if (construct != null) {
-                        returnObject = construct.newInstance(root);
-                    }
+
+            // Look for an adapter constructor if we've got
+            // an object to adapt
+            if (rootType != null && root != null) {
+                Constructor<?> construct = ReflectionUtils.lookupConstructor(clazz, rootType);
+                if (construct != null) {
+                    returnObject = construct.newInstance(root);
                 }
             }
+
             if (clazz != null && returnObject == null) {
                 returnObject = clazz.getDeclaredConstructor().newInstance();
             }
@@ -184,31 +174,30 @@ public class ReflectionUtil {
 
     }
 
-    public static Object decorateInstance(String className, Class rootType, Object root) {
-        Class clazz;
-        Object returnObject = null;
+    public static Object decorateInstance(String className, Class<?> rootType, Object root) {
         if (className != null) {
             try {
-                clazz = loadClass(className, returnObject, null);
-                if (clazz != null) {
-                    returnObject = decorateInstance(clazz, rootType, root);
-                }
-
-            } catch (ClassNotFoundException cnfe) {
+                final Class<?> clazz = loadClass(className, null, null);
+                final Object returnObject = decorateInstance(clazz, rootType, root);
+                return returnObject;
+            }
+            catch (ClassNotFoundException cnfe) {
                 throw new ConfigurationException(buildMessage(MessageFormat.format("Unable to find class ''{0}''", className)));
-            } catch (NoClassDefFoundError ncdfe) {
+            }
+            catch (NoClassDefFoundError ncdfe) {
                 throw new ConfigurationException(
                         buildMessage(MessageFormat.format("Class ''{0}'' is missing a runtime dependency: {1}", className, ncdfe.toString())));
-            } catch (ClassCastException cce) {
+            }
+            catch (ClassCastException cce) {
                 throw new ConfigurationException(buildMessage(MessageFormat.format("Class ''{0}'' is not an instance of ''{1}''", className, rootType)));
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 throw new ConfigurationException(buildMessage(MessageFormat.format("Unable to create a new instance of ''{0}'': {1}", className, e.toString())),
                         e);
             }
         }
 
-        return returnObject;
-
+        return null;
     }
 
     // --------------------------------------------------------- Private Methods
