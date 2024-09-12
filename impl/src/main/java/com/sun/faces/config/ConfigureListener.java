@@ -51,6 +51,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -487,7 +488,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
     private InitFacesContext getInitFacesContext(ServletContext context) {
         for (Entry<InitFacesContext, ServletContext> entry : getInitContextServletContextMap().entrySet()) {
-            if (context == entry.getValue()) {
+            if (Objects.equals(context, entry.getValue())) {
                 return entry.getKey();
             }
         }
@@ -607,7 +608,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
                                 try {
                                     fragmentStream.close();
                                 } catch (IOException ioe) {
-                                    LOGGER.log(WARNING, "Exception whil scanning for FacesServlet", ioe);
+                                    LOGGER.log(WARNING, "Exception while scanning for FacesServlet", ioe);
                                 }
                             }
                         }
