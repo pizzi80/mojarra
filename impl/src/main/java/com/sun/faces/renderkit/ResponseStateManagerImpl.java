@@ -32,11 +32,11 @@ import jakarta.faces.render.ResponseStateManager;
 
 /**
  * <p>
- * A <code>ResonseStateManager</code> implementation for the default HTML render kit.
+ * A <code>ResponseStateManager</code> implementation for the default HTML render kit.
  */
 public class ResponseStateManagerImpl extends ResponseStateManager {
 
-    private StateHelper helper;
+    private final StateHelper helper;
 
     public ResponseStateManagerImpl() {
         WebConfiguration webConfig = WebConfiguration.getInstance();
