@@ -18,7 +18,6 @@ package com.sun.faces.facelets.tag.faces.core;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -41,12 +40,13 @@ public final class ResetValuesHandler extends ActionListenerHandlerBase implemen
     private final TagAttribute render;
 
     // Pattern used for execute/render string splitting
-    private static Pattern SPLIT_PATTERN = Pattern.compile(" ");
+    private static final Pattern SPLIT_PATTERN = Pattern.compile(" ");
 
     private final static class LazyActionListener implements ActionListener, Serializable {
-        Collection<String> render;
 
         private static final long serialVersionUID = -5676209243297546166L;
+
+        private final Collection<String> render;
 
         public LazyActionListener(Collection<String> render) {
             this.render = new ArrayList<>(render);
@@ -97,9 +97,8 @@ public final class ResetValuesHandler extends ActionListenerHandlerBase implemen
         // we care about removing duplicates. However, the
         // presence of duplicates does not real harm. They will
         // be consolidated during the partial view traversal. So,
-        // just create an list - garbage in, garbage out.
-        return Collections.unmodifiableList(Arrays.asList(values));
-
+        // just create a list - garbage in, garbage out.
+        return List.of(values);
     }
 
 }
