@@ -18,7 +18,8 @@ package com.sun.faces.renderkit.html_basic;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -152,7 +153,7 @@ public class HtmlResponseWriter extends ResponseWriter {
 
     private final char[] charHolder = new char[1];
 
-    private LinkedList<String> elementNames;
+    private Deque<String> elementNames;
 
     private static final String BREAKCDATA = "]]><![CDATA[";
     private static final char[] ESCAPEDSINGLEBRACKET = ("]" + BREAKCDATA).toCharArray();
@@ -1135,7 +1136,7 @@ public class HtmlResponseWriter extends ResponseWriter {
 
         if ("option".equals(original)) {
             if (elementNames == null) {
-                elementNames = new LinkedList<>();
+                elementNames = new ArrayDeque<>();
             }
             elementNames.push(original);
             return original;
@@ -1152,7 +1153,7 @@ public class HtmlResponseWriter extends ResponseWriter {
 
         if (!original.equals(name) || elementNames != null) {
             if (elementNames == null) {
-                elementNames = new LinkedList<>();
+                elementNames = new ArrayDeque<>();
             }
             elementNames.push(name);
         }
