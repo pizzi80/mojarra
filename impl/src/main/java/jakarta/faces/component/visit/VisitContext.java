@@ -44,7 +44,7 @@ import jakarta.faces.context.FacesContext;
  *
  * @since 2.0
  */
-abstract public class VisitContext {
+public abstract class VisitContext {
 
     // Design notes: The VisitContext contract could be defined
     // as an interface. However, there is the potential that we
@@ -75,7 +75,7 @@ abstract public class VisitContext {
     // Note: We cannot use Collections.emptyList() as that returns
     // a shared instance - we want to unique instance to allow for
     // identity tests.
-    static public final Collection<String> ALL_IDS = new AbstractCollection<String>() {
+    public static final Collection<String> ALL_IDS = new AbstractCollection<>() {
 
         @Override
         public Iterator<String> iterator() {
@@ -102,7 +102,7 @@ abstract public class VisitContext {
      *
      * @since 2.0
      */
-    abstract public FacesContext getFacesContext();
+    public abstract FacesContext getFacesContext();
 
     /**
      * <p class="changed_added_2_0">
@@ -117,7 +117,7 @@ abstract public class VisitContext {
      * @return the ids of the components to visit
      *
      */
-    abstract public Collection<String> getIdsToVisit();
+    public abstract Collection<String> getIdsToVisit();
 
     /**
      * <p class="changed_added_2_0">
@@ -147,7 +147,7 @@ abstract public class VisitContext {
      * components underneath the NamingContainer should be visited, returns the {@code VisitContext.ALL_IDS} collection.
      * @throws IllegalArgumentException if {@code component} is not an instance of NamingContainer
      */
-    abstract public Collection<String> getSubtreeIdsToVisit(UIComponent component);
+    public abstract Collection<String> getSubtreeIdsToVisit(UIComponent component);
 
     /**
      * <p>
@@ -159,7 +159,7 @@ abstract public class VisitContext {
      * @return a VisitResult value that indicates whether to continue visiting the component's subtree, skip visiting the
      * component's subtree or abort the visit altogether.
      */
-    abstract public VisitResult invokeVisitCallback(UIComponent component, VisitCallback callback);
+    public abstract VisitResult invokeVisitCallback(UIComponent component, VisitCallback callback);
 
     /**
      * <p>
@@ -173,7 +173,7 @@ abstract public class VisitContext {
      *
      * @return a non-empty, unmodifiable collection of VisitHints
      */
-    abstract public Set<VisitHint> getHints();
+    public abstract Set<VisitHint> getHints();
 
     /**
      * <p>
@@ -191,7 +191,6 @@ abstract public class VisitContext {
 
         VisitContextFactory factory = (VisitContextFactory) FactoryFinder.getFactory(FactoryFinder.VISIT_CONTEXT_FACTORY);
         return factory.getVisitContext(context, ids, hints);
-
     }
 
     /**
@@ -204,9 +203,7 @@ abstract public class VisitContext {
      * @return a VisitContext instance
      */
     public static VisitContext createVisitContext(FacesContext context) {
-
         return createVisitContext(context, null, null);
-
     }
 
 }
