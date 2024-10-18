@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -96,7 +95,7 @@ public class RenderKitImpl extends RenderKit {
         Util.notNull("rendererType", rendererType);
         Util.notNull("renderer", renderer);
 
-        Map<String, Renderer> renderers = rendererFamilies.computeIfAbsent(family, k -> new HashMap<>());
+        Map<String, Renderer> renderers = rendererFamilies.computeIfAbsent(family, $ -> new HashMap<>());
 
         if (LOGGER.isLoggable(Level.FINE) && renderers.containsKey(rendererType)) {
             LOGGER.log(Level.FINE, "rendererType {0} has already been registered for family {1}.  Replacing existing renderer class type {2} with {3}.",
@@ -114,9 +113,8 @@ public class RenderKitImpl extends RenderKit {
 
         assert rendererFamilies != null;
 
-        HashMap<String, Renderer> renderers = rendererFamilies.get(family);
+        Map<String, Renderer> renderers = rendererFamilies.get(family);
         return renderers != null ? renderers.get(rendererType) : null;
-
     }
 
     @Override
