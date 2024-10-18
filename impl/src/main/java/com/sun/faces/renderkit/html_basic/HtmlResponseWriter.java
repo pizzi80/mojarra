@@ -53,7 +53,7 @@ public class HtmlResponseWriter extends ResponseWriter {
     // Character encoding of that Writer - this may be null
     // if the encoding isn't known.
     //
-    private String encoding;
+    private final String encoding;
 
     // Writer to use for output;
     //
@@ -65,7 +65,7 @@ public class HtmlResponseWriter extends ResponseWriter {
 
     // Configuration flag regarding disableUnicodeEscaping
     //
-    private WebConfiguration.DisableUnicodeEscaping disableUnicodeEscaping;
+    private final WebConfiguration.DisableUnicodeEscaping disableUnicodeEscaping;
 
     // Flag to escape Unicode
     //
@@ -105,7 +105,7 @@ public class HtmlResponseWriter extends ResponseWriter {
     private boolean scriptOrStyleSrc;
 
     // flag to indicate if this is a partial response
-    private boolean isPartial;
+    private final boolean isPartial;
 
     // flag to indicate if the content type is XHTML
     private boolean isXhtml;
@@ -119,14 +119,14 @@ public class HtmlResponseWriter extends ResponseWriter {
     // Keep one instance of attributesBuffer to buffer the writing
     // of all attributes for a particular element to reduce the number
     // of writes
-    private FastStringWriter attributesBuffer;
+    private final FastStringWriter attributesBuffer;
 
     // Enables hiding of inlined script and style
     // elements from old browsers
-    private Boolean isScriptHidingEnabled;
+    private final Boolean isScriptHidingEnabled;
 
     // Enables scripts to be included in attribute values
-    private Boolean isScriptInAttributeValueEnabled;
+    private final Boolean isScriptInAttributeValueEnabled;
 
     // Internal buffer used when outputting properly escaped information
     // using HtmlUtils class.
@@ -136,11 +136,11 @@ public class HtmlResponseWriter extends ResponseWriter {
     // Internal buffer used when outputting properly escaped CData information.
     //
     private final static int cdataBufferSize = 1024;
-    private char[] cdataBuffer = new char[cdataBufferSize];
+    private final char[] cdataBuffer = new char[cdataBufferSize];
     private int cdataBufferLength = 0;
     // Secondary cdata buffer, used for writeText
     private final static int cdataTextBufferSize = 128;
-    private char[] cdataTextBuffer = new char[cdataTextBufferSize];
+    private final char[] cdataTextBuffer = new char[cdataTextBufferSize];
 
     private Map<String, Object> passthroughAttributes;
 
@@ -150,7 +150,7 @@ public class HtmlResponseWriter extends ResponseWriter {
     // accomodate larger values.
     private char[] textBuffer = new char[128];
 
-    private char[] charHolder = new char[1];
+    private final char[] charHolder = new char[1];
 
     private LinkedList<String> elementNames;
 
@@ -160,33 +160,22 @@ public class HtmlResponseWriter extends ResponseWriter {
     private static final char[] ESCAPEDSTART = ("&lt;" + BREAKCDATA + "![").toCharArray();
     private static final char[] ESCAPEDEND = ("]" + BREAKCDATA + "]>").toCharArray();
 
-    static final Pattern CDATA_START_SLASH_SLASH;
+    // At the beginning of a line, match // followed by any amount of
+    // whitespace, followed by <![CDATA[
+    private static final Pattern CDATA_START_SLASH_SLASH = Pattern.compile("^//\\s*\\Q<![CDATA[\\E");
 
-    static final Pattern CDATA_END_SLASH_SLASH;
+    // At the end of a line, match // followed by any amount of whitespace,
+    // followed by ]]>
+    private static final Pattern CDATA_END_SLASH_SLASH = Pattern.compile("//\\s*\\Q]]>\\E$");
 
-    static final Pattern CDATA_START_SLASH_STAR;
+    // At the beginning of a line, match /* followed by any amount of
+    // whitespace, followed by <![CDATA[, followed by any amount of whitespace,
+    // followed by */
+    private static final Pattern CDATA_START_SLASH_STAR = Pattern.compile("^/\\*\\s*\\Q<![CDATA[\\E\\s*\\*/");
 
-    static final Pattern CDATA_END_SLASH_STAR;
-
-    static {
-        // At the beginning of a line, match // followed by any amount of
-        // whitespace, followed by <![CDATA[
-        CDATA_START_SLASH_SLASH = Pattern.compile("^//\\s*\\Q<![CDATA[\\E");
-
-        // At the end of a line, match // followed by any amout of whitespace,
-        // followed by ]]>
-        CDATA_END_SLASH_SLASH = Pattern.compile("//\\s*\\Q]]>\\E$");
-
-        // At the beginning of a line, match /* followed by any amout of
-        // whitespace, followed by <![CDATA[, followed by any amount of whitespace,
-        // followed by */
-        CDATA_START_SLASH_STAR = Pattern.compile("^/\\*\\s*\\Q<![CDATA[\\E\\s*\\*/");
-
-        // At the end of a line, match /* followed by any amount of whitespace,
-        // followed by ]]> followed by any amount of whitespace, followed by */
-        CDATA_END_SLASH_STAR = Pattern.compile("/\\*\\s*\\Q]]>\\E\\s*\\*/$");
-
-    }
+    // At the end of a line, match /* followed by any amount of whitespace,
+    // followed by ]]> followed by any amount of whitespace, followed by */
+    private static final Pattern CDATA_END_SLASH_STAR = Pattern.compile("/\\*\\s*\\Q]]>\\E\\s*\\*/$");
 
     // ------------------------------------------------------------ Constructors
 
@@ -429,55 +418,53 @@ public class HtmlResponseWriter extends ResponseWriter {
             String result = ((FastStringWriter) writer).getBuffer().toString();
             writer = origWriter;
 
-            if (result != null) {
-                String trim = result.trim();
-                if (isXhtml) {
-                    if (isScript) {
-                        Matcher cdataStartSlashSlash = CDATA_START_SLASH_SLASH.matcher(trim), cdataEndSlashSlash = CDATA_END_SLASH_SLASH.matcher(trim),
-                                cdataStartSlashStar = CDATA_START_SLASH_STAR.matcher(trim), cdataEndSlashStar = CDATA_END_SLASH_STAR.matcher(trim);
-                        int trimLen = trim.length(), start, end;
-                        // case 1 start is // end is //
-                        if (cdataStartSlashSlash.find() && cdataEndSlashSlash.find()) {
-                            start = cdataStartSlashSlash.end() - cdataStartSlashSlash.start();
-                            end = trimLen - (cdataEndSlashSlash.end() - cdataEndSlashSlash.start());
-                            writer.write(trim.substring(start, end));
-                        }
-                        // case 2 start is // end is /* */
-                        else if (null != cdataStartSlashSlash.reset() && cdataStartSlashSlash.find() && cdataEndSlashStar.find()) {
-                            start = cdataStartSlashSlash.end() - cdataStartSlashSlash.start();
-                            end = trimLen - (cdataEndSlashStar.end() - cdataEndSlashStar.start());
-                            writer.write(trim.substring(start, end));
-                        }
-                        // case 3 start is /* */ end is /* */
-                        else if (cdataStartSlashStar.find() && null != cdataEndSlashStar.reset() && cdataEndSlashStar.find()) {
-                            start = cdataStartSlashStar.end() - cdataStartSlashStar.start();
-                            end = trimLen - (cdataEndSlashStar.end() - cdataEndSlashStar.start());
-                            writer.write(trim.substring(start, end));
-                        }
-                        // case 4 start is /* */ end is //
-                        else if (null != cdataStartSlashStar.reset() && cdataStartSlashStar.find()
-                                && null != cdataEndSlashStar.reset() && cdataEndSlashSlash.find()) {
-                            start = cdataStartSlashStar.end() - cdataStartSlashStar.start();
-                            end = trimLen - (cdataEndSlashSlash.end() - cdataEndSlashSlash.start());
-                            writer.write(trim.substring(start, end));
-                        }
-                        // case 5 no commented out cdata present.
-                        else {
-                            writer.write(result);
-                        }
-                    } else {
-                        if (trim.startsWith("<![CDATA[") && trim.endsWith("]]>")) {
-                            writer.write(trim.substring(9, trim.length() - 3));
-                        } else {
-                            writer.write(result);
-                        }
+            String trim = result.trim();
+            if (isXhtml) {
+                if (isScript) {
+                    Matcher cdataStartSlashSlash = CDATA_START_SLASH_SLASH.matcher(trim), cdataEndSlashSlash = CDATA_END_SLASH_SLASH.matcher(trim),
+                            cdataStartSlashStar = CDATA_START_SLASH_STAR.matcher(trim), cdataEndSlashStar = CDATA_END_SLASH_STAR.matcher(trim);
+                    int trimLen = trim.length(), start, end;
+                    // case 1 start is // end is //
+                    if (cdataStartSlashSlash.find() && cdataEndSlashSlash.find()) {
+                        start = cdataStartSlashSlash.end() - cdataStartSlashSlash.start();
+                        end = trimLen - (cdataEndSlashSlash.end() - cdataEndSlashSlash.start());
+                        writer.write(trim.substring(start, end));
+                    }
+                    // case 2 start is // end is /* */
+                    else if (null != cdataStartSlashSlash.reset() && cdataStartSlashSlash.find() && cdataEndSlashStar.find()) {
+                        start = cdataStartSlashSlash.end() - cdataStartSlashSlash.start();
+                        end = trimLen - (cdataEndSlashStar.end() - cdataEndSlashStar.start());
+                        writer.write(trim.substring(start, end));
+                    }
+                    // case 3 start is /* */ end is /* */
+                    else if (cdataStartSlashStar.find() && null != cdataEndSlashStar.reset() && cdataEndSlashStar.find()) {
+                        start = cdataStartSlashStar.end() - cdataStartSlashStar.start();
+                        end = trimLen - (cdataEndSlashStar.end() - cdataEndSlashStar.start());
+                        writer.write(trim.substring(start, end));
+                    }
+                    // case 4 start is /* */ end is //
+                    else if (null != cdataStartSlashStar.reset() && cdataStartSlashStar.find()
+                            && null != cdataEndSlashStar.reset() && cdataEndSlashSlash.find()) {
+                        start = cdataStartSlashStar.end() - cdataStartSlashStar.start();
+                        end = trimLen - (cdataEndSlashSlash.end() - cdataEndSlashSlash.start());
+                        writer.write(trim.substring(start, end));
+                    }
+                    // case 5 no commented out cdata present.
+                    else {
+                        writer.write(result);
                     }
                 } else {
-                    if (trim.startsWith("<!--") && trim.endsWith("//-->")) {
-                        writer.write(trim.substring(4, trim.length() - 5));
+                    if (trim.startsWith("<![CDATA[") && trim.endsWith("]]>")) {
+                        writer.write(trim.substring(9, trim.length() - 3));
                     } else {
                         writer.write(result);
                     }
+                }
+            } else {
+                if (trim.startsWith("<!--") && trim.endsWith("//-->")) {
+                    writer.write(trim.substring(4, trim.length() - 5));
+                } else {
+                    writer.write(result);
                 }
             }
             if (isXhtml) {
@@ -500,7 +487,9 @@ public class HtmlResponseWriter extends ResponseWriter {
         } else if (!withinStyle || isStyle) {
             isStyle = false;
         }
-        if (!withinScript && !withinScript) {
+
+        // always turn escaping back on once an element ends
+        if (!withinScript && !withinStyle) {
             dontEscape = false;
         }
 
@@ -877,10 +866,10 @@ public class HtmlResponseWriter extends ResponseWriter {
         closeStartIfNecessary();
         String textStr = text.toString();
 
-        if (textStr.length() == 0) return;
+        if (textStr.isEmpty()) return;
 
         if (dontEscape) {
-            if (writingCdata && !textStr.isEmpty()) {
+            if (writingCdata) {
                 writeUnescapedCData(textStr.toCharArray(), 0, textStr.length());
             } else {
                 writer.write(textStr);
@@ -925,7 +914,7 @@ public class HtmlResponseWriter extends ResponseWriter {
      * @throws NullPointerException if <code>text</code> is <code>null</code>
      */
     @Override
-    public void writeText(char text[], int off, int len) throws IOException {
+    public void writeText(char[] text, int off, int len) throws IOException {
 
         if (text == null) {
             throw new NullPointerException(MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "text"));
@@ -1144,7 +1133,7 @@ public class HtmlResponseWriter extends ResponseWriter {
 
     private String pushElementName(String original) {
 
-        if (original.equals("option")) {
+        if ("option".equals(original)) {
             if (elementNames == null) {
                 elementNames = new LinkedList<>();
             }
@@ -1182,7 +1171,7 @@ public class HtmlResponseWriter extends ResponseWriter {
             FacesContext context = FacesContext.getCurrentInstance();
 
             String elementName = getAttributeValue(context, passthroughAttributes.get(Renderer.PASSTHROUGH_RENDERER_LOCALNAME_KEY));
-            if (elementName != null && elementName.trim().length() > 0) {
+            if (elementName != null && !elementName.isBlank()) {
                 return elementName;
             }
         }
@@ -1216,7 +1205,7 @@ public class HtmlResponseWriter extends ResponseWriter {
      *
      * This method looks for occurrences of "<![" and "]]>"
      */
-    private void writeEscaped(char cbuf[], int offset, int length) throws IOException {
+    private void writeEscaped(char[] cbuf, int offset, int length) throws IOException {
         if (cbuf == null || cbuf.length == 0 || length == 0) {
             return;
         }
