@@ -22,9 +22,8 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.Set;
 
 import com.sun.faces.RIConstants;
@@ -33,23 +32,24 @@ import com.sun.faces.RIConstants;
  * Utility class for HTML. Kudos to Adam Winer (Oracle) for much of this code.
  */
 public class HtmlUtils {
+    private HtmlUtils() {}
 
-    private final static Set<String> UTF_CHARSET = new HashSet<>(Arrays.asList("UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "UTF-32", "UTF-32BE", "UTF-32LE",
-            "x-UTF-16LE-BOM", "X-UTF-32BE-BOM", "X-UTF-32LE-BOM", ""));
+    private final static Set<String> UTF_CHARSET = Set.of("UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "UTF-32", "UTF-32BE", "UTF-32LE",
+            "x-UTF-16LE-BOM", "X-UTF-32BE-BOM", "X-UTF-32LE-BOM", "");
 
     // -------------------------------------------------
     // The following methods include the handling of
     // escape characters....
     // -------------------------------------------------
 
-    static public void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buffer, char[] text, boolean forXml) throws IOException {
+    public static void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buffer, char[] text, boolean forXml) throws IOException {
         writeText(out, escapeUnicode, escapeIsocode, buffer, text, 0, text.length, forXml);
     }
 
     /**
      * Write char array text.
      */
-    static public void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buff, char[] text, int start, int length, boolean forXml) throws IOException {
+    public static void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buff, char[] text, int start, int length, boolean forXml) throws IOException {
         int buffLength = buff.length;
         int buffIndex = 0;
 
@@ -64,7 +64,7 @@ public class HtmlUtils {
     /**
      * Write String text.
      */
-    static public void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buff, String text, char[] textBuff, boolean forXml) throws IOException {
+    public static void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buff, String text, char[] textBuff, boolean forXml) throws IOException {
 
         int length = text.length();
 
@@ -142,7 +142,7 @@ public class HtmlUtils {
      * Write a string attribute. Note that this code is duplicated below for character arrays - change both places if you
      * make any changes!!!
      */
-    static public void writeAttribute(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buff, String text, char[] textBuff,
+    public static void writeAttribute(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buff, String text, char[] textBuff,
             boolean isScriptInAttributeValueEnabled, boolean forXml) throws IOException {
 
         int length = text.length();
@@ -171,7 +171,7 @@ public class HtmlUtils {
                     if (ch >= 0x3f) {
                         if (ch == 's') {
                             // If putting scripts in attribute values
-                            // has been disabled (the defualt), look for
+                            // has been disabled (the default), look for
                             // script: in the attribute value.
                             // ensure the attribute value is long enough
                             // to accomodate "script:"
@@ -238,7 +238,7 @@ public class HtmlUtils {
      * Write a character array attribute. Note that this code is duplicated above for string - change both places if you
      * make any changes!!!
      */
-    static public void writeAttribute(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buff, char[] text, int start, int length,
+    public static void writeAttribute(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] buff, char[] text, int start, int length,
             boolean isScriptInAttributeValueEnabled, boolean forXml) throws IOException {
         int buffLength = buff.length;
         int buffIndex = 0;
@@ -322,7 +322,7 @@ public class HtmlUtils {
         flushBuffer(out, buff, buffIndex);
     }
 
-    static private boolean isPrintableControlChar(int ch, boolean forXml) {
+    private static boolean isPrintableControlChar(int ch, boolean forXml) {
 
         return (ch == 0x09 || ch == 0x0A || (ch == 0x0C && !forXml) || ch == 0x0D);
 
@@ -337,7 +337,7 @@ public class HtmlUtils {
      * Writes a character as a decimal escape. Hex escapes are smaller than the decimal version, but Netscape didn't support
      * hex escapes until 4.7.4.
      */
-    static private int _writeDecRef(Writer out, char[] buffer, int bufferIndex, int bufferLength, char ch) throws IOException {
+    private static int _writeDecRef(Writer out, char[] buffer, int bufferIndex, int bufferLength, char ch) throws IOException {
         if (ch == '\u20ac') {
             bufferIndex = addToBuffer(out, buffer, bufferIndex, bufferLength, EURO_CHARS);
             return bufferIndex;
@@ -424,9 +424,6 @@ public class HtmlUtils {
         return 0;
     }
 
-    private HtmlUtils() {
-    }
-
     /**
      * Writes a string into URL-encoded format out to a Writer.
      * 
@@ -451,7 +448,7 @@ public class HtmlUtils {
      * @param text the unencoded (or partially encoded) String
      * @param queryEncoding the character set encoding for after the first question mark
      */
-    static public void writeURL(Writer out, String text, char[] textBuff, String queryEncoding) throws IOException, UnsupportedEncodingException {
+    public static void writeURL(Writer out, String text, char[] textBuff, String queryEncoding) throws IOException, UnsupportedEncodingException {
 
         int length = text.length();
         if (length >= 16) {
@@ -466,7 +463,7 @@ public class HtmlUtils {
                         out.write('+');
                     } else {
                         textBuff[i] = ch;
-                        encodeURIString(out, textBuff, "UTF-8", i, i + 1);
+                        encodeURIString(out, textBuff, RIConstants.CHAR_ENCODING, i, i + 1);
                     }
                 }
                 // DO NOT encode '%'. If you do, then for starters,
@@ -518,14 +515,14 @@ public class HtmlUtils {
      * @param textBuff char[] containing the content to write
      * @param queryEncoding the character set encoding for after the first question mark
      */
-    static public void writeURL(Writer out, char[] textBuff, int start, int len, String queryEncoding) throws IOException, UnsupportedEncodingException {
+    public static void writeURL(Writer out, char[] textBuff, int start, int len, String queryEncoding) throws IOException, UnsupportedEncodingException {
 
         int end = start + len;
         for (int i = start; i < end; i++) {
             char ch = textBuff[i];
 
             if (ch < 33 || ch > 126) {
-                encodeURIString(out, textBuff, "UTF-8", i, i + 1);
+                encodeURIString(out, textBuff, RIConstants.CHAR_ENCODING, i, i + 1);
             }
             // DO NOT encode '%'. If you do, then for starters,
             // we'll double-encode anything that's pre-encoded.
@@ -552,16 +549,14 @@ public class HtmlUtils {
         }
     }
 
-    static public void writeTextForXML(Writer out, String text, char[] outbuf) throws IOException {
-        char[] textBuffer = new char[128];
-        int len = text.length();
-        if (textBuffer.length < len) {
-            textBuffer = new char[len * 2];
-        }
+    public static void writeTextForXML(Writer out, String text, char[] outbuf) throws IOException {
+        final int len = text.length();
+        final char[] textBuffer = new char[ len > 128 ? len*2 : 128 ];
+
         HtmlUtils.writeText(out, true, true, outbuf, text, textBuffer, true);
     }
 
-    static public void writeUnescapedTextForXML(Writer out, String text) throws IOException {
+    public static void writeUnescapedTextForXML(Writer out, String text) throws IOException {
         final int length = text.length();
 
         for (int i = 0; i < length; i++) {
@@ -577,8 +572,9 @@ public class HtmlUtils {
     // appear rather (ahem) similar to java.net.URLEncoder
     // This is duplicated below accepting a char[] for the content
     // to write. Any changes here, should be made there as well.
-    static private void encodeURIString(Writer out, String text, String encoding, int start) throws IOException {
-        MyByteArrayOutputStream buf = null;
+    private static void encodeURIString(Writer out, String text, String encoding, int start) throws IOException {
+        if (encoding == null) encoding = RIConstants.CHAR_ENCODING;
+        InternalByteArrayOutputStream buf = null;
         OutputStreamWriter writer = null;
         char[] charArray = null;
 
@@ -597,12 +593,8 @@ public class HtmlUtils {
                 }
             } else {
                 if (buf == null) {
-                    buf = new MyByteArrayOutputStream(MAX_BYTES_PER_CHAR);
-                    if (encoding != null) {
-                        writer = new OutputStreamWriter(buf, encoding);
-                    } else {
-                        writer = new OutputStreamWriter(buf, RIConstants.CHAR_ENCODING);
-                    }
+                    buf = new InternalByteArrayOutputStream(MAX_BYTES_PER_CHAR);
+                    writer = new OutputStreamWriter(buf, encoding);
                     charArray = new char[1];
                 }
 
@@ -619,7 +611,7 @@ public class HtmlUtils {
                     continue;
                 }
 
-                byte[] ba = buf.getBuf();
+                byte[] ba = buf.getBuffer();
                 for (int j = 0, size = buf.size(); j < size; j++) {
                     writeURIDoubleHex(out, ba[j] + 256);
                 }
@@ -633,8 +625,9 @@ public class HtmlUtils {
     // appear rather (ahem) similar to java.net.URLEncoder
     // This is duplicated above accepting a String for the content
     // to write. Any changes here, should be made there as well.
-    static private void encodeURIString(Writer out, char[] textBuff, String encoding, int start, int end) throws IOException {
-        MyByteArrayOutputStream buf = null;
+    private static void encodeURIString(Writer out, char[] textBuff, String encoding, int start, int end) throws IOException {
+        if (encoding == null) encoding = RIConstants.CHAR_ENCODING;
+        InternalByteArrayOutputStream buf = null;
         OutputStreamWriter writer = null;
         char[] charArray = null;
 
@@ -652,12 +645,8 @@ public class HtmlUtils {
                 }
             } else {
                 if (buf == null) {
-                    buf = new MyByteArrayOutputStream(MAX_BYTES_PER_CHAR);
-                    if (encoding != null) {
-                        writer = new OutputStreamWriter(buf, encoding);
-                    } else {
-                        writer = new OutputStreamWriter(buf, RIConstants.CHAR_ENCODING);
-                    }
+                    buf = new InternalByteArrayOutputStream(MAX_BYTES_PER_CHAR);
+                    writer = new OutputStreamWriter(buf, encoding);
                     charArray = new char[1];
                 }
 
@@ -674,7 +663,7 @@ public class HtmlUtils {
                     continue;
                 }
 
-                byte[] ba = buf.getBuf();
+                byte[] ba = buf.getBuffer();
                 for (int j = 0, size = buf.size(); j < size; j++) {
                     writeURIDoubleHex(out, ba[j] + 256);
                 }
@@ -687,7 +676,7 @@ public class HtmlUtils {
     // NOTE: Any changes made to this method should be made
     // in the associated method that accepts a char[] instead
     // of String
-    static private boolean isAmpEscaped(String text, int idx) {
+    private static boolean isAmpEscaped(String text, int idx) {
         for (int i = 1, ix = idx; i < AMP_CHARS.length; i++, ix++) {
             if (text.charAt(ix) == AMP_CHARS[i]) {
                 continue;
@@ -700,7 +689,7 @@ public class HtmlUtils {
     // NOTE: Any changes made to this method should be made
     // in the associated method that accepts a String instead
     // of char[]
-    static private boolean isAmpEscaped(char[] text, int idx) {
+    private static boolean isAmpEscaped(char[] text, int idx) {
         for (int i = 1, ix = idx; i < AMP_CHARS.length; i++, ix++) {
             if (text[ix] == AMP_CHARS[i]) {
                 continue;
@@ -710,13 +699,13 @@ public class HtmlUtils {
         return true;
     }
 
-    static private void writeURIDoubleHex(Writer out, int i) throws IOException {
+    private static void writeURIDoubleHex(Writer out, int i) throws IOException {
         out.write('%');
         out.write(intToHex((i >> 4) % 0x10));
         out.write(intToHex(i % 0x10));
     }
 
-    static private char intToHex(int i) {
+    private static char intToHex(int i) {
         if (i < 10) {
             return (char) ('0' + i);
         } else {
@@ -724,14 +713,14 @@ public class HtmlUtils {
         }
     }
 
-    static private final char[] AMP_CHARS = "&amp;".toCharArray();
-    static private final char[] QUOT_CHARS = "&quot;".toCharArray();
-    static private final char[] GT_CHARS = "&gt;".toCharArray();
-    static private final char[] LT_CHARS = "&lt;".toCharArray();
-    static private final char[] EURO_CHARS = "&euro;".toCharArray();
-    static private final char[] DEC_REF_START = "&#".toCharArray();
-    static private final int MAX_BYTES_PER_CHAR = 10;
-    static private final BitSet DONT_ENCODE_SET = new BitSet(256);
+    private static final char[] AMP_CHARS = "&amp;".toCharArray();
+    private static final char[] QUOT_CHARS = "&quot;".toCharArray();
+    private static final char[] GT_CHARS = "&gt;".toCharArray();
+    private static final char[] LT_CHARS = "&lt;".toCharArray();
+    private static final char[] EURO_CHARS = "&euro;".toCharArray();
+    private static final char[] DEC_REF_START = "&#".toCharArray();
+    private static final int MAX_BYTES_PER_CHAR = 10;
+    private static final BitSet DONT_ENCODE_SET = new BitSet(256);
 
     // See: http://www.ietf.org/rfc/rfc2396.txt
     // We're not fully along for that ride either, but we do encode
@@ -773,7 +762,7 @@ public class HtmlUtils {
     //
     // Entities from HTML 4.0, section 24.2.1; character codes 0xA0 to 0xFF
     //
-    static private char[][] sISO8859_1_Entities = new char[][] { "&nbsp;".toCharArray(), "&iexcl;".toCharArray(), "&cent;".toCharArray(),
+    private static final char[][] sISO8859_1_Entities = new char[][] { "&nbsp;".toCharArray(), "&iexcl;".toCharArray(), "&cent;".toCharArray(),
             "&pound;".toCharArray(), "&curren;".toCharArray(), "&yen;".toCharArray(), "&brvbar;".toCharArray(), "&sect;".toCharArray(), "&uml;".toCharArray(),
             "&copy;".toCharArray(), "&ordf;".toCharArray(), "&laquo;".toCharArray(), "&not;".toCharArray(), "&shy;".toCharArray(), "&reg;".toCharArray(),
             "&macr;".toCharArray(), "&deg;".toCharArray(), "&plusmn;".toCharArray(), "&sup2;".toCharArray(), "&sup3;".toCharArray(), "&acute;".toCharArray(),
@@ -797,7 +786,7 @@ public class HtmlUtils {
     // The following is used to verify encodings
     // ----------------------------------------------------------
     //
-    static public boolean validateEncoding(String encoding) {
+    public static boolean validateEncoding(String encoding) {
         return Charset.isSupported(encoding);
     }
 
@@ -805,15 +794,15 @@ public class HtmlUtils {
     // Check if the given encoding is the ISO-8859-1 encoding
     // ----------------------------------------------------------
     //
-    static public boolean isISO8859_1encoding(String encoding) {
-        return "ISO-8859-1".equals(encoding);
+    public static boolean isISO8859_1encoding(String encoding) {
+        return StandardCharsets.ISO_8859_1.name().equals(encoding);
     }
 
     // ----------------------------------------------------------
     // Check if the given encoding is a UTF encoding
     // ----------------------------------------------------------
     //
-    static public boolean isUTFencoding(String encoding) {
+    public static boolean isUTFencoding(String encoding) {
         return UTF_CHARSET.contains(encoding);
     }
 
@@ -823,7 +812,7 @@ public class HtmlUtils {
     // ending tag. For example, <br> or <hr>...
     // ----------------------------------------------------------
 
-    static public boolean isEmptyElement(String name) {
+    public static boolean isEmptyElement(String name) {
         char firstChar = name.charAt(0);
         if (firstChar > _LAST_EMPTY_ELEMENT_START) {
             return false;
@@ -842,26 +831,26 @@ public class HtmlUtils {
         return false;
     }
 
-    static private char _LAST_EMPTY_ELEMENT_START = 'p';
-    static private String[][] emptyElementArr = new String[_LAST_EMPTY_ELEMENT_START + 1][];
+    private static final char _LAST_EMPTY_ELEMENT_START = 'p';
+    private static final String[][] emptyElementArr = new String[_LAST_EMPTY_ELEMENT_START + 1][];
 
-    static private String[] aNames = new String[] { "area", };
+    private static final String[] aNames = new String[] { "area", };
 
-    static private String[] bNames = new String[] { "br", "base", "basefont", };
+    private static final String[] bNames = new String[] { "br", "base", "basefont", };
 
-    static private String[] cNames = new String[] { "col", };
+    private static final String[] cNames = new String[] { "col", };
 
-    static private String[] fNames = new String[] { "frame", };
+    private static final String[] fNames = new String[] { "frame", };
 
-    static private String[] hNames = new String[] { "hr", };
+    private static final String[] hNames = new String[] { "hr", };
 
-    static private String[] iNames = new String[] { "img", "input", "isindex", };
+    private static final String[] iNames = new String[] { "img", "input", "isindex", };
 
-    static private String[] lNames = new String[] { "link", };
+    private static final String[] lNames = new String[] { "link", };
 
-    static private String[] mNames = new String[] { "meta", };
+    private static final String[] mNames = new String[] { "meta", };
 
-    static private String[] pNames = new String[] { "param", };
+    private static final String[] pNames = new String[] { "param", };
 
     static {
         emptyElementArr['a'] = aNames;
@@ -888,21 +877,21 @@ public class HtmlUtils {
 
     /**
      * <p>
-     * Private implementation of ByteArrayOutputStream.
+     * Private implementation of {@link ByteArrayOutputStream} that expose the internal buffer
      * </p>
      */
-    private static class MyByteArrayOutputStream extends ByteArrayOutputStream {
+    private static class InternalByteArrayOutputStream extends ByteArrayOutputStream {
 
-        public MyByteArrayOutputStream(int initialCapacity) {
+        public InternalByteArrayOutputStream(int initialCapacity) {
             super(initialCapacity);
         }
 
         /**
-         * Obtain access to the underlying byte array to prevent unecessary temp object creation.
+         * Obtain access to the underlying byte array to prevent unnecessary temp object creation.
          *
          * @return <code>buf</code>
          */
-        public byte[] getBuf() {
+        public byte[] getBuffer() {
             return buf;
         }
 
