@@ -60,9 +60,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import com.sun.faces.config.ConfigManager;
 import com.sun.faces.spi.InjectionProvider;
@@ -75,9 +77,11 @@ final class FactoryFinderInstance {
 
     private static final String INJECTION_PROVIDER_KEY = FactoryFinder.class.getPackage().getName() + "INJECTION_PROVIDER_KEY";
 
-    private final Map<String, Object> factories = new ConcurrentHashMap<>();
-    private final Map<String, List<String>> savedFactoryNames = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Object> factories = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, List<String>> savedFactoryNames = new ConcurrentHashMap<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
+    private final ReadLock readLock = lock.readLock();
+    private final WriteLock writeLock = lock.writeLock();
     private final String createdBy;
 
     private ServletContextFacesContextFactory servletContextFinder = new ServletContextFacesContextFactory();
@@ -127,13 +131,13 @@ final class FactoryFinderInstance {
         validateFactoryName(factoryName);
 
         Object result = factories.get(factoryName);
-        lock.writeLock().lock();
+        writeLock.lock();
         try {
             if (result instanceof List) {
                 TypedCollections.dynamicallyCastList((List<?>) result, String.class).add(0, implementationClassName);
             }
         } finally {
-            lock.writeLock().unlock();
+            writeLock.unlock();
         }
     }
 
@@ -147,27 +151,27 @@ final class FactoryFinderInstance {
 
         if (factoryName.equals(SERVLET_CONTEXT_FINDER_REMOVAL_NAME)) {
             try {
-                lock.writeLock().lock();
+                writeLock.lock();
                 servletContextFinder = null;
                 return null;
             } finally {
-                lock.writeLock().unlock();
+                writeLock.unlock();
             }
         }
 
         Object factoryOrList;
-        lock.readLock().lock();
+        readLock.lock();
         try {
             factoryOrList = factories.get(factoryName);
             if (!(factoryOrList instanceof List)) {
                 return factoryOrList;
             }
         } finally {
-            lock.readLock().unlock();
+            readLock.unlock();
         }
 
         // Factory hasn't been constructed
-        lock.writeLock().lock();
+        writeLock.lock();
         try {
 
             // Double check the current value. Another thread
@@ -195,7 +199,7 @@ final class FactoryFinderInstance {
 
             return factory;
         } finally {
-            lock.writeLock().unlock();
+            writeLock.unlock();
         }
     }
 
@@ -211,7 +215,7 @@ final class FactoryFinderInstance {
         InjectionProvider provider = getInjectionProvider();
 
         if (provider != null) {
-            lock.writeLock().lock();
+            writeLock.lock();
             try {
                 for (Entry<String, Object> entry : factories.entrySet()) {
                     Object curFactory = entry.getValue();
@@ -229,7 +233,7 @@ final class FactoryFinderInstance {
                 }
             } finally {
                 factories.clear();
-                lock.writeLock().unlock();
+                writeLock.unlock();
             }
 
         } else {
@@ -245,10 +249,7 @@ final class FactoryFinderInstance {
     // -------------------------------------------------------- Private methods
 
     private void copyInjectionProviderFromFacesContext(FacesContext facesContext) {
-        InjectionProvider injectionProvider = null;
-        if (facesContext != null) {
-            injectionProvider = (InjectionProvider) facesContext.getAttributes().get(ConfigManager.INJECTION_PROVIDER_KEY);
-        }
+        final InjectionProvider injectionProvider = facesContext != null ? (InjectionProvider) facesContext.getAttributes().get(ConfigManager.INJECTION_PROVIDER_KEY) : null;
 
         if (injectionProvider != null) {
             factories.put(INJECTION_PROVIDER_KEY, injectionProvider);
@@ -325,10 +326,8 @@ final class FactoryFinderInstance {
 
         // step 2.
         List<String> fromServices = getImplNameFromServices(classLoader, factoryName);
-        if (fromServices != null) {
-            for (String name : fromServices) {
-                implementation = getImplGivenPreviousImpl(classLoader, factoryName, name, implementation);
-            }
+        for (String name : fromServices) {
+            implementation = getImplGivenPreviousImpl(classLoader, factoryName, name, implementation);
         }
 
         // step 3.
@@ -345,7 +344,7 @@ final class FactoryFinderInstance {
     /**
      * <p>
      * Perform the logic to get the implementation class for the second step of
-     * {@link FactoryFinder#getImplementationInstance(ClassLoader, String, java.util.List)}.
+     * {@link #getImplementationInstance(ClassLoader, String, List)}.
      * </p>
      */
     private List<String> getImplNameFromServices(ClassLoader classLoader, String factoryName) {
@@ -383,7 +382,7 @@ final class FactoryFinderInstance {
      * 
      * <p>
      * If <code>previousImpl</code> is non-<code>null</code> and the class named by the argument <code>implName</code> has a
-     * one arg contstructor of type <code>factoryName</code>, instantiate it, passing previousImpl to the constructor.
+     * one arg constructor of type <code>factoryName</code>, instantiate it, passing previousImpl to the constructor.
      * </p>
      * 
      * <p>
@@ -407,8 +406,9 @@ final class FactoryFinderInstance {
             // We have a previous factory implementation AND the appropriate one argument ctor.
 
             try {
-                factoryImplementation = Class.forName(factoryImplClassName, false, classLoader).getConstructor(factoryClass)
-                        .newInstance(previousFactoryImplementation);
+                factoryImplementation = Class.forName(factoryImplClassName, false, classLoader)
+                                             .getConstructor(factoryClass)
+                                             .newInstance(previousFactoryImplementation);
 
             } catch (NoSuchMethodException nsme) {
                 // fall through to "zero-arg-ctor" case
@@ -428,8 +428,9 @@ final class FactoryFinderInstance {
                 // Since this is the hard coded implementation default, there is no preceding implementation,
                 // so don't bother with a non-zero-argument ctor.
 
-                factoryImplementation = Class.forName(factoryImplClassName, false, classLoader).getDeclaredConstructor()
-                        .newInstance();
+                factoryImplementation = Class.forName(factoryImplClassName, false, classLoader)
+                                             .getDeclaredConstructor()
+                                             .newInstance();
 
             } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException e) {
                 throw new FacesException(factoryImplClassName, e);
@@ -535,7 +536,7 @@ final class FactoryFinderInstance {
 
     @SafeVarargs // todo: move to CollectionUtil
     private static <T extends Comparable<T>> List<T> asSortedList(T... elements) {
-        return Arrays.stream(elements).sorted().collect(Collectors.toList());
+        return Arrays.stream(elements).sorted().toList();
     }
 
 }
