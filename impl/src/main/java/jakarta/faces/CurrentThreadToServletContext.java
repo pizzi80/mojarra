@@ -38,7 +38,7 @@ final class CurrentThreadToServletContext {
     // by the fix for 20458755
     private final ServletContextFacesContextFactory servletContextFacesContextFactory = new ServletContextFacesContextFactory();
 
-    ConcurrentMap<FactoryFinderCacheKey, FactoryFinderInstance> factoryFinderMap = new ConcurrentHashMap<>();
+    final ConcurrentMap<FactoryFinderCacheKey, FactoryFinderInstance> factoryFinderMap = new ConcurrentHashMap<>();
     private final AtomicBoolean logNullFacesContext = new AtomicBoolean();
     private final AtomicBoolean logNonNullFacesContext = new AtomicBoolean();
 
@@ -102,13 +102,8 @@ final class CurrentThreadToServletContext {
             }
 
             if (createNewFactoryFinderInstance) {
-                final FactoryFinderInstance newResult;
-                if (toCopy != null) {
-                    newResult = new FactoryFinderInstance(facesContext, toCopy);
-                } else {
-                    newResult = new FactoryFinderInstance(facesContext);
-                }
-                factoryFinder = factoryFinderMap.computeIfAbsent( key , k -> newResult );
+                final FactoryFinderInstance newResult = toCopy != null ? new FactoryFinderInstance(facesContext, toCopy) : new FactoryFinderInstance(facesContext);
+                factoryFinder = factoryFinderMap.computeIfAbsent( key , $ -> newResult );
             }
         }
 
@@ -187,7 +182,7 @@ final class CurrentThreadToServletContext {
         private ClassLoader classLoader;
 
         /**
-         * A marker that disambiguates the case when multiple web apps have the same web app ClassLoader but different
+         * A marker that disambiguate the case when multiple web apps have the same web app ClassLoader but different
          * ServletContext instances.
          */
         private Long marker;
@@ -326,32 +321,15 @@ final class CurrentThreadToServletContext {
         }
 
         @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-
-            final FactoryFinderCacheKey other = (FactoryFinderCacheKey) obj;
-            if (!Objects.equals(classLoader, other.classLoader)) {
-                return false;
-            }
-
-            if (!Objects.equals(marker, other.marker)) {
-                return false;
-            }
-
-            return true;
+        public boolean equals(Object object) {
+            if (this == object) return true;
+            if (!(object instanceof FactoryFinderCacheKey factoryFinderCacheKey)) return false;
+            return Objects.equals(classLoader, factoryFinderCacheKey.classLoader) && Objects.equals(marker, factoryFinderCacheKey.marker);
         }
 
         @Override
         public int hashCode() {
-            int hash = 7;
-            hash = 97 * hash + (classLoader != null ? classLoader.hashCode() : 0);
-            return 97 * hash + (marker != null ? marker.hashCode() : 0);
+            return Objects.hash(classLoader, marker);
         }
 
     }
