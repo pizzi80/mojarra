@@ -427,7 +427,7 @@ public final class ReflectionUtils {
      * @return a <code>MetaData</code> object for the specified Class
      */
     private static MetaData getMetaData(ClassLoader loader, Class<?> clazz) {
-        return getOrInitCache(loader).computeIfAbsent(clazz.getName(), ($) -> new MetaData(clazz));
+        return getOrInitCache(loader).computeIfAbsent(clazz.getName(), $ -> new MetaData(clazz));
     }
 
     /**
@@ -447,7 +447,7 @@ public final class ReflectionUtils {
 
         final ConcurrentMap<String, MetaData> cache = getOrInitCache(loader);
 
-        final MetaData meta = cache.computeIfAbsent(className , ($) -> {
+        final MetaData meta = cache.computeIfAbsent(className , $ -> {
             try {
                 Class<?> clazz = Util.loadClass(className, cache);
                 return new MetaData(clazz);
