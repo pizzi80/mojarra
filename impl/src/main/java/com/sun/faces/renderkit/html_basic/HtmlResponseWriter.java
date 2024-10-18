@@ -821,7 +821,7 @@ public class HtmlResponseWriter extends ResponseWriter {
      * @throws IOException if an input/output error occurs
      * @throws NullPointerException if <code>text</code> is <code>null</code>
      */
-    public void writeText(char text[]) throws IOException {
+    public void writeText(char[] text) throws IOException {
         if (text == null) {
             throw new NullPointerException(MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "text"));
         }
