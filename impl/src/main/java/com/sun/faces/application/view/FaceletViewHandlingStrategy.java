@@ -937,7 +937,6 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
      */
     protected void handleRenderException(FacesContext context, Exception e) throws IOException {
 
-        // Always log
         if (LOGGER.isLoggable(FINE)) {
             UIViewRoot root = context.getViewRoot();
             StringBuilder sb = new StringBuilder(64);
