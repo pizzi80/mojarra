@@ -1590,7 +1590,7 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
      * @param component the component from which to start the search from
      *
      * @return if <code>component</code> is <code>null</code>, return <code>null</code>, otherwise search the component's
-     * parent hierachy for the nearest parent composite component. If no parent composite component is found, return
+     * parent hierarchy for the nearest parent composite component. If no parent composite component is found, return
      * <code>null</code>
      *
      * @since 2.0
