@@ -20,6 +20,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Objects;
 
 import jakarta.el.ELContext;
 import jakarta.el.ELException;
@@ -91,23 +92,15 @@ public final class TagMethodExpression extends MethodExpression implements Exter
             return false;
         }
 
-        TagMethodExpression that = (TagMethodExpression) o;
+        TagMethodExpression expression = (TagMethodExpression) o;
 
-        if (attr != null ? !attr.equals(that.attr) : that.attr != null) {
-            return false;
-        }
-        if (orig != null ? !orig.equals(that.orig) : that.orig != null) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(attr, expression.attr)
+            && Objects.equals(orig, expression.orig);
     }
 
     @Override
     public int hashCode() {
-        int result = attr != null ? attr.hashCode() : 0;
-        result = 31 * result + (orig != null ? orig.hashCode() : 0);
-        return result;
+        return Objects.hash(attr, orig);
     }
 
     @Override
@@ -131,4 +124,5 @@ public final class TagMethodExpression extends MethodExpression implements Exter
     public String toString() {
         return attr + ": " + orig;
     }
+
 }
