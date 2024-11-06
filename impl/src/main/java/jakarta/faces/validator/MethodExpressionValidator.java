@@ -17,6 +17,7 @@
 package jakarta.faces.validator;
 
 import java.util.Map;
+import java.util.Objects;
 
 import jakarta.el.ELContext;
 import jakarta.el.ELException;
@@ -97,13 +98,9 @@ public class MethodExpressionValidator implements Validator, StateHolder {
 
     @Override
     public Object saveState(FacesContext context) {
-        if (context == null) {
-            throw new NullPointerException();
-        }
-        Object values[] = new Object[1];
-        values[0] = methodExpression;
-        return values;
+        Objects.requireNonNull(context);
 
+        return new Object[] { methodExpression };
     }
 
     @Override
@@ -114,7 +111,7 @@ public class MethodExpressionValidator implements Validator, StateHolder {
         if (state == null) {
             return;
         }
-        Object values[] = (Object[]) state;
+        Object[] values = (Object[]) state;
         methodExpression = (MethodExpression) values[0];
     }
 
