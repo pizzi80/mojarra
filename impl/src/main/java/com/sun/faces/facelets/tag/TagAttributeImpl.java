@@ -80,7 +80,7 @@ public class TagAttributeImpl extends TagAttribute {
     public TagAttributeImpl(Location location, String ns, String localName, String qName, String value) {
         this.location = location;
         namespace = ns;
-        this.localName = null == localName || 0 == localName.length() ? qName : localName;
+        this.localName = null == localName || localName.isEmpty() ? qName : localName;
         this.qName = qName;
         this.value = value;
         try {
@@ -104,7 +104,7 @@ public class TagAttributeImpl extends TagAttribute {
     @Override
     public boolean getBoolean(FaceletContext ctx) {
         if (literal) {
-            return Boolean.valueOf(value);
+            return Boolean.parseBoolean(value);
         } else {
             Boolean bool = (Boolean) this.getObject(ctx, Boolean.class);
             if (bool == null) {
@@ -355,9 +355,10 @@ public class TagAttributeImpl extends TagAttribute {
 
     // ---------------------------------------------------------- Nested Classes
 
-    private static class AttributeLookupMethodExpression extends MethodExpression {
+    public static class AttributeLookupMethodExpression extends MethodExpression {
 
         private static final long serialVersionUID = -8983924930720420664L;
+
         private ValueExpression lookupExpression;
 
         public AttributeLookupMethodExpression(ValueExpression lookupExpression) {
@@ -373,23 +374,22 @@ public class TagAttributeImpl extends TagAttribute {
 
         @Override
         public MethodInfo getMethodInfo(ELContext elContext) {
-
             Util.notNull("elContext", elContext);
-            Object result = lookupExpression.getValue(elContext);
-            if (result != null && result instanceof MethodExpression) {
+
+            final Object result = lookupExpression.getValue(elContext);
+
+            if (result instanceof MethodExpression) {
                 return ((MethodExpression) result).getMethodInfo(elContext);
             }
 
             return null;
-
         }
 
         @Override
         public Object invoke(ELContext elContext, Object[] args) {
-
             Util.notNull("elContext", elContext);
 
-            Object result = lookupExpression.getValue(elContext);
+            final Object result = lookupExpression.getValue(elContext);
             if (result == null) {
                 throw new FacesException(
                         "Unable to resolve composite component from using page using EL expression '" + lookupExpression.getExpressionString() + '\'');
@@ -400,23 +400,21 @@ public class TagAttributeImpl extends TagAttribute {
             }
 
             return ((MethodExpression) result).invoke(elContext, args);
-
         }
 
         @Override
         public String getExpressionString() {
 
             return lookupExpression.getExpressionString();
-
         }
 
         @Override
-        public boolean equals(Object otherObj) {
+        public boolean equals(Object object) {
 
             boolean result = false;
-            if (otherObj instanceof AttributeLookupMethodExpression) {
-                AttributeLookupMethodExpression other = (AttributeLookupMethodExpression) otherObj;
-                result = lookupExpression.getExpressionString().equals(other.lookupExpression.getExpressionString());
+            if (object instanceof AttributeLookupMethodExpression) {
+                AttributeLookupMethodExpression expression = (AttributeLookupMethodExpression) object;
+                result = lookupExpression.getExpressionString().equals(expression.lookupExpression.getExpressionString());
             }
             return result;
 
