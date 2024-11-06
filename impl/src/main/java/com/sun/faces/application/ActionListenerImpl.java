@@ -19,6 +19,7 @@ package com.sun.faces.application;
 import static java.text.MessageFormat.format;
 import static java.util.logging.Level.FINE;
 
+import java.util.Objects;
 import java.util.logging.Logger;
 
 import com.sun.faces.util.FacesLogger;
@@ -27,6 +28,7 @@ import jakarta.el.ELException;
 import jakarta.el.MethodExpression;
 import jakarta.faces.FacesException;
 import jakarta.faces.application.NavigationHandler;
+import jakarta.faces.application.ViewExpiredException;
 import jakarta.faces.component.ActionSource;
 import jakarta.faces.component.ActionSource2;
 import jakarta.faces.component.UIComponent;
@@ -45,7 +47,6 @@ import jakarta.faces.event.ActionListener;
  */
 public class ActionListenerImpl implements ActionListener {
 
-    // Log instance for this class
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
 
     // --------------------------------------------- Methods From ActionListener
@@ -54,51 +55,70 @@ public class ActionListenerImpl implements ActionListener {
     public void processAction(ActionEvent event) {
         LOGGER.log(FINE, () -> format("processAction({0})", event.getComponent().getId()));
 
-        UIComponent source = event.getComponent();
-        FacesContext context = event.getFacesContext();
+        final FacesContext context = event.getFacesContext();
+        final UIComponent source = event.getComponent();
+        final MethodExpression expression = ((ActionSource2) source).getActionExpression();
 
-        MethodExpression expression = ((ActionSource2) source).getActionExpression();
+        try {
+            // compute the navigation outcome
+            final String outcome = getNavigationOutcome(context, expression);
 
-        invokeNavigationHandling(context, source, expression, getNavigationOutcome(context, expression));
+            // invoke navigation
+            invokeNavigationHandling(context, source, expression, outcome);
 
-        // Trigger a switch to Render Response if needed
-        context.renderResponse();
+            // Trigger a switch to Render Response if needed
+            context.renderResponse();
+        }
+        // If view is expired we'll have an IllegalStateException
+        catch (IllegalStateException expired) {
+            try {
+                LOGGER.info("IllegaleStateException during event phase " + event.getPhaseId()
+                        + " on view " + context.getViewRoot().getId() + " transient? " + context.getViewRoot().isTransient()
+                        + " on component " + source.getId() + "/" + source.getClientId()
+                        + " for expression " + expression.getExpressionString());
+            } catch (Exception logException) {
+                LOGGER.info("Exception during debug logging for IllegalStateException for event "+event+ " " + event.getComponent());
+            }
+            // todo: throw a ViewExpiredException because it's probably expired?
+            // throw new ViewExpiredException();
+        }
     }
 
-    private String getNavigationOutcome(FacesContext context, MethodExpression expression) {
+    // Utils -----------------------------------------------------------------------------------
+
+    private static String getNavigationOutcome(FacesContext context, MethodExpression expression) {
         if (expression == null) {
             return null;
         }
 
         try {
             Object invokeResult = expression.invoke(context.getELContext(), null);
-            if (invokeResult == null) {
-                return null;
-            }
 
-            return invokeResult.toString();
-        } catch (ELException | NullPointerException e) {
+            return Objects.toString(invokeResult, null);
+        }
+        catch (ELException | NullPointerException e) {
             LOGGER.log(FINE, e, e::getMessage);
 
             throw new FacesException(expression.getExpressionString() + ": " + e.getMessage(), e);
         }
     }
 
-    private void invokeNavigationHandling(FacesContext context, UIComponent source, MethodExpression expression, String outcome) {
+    private static void invokeNavigationHandling(FacesContext context, UIComponent source, MethodExpression expression, String outcome) {
         NavigationHandler navHandler = context.getApplication().getNavigationHandler();
 
         String toFlowDocumentId = (String) source.getAttributes().get(TO_FLOW_DOCUMENT_ID_ATTR_NAME);
 
         if (toFlowDocumentId == null) {
-            navHandler.handleNavigation(context,
-                    expression != null ?
-                    expression.getExpressionString() : null,
+            navHandler.handleNavigation(
+                    context,
+                    expression != null ? expression.getExpressionString() : null,
                     outcome);
         } else {
-            navHandler.handleNavigation(context,
-                    expression != null ?
-                    expression.getExpressionString() : null,
-                    outcome, toFlowDocumentId);
+            navHandler.handleNavigation(
+                    context,
+                    expression != null ? expression.getExpressionString() : null,
+                    outcome,
+                    toFlowDocumentId);
         }
     }
 
