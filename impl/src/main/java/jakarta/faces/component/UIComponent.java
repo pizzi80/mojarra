@@ -1568,18 +1568,12 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
      * @since 2.0
      */
     public static boolean isCompositeComponent(UIComponent component) {
+        Objects.requireNonNull(component);
 
-        if (component == null) {
-            throw new NullPointerException();
-        }
-        boolean result = false;
-        if (null != component.isCompositeComponent) {
-            result = component.isCompositeComponent.booleanValue();
-        } else {
-            result = component.isCompositeComponent = component.getAttributes().containsKey(Resource.COMPONENT_RESOURCE_KEY);
-        }
-        return result;
+        if (component.isCompositeComponent == null)
+            component.isCompositeComponent = component.getAttributes().containsKey(Resource.COMPONENT_RESOURCE_KEY);
 
+        return component.isCompositeComponent;
     }
 
     /**
