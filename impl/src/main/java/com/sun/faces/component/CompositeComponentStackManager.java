@@ -16,7 +16,10 @@
 
 package com.sun.faces.component;
 
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.Objects;
 
 import jakarta.faces.application.Resource;
 import jakarta.faces.component.UIComponent;
@@ -67,15 +70,7 @@ public class CompositeComponentStackManager {
      * @return the <code>CompositeComponentStackManager</code> for the current request
      */
     public static CompositeComponentStackManager getManager(FacesContext ctx) {
-
-        CompositeComponentStackManager manager = (CompositeComponentStackManager) ctx.getAttributes().get(MANAGER_KEY);
-        if (manager == null) {
-            manager = new CompositeComponentStackManager();
-            ctx.getAttributes().put(MANAGER_KEY, manager);
-        }
-
-        return manager;
-
+        return (CompositeComponentStackManager) ctx.getAttributes().computeIfAbsent(MANAGER_KEY, $ -> new CompositeComponentStackManager());
     }
 
     /**
@@ -169,12 +164,11 @@ public class CompositeComponentStackManager {
 
     public UIComponent findCompositeComponentUsingLocation(FacesContext ctx, Location location) {
 
-        StackHandler sh = getStackHandler(StackType.TreeCreation);
-        Stack<UIComponent> s = sh.getStack(false);
-        if (s != null) {
+        StackHandler handler = getStackHandler(StackType.TreeCreation);
+        Deque<UIComponent> stack = handler.getStack(false);
+        if (stack != null) {
             String path = location.getPath();
-            for (int i = s.size(); i > 0; i--) {
-                UIComponent cc = s.get(i - 1);
+            for (UIComponent cc : stack) {
                 Resource r = (Resource) cc.getAttributes().get(Resource.COMPONENT_RESOURCE_KEY);
                 if (path.endsWith('/' + r.getResourceName()) && path.contains(r.getLibraryName())) {
                     return cc;
@@ -203,18 +197,15 @@ public class CompositeComponentStackManager {
     // --------------------------------------------------------- Private Methods
 
     private StackHandler getStackHandler(StackType type) {
-
-        StackHandler handler = null;
+        Objects.requireNonNull(type);
         switch (type) {
-        case TreeCreation:
-            handler = treeCreation;
-            break;
-        case Evaluation:
-            handler = runtime;
-            break;
+            case TreeCreation:
+                return treeCreation;
+            case Evaluation:
+                return runtime;
+            default:
+                throw new IllegalArgumentException("Unsupported stack type: " + type);
         }
-        return handler;
-
     }
 
     // ------------------------------------------------------ Private Interfaces
@@ -233,46 +224,38 @@ public class CompositeComponentStackManager {
 
         void delete();
 
-        Stack<UIComponent> getStack(boolean create);
+        Deque<UIComponent> getStack(boolean create);
 
     }
 
     // ---------------------------------------------------------- Nested Classes
 
-    private abstract class BaseStackHandler implements StackHandler {
+    private static abstract class BaseStackHandler implements StackHandler {
 
-        protected Stack<UIComponent> stack;
+        protected Deque<UIComponent> stack;
 
         // ------------------------------------------- Methods from StackHandler
 
         @Override
         public void delete() {
-
             stack = null;
-
         }
 
         @Override
-        public Stack<UIComponent> getStack(boolean create) {
+        public Deque<UIComponent> getStack(boolean create) {
 
             if (stack == null && create) {
-                stack = new Stack<>();
+                stack = new ArrayDeque<>(4); // 4 is enough?
             }
             return stack;
-
         }
 
         @Override
         public UIComponent peek() {
-
-            if (stack != null && !stack.isEmpty()) {
-                return stack.peek();
-            }
-            return null;
-
+            return stack != null ? stack.peek() : null;
         }
 
-    } // END BaseStackHandler
+    }
 
     private final class RuntimeStackHandler extends BaseStackHandler {
 
@@ -281,7 +264,7 @@ public class CompositeComponentStackManager {
         @Override
         public void delete() {
 
-            Stack<UIComponent> s = getStack(false);
+            Deque<UIComponent> s = getStack(false);
             if (s != null) {
                 s.clear();
             }
@@ -291,30 +274,29 @@ public class CompositeComponentStackManager {
         @Override
         public void pop() {
 
-            Stack<UIComponent> s = getStack(false);
+            Deque<UIComponent> s = getStack(false);
             if (s != null && !s.isEmpty()) {
                 s.pop();
             }
-
         }
 
         @Override
         public boolean push() {
 
             return push(null);
-
         }
 
         @Override
         public boolean push(UIComponent compositeComponent) {
 
-            Stack<UIComponent> tstack = treeCreation.getStack(false);
-            Stack<UIComponent> stack = getStack(false);
-            UIComponent ccp;
-            if (tstack != null) {
+            final Deque<UIComponent> treeStack = treeCreation.getStack(false);
+
+            final UIComponent ccp;
+
+            if (treeStack != null) {
                 // We have access to the stack of composite components
                 // the tree creation process has made available.
-                // Since we can' reliably access the parent composite component
+                // Since we can't reliably access the parent composite component
                 // of the current composite component, use the index of the
                 // current composite component within the stack to locate the
                 // parent.
@@ -323,7 +305,7 @@ public class CompositeComponentStackManager {
                 // no tree creation stack available, so use the runtime stack.
                 // If the current stack isn't empty, then use the component
                 // on the stack as the current composite component.
-                stack = getStack(false);
+                final Deque<UIComponent> stack = getStack(false);
 
                 if (compositeComponent == null) {
                     if (stack != null && !stack.isEmpty()) {
@@ -337,14 +319,10 @@ public class CompositeComponentStackManager {
             }
 
             if (ccp != null) {
-                if (stack == null) {
-                    stack = getStack(true);
-                }
-                stack.push(ccp);
+                getStack(true).push(ccp);
                 return true;
             }
             return false;
-
         }
 
         @Override
@@ -364,21 +342,20 @@ public class CompositeComponentStackManager {
 
     } // END RuntimeStackHandler
 
-    private final class TreeCreationStackHandler extends BaseStackHandler {
+    private static final class TreeCreationStackHandler extends BaseStackHandler {
 
         // ------------------------------------------- Methods from StackHandler
 
         @Override
         public void pop() {
 
-            Stack<UIComponent> s = getStack(false);
-            if (s != null && !stack.isEmpty()) {
+            Deque<UIComponent> stack = getStack(false);
+            if (stack != null && !stack.isEmpty()) {
                 stack.pop();
                 if (stack.isEmpty()) {
                     delete();
                 }
             }
-
         }
 
         @Override
@@ -393,29 +370,82 @@ public class CompositeComponentStackManager {
 
             if (compositeComponent != null) {
                 assert UIComponent.isCompositeComponent(compositeComponent);
-                Stack<UIComponent> s = getStack(true);
+                Deque<UIComponent> s = getStack(true);
                 s.push(compositeComponent);
                 return true;
             }
             return false;
-
         }
 
         @Override
         public UIComponent getParentCompositeComponent(FacesContext ctx, UIComponent forComponent) {
 
-            Stack<UIComponent> s = getStack(false);
+            Deque<UIComponent> s = getStack(false);
             if (s == null) {
                 return null;
-            } else {
-                int idx = s.indexOf(forComponent);
-                if (idx == 0) { // no parent
+            }
+            else {
+
+                // [ child , element , parent ... ]
+                boolean isLastElement = Objects.equals(s.peekLast(), forComponent);
+
+                // if is the last element -> no parent
+                if (isLastElement) {
                     return null;
                 }
-                return s.get(idx - 1);
+
+                // return the parent component traversing the stack from tail
+                return getPreviousElementFromHead(s, forComponent);  // on the average it's better from head or from tail?
             }
         }
 
-    } // END TreeCreationStackHandler
+    }
+
+    // Utils -------------------------------------------------------------------------------------
+
+    /**
+     * @return the element that has been pushed before targetElement in the stack starting from the head of the LIFO
+     * (basically is the element after targetElement in the stack)
+     */
+    private static <T> T getPreviousElementFromHead(final Deque<T> stack, final T targetElement) {
+        Objects.requireNonNull(stack);
+        Objects.requireNonNull(targetElement);
+        if (stack.isEmpty()) return null;
+
+        // it's LIFO! [ child, element, parent, grandpa ]
+        final Iterator<T> iterator = stack.iterator();
+        while (iterator.hasNext()) {
+            T element = iterator.next();
+            if ( Objects.equals(targetElement, element) ) // if the current element is the target element
+                return iterator.next();                   // return the next element (the previously pushed)
+        }
+
+        // not found
+        return null;
+    }
+
+    /**
+     * @return the element that has been pushed before targetElement in the stack starting from the tail of the LIFO
+     * (basically is the element before targetElement navigating the stack in reverse order)
+     */
+    private static <T> T getPreviousElementFromTail(final Deque<T> stack, final T targetElement) {
+        Objects.requireNonNull(stack);
+        Objects.requireNonNull(targetElement);
+        if (stack.isEmpty()) return null;
+
+        // reverse order of LIFO is FIFO [ grandpa, parent, element, child ]
+        T previousElement = null;
+        final Iterator<T> iterator = stack.descendingIterator();
+        while (iterator.hasNext()) {
+            T element = iterator.next();
+            if ( Objects.equals(targetElement, element) )  // if the current element is the target element
+                return previousElement;                      // return the previous element
+            else
+                previousElement = element;                   // else save the previousElement
+        }
+
+        // not found
+        return null;
+    }
 
 }
