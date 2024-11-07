@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.component.CompositeComponentStackManager;
 
 import jakarta.el.ELContext;
@@ -77,7 +78,7 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
      *
      * <p>
      * If <code>base</code> is a composite component and <code>property</code> is <code>parent</code> attempt to resolve the
-     * composite componet parent of the current composite component by calling
+     * composite component parent of the current composite component by calling
      * {@link UIComponent#getCompositeComponentParent(jakarta.faces.component.UIComponent)}) and returning that value.
      * </p>
      *
@@ -138,7 +139,7 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
             exprType = ve.getType(context);
         }
 
-        if (!"".equals(property)) {
+        if (!RIConstants.NO_VALUE.equals(property) ) {
             FacesContext facesContext = (FacesContext) context.getContext(FacesContext.class);
             UIComponent cc = UIComponent.getCurrentCompositeComponent(facesContext);
             BeanInfo metadata = (BeanInfo) cc.getAttributes().get(UIComponent.BEANINFO_KEY);
@@ -236,12 +237,12 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
      * @param ctx the {@link FacesContext} for the current request
      * @return an <code>ExpressionEvalMap</code> for the specified component
      */
-    public Map<String, Object> getEvalMapFor(UIComponent c, FacesContext ctx) {
+    private Map<String, Object> getEvalMapFor(UIComponent c, FacesContext ctx) {
 
         Map<Object, Object> ctxAttributes = ctx.getAttributes();
-        // noinspection unchecked
+        @SuppressWarnings("unchecked")
         Map<UIComponent, Map<String, Object>> topMap = (Map<UIComponent, Map<String, Object>>) ctxAttributes.get(EVAL_MAP_KEY);
-        Map<String, Object> evalMap = null;
+        Map<String, Object> evalMap;
         if (topMap == null) {
             topMap = new HashMap<>();
             ctxAttributes.put(EVAL_MAP_KEY, topMap);
@@ -296,8 +297,8 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
 
         @Override
         public ValueExpression getExpression(String name) {
-            Object ve = cc.getValueExpression(name);
-            return ve instanceof ValueExpression ? (ValueExpression) ve : null;
+            ValueExpression ve = cc.getValueExpression(name);
+            return ve;
         }
 
         // ---------------------------------------------------- Methods from Map
