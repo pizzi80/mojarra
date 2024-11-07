@@ -103,7 +103,7 @@ public class ComponentTestImpl extends UIComponentBase {
 
     // --------------------------------------------------- Static Trace Methods
     // Accumulated trace log
-    private static StringBuffer trace = new StringBuffer();
+    private static final StringBuilder trace = new StringBuilder();
 
     // Append to the current trace log (or clear if null)
     public static void trace(String text) {
