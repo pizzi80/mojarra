@@ -245,9 +245,9 @@ public class ContextualCompositeMethodExpression extends MethodExpression {
 
     }
 
-    private class SetClientIdListener implements ComponentSystemEventListener {
+    private static class SetClientIdListener implements ComponentSystemEventListener {
 
-        private ContextualCompositeMethodExpression ccME;
+        private final ContextualCompositeMethodExpression ccME;
 
         public SetClientIdListener(ContextualCompositeMethodExpression ccME) {
             this.ccME = ccME;
