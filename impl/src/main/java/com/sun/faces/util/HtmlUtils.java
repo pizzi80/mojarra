@@ -16,6 +16,9 @@
 
 package com.sun.faces.util;
 
+import static java.lang.Character.isHighSurrogate;
+import static java.lang.Character.isLowSurrogate;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -324,13 +327,25 @@ public class HtmlUtils {
 
     private static boolean isPrintableControlChar(int ch, boolean forXml) {
 
-        return (ch == 0x09 || ch == 0x0A || (ch == 0x0C && !forXml) || ch == 0x0D);
-
+        boolean isPrintable = ch == 0x09 || ch == 0x0A || (ch == 0x0C && !forXml) || ch == 0x0D;
+        // if (!isPrintable) System.out.println(">>>>>>>>>>>" + ch + " xml? " + forXml + " is not printable: ");
+        return isPrintable;
     }
 
     public static boolean isAllowedXmlCharacter(int ch) {
+
+        // if it's a special char  se è un emoji non è un carattere "singolo" ma una coppia high/low surrogate
+        if ( isEmoji((char)ch) ) return true;
+
         // See https://www.w3.org/TR/xml/#charsets Character Range
-        return ch < 0x20 ? isPrintableControlChar(ch, true) : ch <= 0xD7FF || ch >= 0xE000 && ch <= 0xFFFD; 
+        boolean isAllowedXmlChar = ch < 0x20 ? isPrintableControlChar(ch, true) : ch <= 0xD7FF || ch >= 0xE000 && ch <= 0xFFFD;
+//        if (!isAllowedXmlChar) System.out.println(">>>>>>>>>>>" + ch + " is not allowed");
+        return isAllowedXmlChar;
+    }
+
+    /** @return true if it's an emoji char. an emoji is a char with high/low surrogate pair */
+    public static boolean isEmoji( char c ) {
+        return isHighSurrogate(c) || isLowSurrogate(c);
     }
 
     /**
