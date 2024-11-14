@@ -302,17 +302,16 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public boolean equals(Object obj) {
             if ( !(obj instanceof Map.Entry) ) {
                 return false;
             }
 
-            Map.Entry<String,V> entry = (Map.Entry<String,V>) obj;
-            Object key = entry.getKey();
-            Object value = entry.getValue();
+            final Map.Entry<String,V> entry = (Map.Entry<String,V>) obj;
 
-            return Objects.equals(key, this.key) &&
-                   Objects.equals(value, this.value);
+            return Objects.equals(entry.getKey(), key)
+                && Objects.equals(entry.getValue(), value);
         }
     }
 
