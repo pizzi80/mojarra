@@ -41,6 +41,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import jakarta.el.MethodExpression;
 import jakarta.faces.FacesException;
@@ -85,6 +86,9 @@ public class RestoreViewPhase extends Phase {
 
     private static final Set<VisitHint> SKIP_ITERATION_HINT = EnumSet.of(SKIP_ITERATION);
 
+    private static final String HTTP_SCHEME_SEPARATOR = "://";
+    private static final Pattern ABSOLUTE_URI_PATTERN = Pattern.compile("^[a-z]+://.*");
+
     // ---------------------------------------------------------- Public Methods
 
     @Override
@@ -107,7 +111,6 @@ public class RestoreViewPhase extends Phase {
      *
      * POSTCONDITION: The facesContext has been initialized with a tree.
      */
-
     @Override
     public void execute(FacesContext facesContext) throws FacesException {
         LOGGER.fine("Entering RestoreViewPhase");
@@ -254,7 +257,7 @@ public class RestoreViewPhase extends Phase {
                 incomingSecretKeyValue = URLEncoder.encode(incomingSecretKeyValue, UTF_8);
             }
 
-            String correctSecretKeyValue = rsm.getCryptographicallyStrongTokenFromSession(context);
+            final String correctSecretKeyValue = rsm.getCryptographicallyStrongTokenFromSession(context);
             if (incomingSecretKeyValue == null || !correctSecretKeyValue.equals(incomingSecretKeyValue)) {
                 LOGGER.log(SEVERE, "correctSecretKeyValue = {0} incomingSecretKeyValue = {1}",
                         new Object[] { correctSecretKeyValue, incomingSecretKeyValue });
@@ -264,9 +267,9 @@ public class RestoreViewPhase extends Phase {
             // Check the referer header
             if (headers.containsKey("Referer")) {
                 String referer = headers.get("Referer");
-                boolean refererIsInProtectedSet = isProtectedView(referer, urlPatterns);
+                final boolean refererIsInProtectedSet = isProtectedView(referer, urlPatterns);
                 if (!refererIsInProtectedSet) {
-                    boolean refererOriginatesInThisWebapp = false;
+                    final boolean refererOriginatesInThisWebapp;
                     try {
                         refererOriginatesInThisWebapp = originatesInWebapp(context, referer, vdl);
                     } catch (URISyntaxException ue) {
@@ -284,9 +287,9 @@ public class RestoreViewPhase extends Phase {
             // Check the origin header
             if (headers.containsKey("Origin")) {
                 String origin = headers.get("Origin");
-                boolean originIsInProtectedSet = isProtectedView(origin, urlPatterns);
+                final boolean originIsInProtectedSet = isProtectedView(origin, urlPatterns);
                 if (!originIsInProtectedSet) {
-                    boolean originOriginatesInThisWebapp = false;
+                    final boolean originOriginatesInThisWebapp;
                     try {
                         originOriginatesInThisWebapp = originatesInWebapp(context, origin, vdl);
                     } catch (URISyntaxException ue) {
@@ -316,22 +319,18 @@ public class RestoreViewPhase extends Phase {
     }
 
     private boolean originatesInWebapp(FacesContext context, String view, ViewDeclarationLanguage vdl) throws URISyntaxException {
-        boolean doesOriginate = false;
-        ExternalContext extContext = context.getExternalContext();
-        String sep = "/";
+        final ExternalContext extContext = context.getExternalContext();
         URI uri = null;
-        String path = null;
 
-        boolean isAbsoluteURI = view.matches("^[a-z]+://.*");
+        final boolean isAbsoluteURI = ABSOLUTE_URI_PATTERN.matcher(view).matches();
         if (!isAbsoluteURI) {
-            URI absoluteURI = null;
-            URI relativeURI = null;
-            String base = extContext.getRequestScheme() + ":" + sep + sep + extContext.getRequestServerName() + ":" + extContext.getRequestServerPort();
-            absoluteURI = new URI(base);
-            relativeURI = new URI(view);
+            final String base = extContext.getRequestScheme() + HTTP_SCHEME_SEPARATOR + extContext.getRequestServerName() + ':' + extContext.getRequestServerPort();
+            final URI absoluteURI = new URI(base);
+            final URI relativeURI = new URI(view);
             uri = absoluteURI.resolve(relativeURI);
         }
-        boolean hostsMatch = false, portsMatch = false, contextPathsMatch = false;
+
+        boolean doesOriginate, hostsMatch, portsMatch, contextPathsMatch;
 
         if (uri == null) {
             uri = new URI(view);
@@ -351,22 +350,18 @@ public class RestoreViewPhase extends Phase {
             portsMatch = uri.getPort() == extContext.getRequestServerPort();
         }
 
-        path = uri.getPath();
+        String path = uri.getPath();
         contextPathsMatch = path.contains(extContext.getApplicationContextPath());
 
         doesOriginate = hostsMatch && portsMatch && contextPathsMatch;
 
         if (!doesOriginate) {
             // Last chance view originates in this web app.
-            int idx = path.lastIndexOf(sep);
-            if (-1 != idx) {
+            int idx = path.lastIndexOf('/');
+            if (idx != -1) {
                 path = path.substring(idx);
             }
-            if (path == null || !vdl.viewExists(context, path)) {
-                doesOriginate = false;
-            } else {
-                doesOriginate = true;
-            }
+            doesOriginate = vdl.viewExists(context, path);
         }
 
         return doesOriginate;
@@ -381,14 +376,13 @@ public class RestoreViewPhase extends Phase {
             root.visitTree(visitContext, (context, target) -> {
                 postRestoreStateEvent.setComponent(target);
                 target.processEvent(postRestoreStateEvent);
-                // noinspection ReturnInsideFinallyBlock
                 return VisitResult.ACCEPT;
             });
         } catch (AbortProcessingException e) {
-            facesContext.getApplication()
-                        .publishEvent(
-                            facesContext, ExceptionQueuedEvent.class,
-                            new ExceptionQueuedEventContext(facesContext, e, null, PhaseId.RESTORE_VIEW));
+            facesContext.getApplication().publishEvent(
+                    facesContext,
+                    ExceptionQueuedEvent.class,
+                    new ExceptionQueuedEventContext(facesContext, e, null, PhaseId.RESTORE_VIEW));
         }
     }
 
@@ -436,8 +430,9 @@ public class RestoreViewPhase extends Phase {
      * is found in the request, otherwise return <code>false</code>
      */
     private static boolean isErrorPage(FacesContext context) {
-        Map<String, Object> requestMap = context.getExternalContext().getRequestMap();
-        return requestMap.get(WEBAPP_ERROR_MESSAGE_MARKER) != null || requestMap.get(WEBAPP_ERROR_EXCEPTION_MARKER) != null;
+        final Map<String,Object> requestMap = context.getExternalContext().getRequestMap();
+        return requestMap.containsKey(WEBAPP_ERROR_MESSAGE_MARKER)
+            || requestMap.containsKey(WEBAPP_ERROR_EXCEPTION_MARKER);
     }
 
 }
