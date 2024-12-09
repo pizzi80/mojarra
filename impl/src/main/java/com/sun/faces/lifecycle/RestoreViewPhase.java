@@ -79,17 +79,12 @@ import jakarta.faces.view.ViewMetadata;
  */
 public class RestoreViewPhase extends Phase {
 
+    private static final String WEBAPP_ERROR_MESSAGE_MARKER = "jakarta.servlet.error.message"; // RequestDispatcher.ERROR_MESSAGE
+    private static final String WEBAPP_ERROR_EXCEPTION_MARKER = "jakarta.servlet.error.exception"; // RequestDispatcher.ERROR_EXCEPTION
+
     private static final Logger LOGGER = FacesLogger.LIFECYCLE.getLogger();
 
     private static final Set<VisitHint> SKIP_ITERATION_HINT = EnumSet.of(SKIP_ITERATION);
-
-    // 400, 404 errors have message but not exception
-    private static final String WEBAPP_ERROR_PAGE_MARKER = "jakarta.servlet.error.message";
-
-    // real exceptions (500) have the attribute "jakarta.servlet.error.exception" but not always the
-    // "jakarta.servlet.error.message" attribute, for example when the page is mapped with java.lang.Throwable
-    // and the exception has no message (throw new RuntimeException())
-    private static final String WEBAPP_ERROR_PAGE_MARKER_FALLBACK = "jakarta.servlet.error.exception";
 
     private static final String HTTP_SCHEME_SEPARATOR = "://";
     private static final Pattern ABSOLUTE_URI_PATTERN = Pattern.compile("^[a-z]+://.*");
@@ -262,7 +257,7 @@ public class RestoreViewPhase extends Phase {
                 incomingSecretKeyValue = URLEncoder.encode(incomingSecretKeyValue, UTF_8);
             }
 
-            final String correctSecretKeyValue = rsm.getCryptographicallyStrongTokenFromSession(context);
+            String correctSecretKeyValue = rsm.getCryptographicallyStrongTokenFromSession(context);
             if (incomingSecretKeyValue == null || !correctSecretKeyValue.equals(incomingSecretKeyValue)) {
                 LOGGER.log(SEVERE, "correctSecretKeyValue = {0} incomingSecretKeyValue = {1}",
                         new Object[] { correctSecretKeyValue, incomingSecretKeyValue });
@@ -272,9 +267,9 @@ public class RestoreViewPhase extends Phase {
             // Check the referer header
             if (headers.containsKey("Referer")) {
                 String referer = headers.get("Referer");
-                final boolean refererIsInProtectedSet = isProtectedView(referer, urlPatterns);
+                boolean refererIsInProtectedSet = isProtectedView(referer, urlPatterns);
                 if (!refererIsInProtectedSet) {
-                    final boolean refererOriginatesInThisWebapp;
+                    boolean refererOriginatesInThisWebapp = false;
                     try {
                         refererOriginatesInThisWebapp = originatesInWebapp(context, referer, vdl);
                     } catch (URISyntaxException ue) {
@@ -292,9 +287,9 @@ public class RestoreViewPhase extends Phase {
             // Check the origin header
             if (headers.containsKey("Origin")) {
                 String origin = headers.get("Origin");
-                final boolean originIsInProtectedSet = isProtectedView(origin, urlPatterns);
+                boolean originIsInProtectedSet = isProtectedView(origin, urlPatterns);
                 if (!originIsInProtectedSet) {
-                    final boolean originOriginatesInThisWebapp;
+                    boolean originOriginatesInThisWebapp = false;
                     try {
                         originOriginatesInThisWebapp = originatesInWebapp(context, origin, vdl);
                     } catch (URISyntaxException ue) {
@@ -381,6 +376,7 @@ public class RestoreViewPhase extends Phase {
             root.visitTree(visitContext, (context, target) -> {
                 postRestoreStateEvent.setComponent(target);
                 target.processEvent(postRestoreStateEvent);
+                // noinspection ReturnInsideFinallyBlock
                 return VisitResult.ACCEPT;
             });
         } catch (AbortProcessingException e) {
@@ -431,13 +427,12 @@ public class RestoreViewPhase extends Phase {
      * Use this method to determine if the current request is an error page to avoid the above condition.
      *
      * @param context the FacesContext for the current request
-     * @return <code>true</code> if <code>WEBAPP_ERROR_PAGE_MARKER</code> is found in the request, otherwise return
-     * <code>false</code>
+     * @return <code>true</code> if <code>WEBAPP_ERROR_MESSAGE_MARKER</code> or <code>WEBAPP_ERROR_EXCEPTION_MARKER</code>
+     * is found in the request, otherwise return <code>false</code>
      */
     private static boolean isErrorPage(FacesContext context) {
-        final Map<String,Object> requestMap = context.getExternalContext().getRequestMap();
-        return requestMap.containsKey(WEBAPP_ERROR_PAGE_MARKER)
-            || requestMap.containsKey(WEBAPP_ERROR_PAGE_MARKER_FALLBACK);
+        Map<String, Object> requestMap = context.getExternalContext().getRequestMap();
+        return requestMap.get(WEBAPP_ERROR_MESSAGE_MARKER) != null || requestMap.get(WEBAPP_ERROR_EXCEPTION_MARKER) != null;
     }
 
 }
