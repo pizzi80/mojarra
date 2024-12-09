@@ -170,7 +170,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
         try {
             if (LOGGER.isLoggable(INFO)) {
-                LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.25_pizzi" , servletContext.getContextPath()) );
+                LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.26_pizzi" , servletContext.getContextPath()) );
             }
 
             if (webConfig.isOptionEnabled(VerifyFacesConfigObjects)) {
@@ -753,7 +753,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
         // ------------------------------------------------------- Inner Classes
 
-        private class Monitor {
+        private static class Monitor {
 
             private final URI uri;
             private long timestamp = -1;
