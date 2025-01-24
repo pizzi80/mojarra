@@ -200,8 +200,8 @@ public class Util {
 
     public static Optional<ServletRegistration> getFacesServletRegistration(FacesContext context) {
         Object unKnownContext = context.getExternalContext().getContext();
-        if (unKnownContext instanceof ServletContext) {
-            return Optional.of((ServletRegistration) ((ServletContext) unKnownContext).getAttribute(FACES_SERVLET_REGISTRATION));
+        if (unKnownContext instanceof ServletContext servletContext) {
+            return Optional.of((ServletRegistration) servletContext.getAttribute(FACES_SERVLET_REGISTRATION));
         }
 
         return Optional.empty();
