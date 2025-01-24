@@ -18,11 +18,13 @@ package com.sun.faces.application.view;
 
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.EnableDistributable;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.NumberOfActiveViewMaps;
+import static jakarta.faces.application.FacesMessage.SEVERITY_WARN;
 import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.WARNING;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -52,84 +54,116 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
      * Stores the logger.
      */
     private static final Logger LOGGER = Logger.getLogger(ViewScopeManager.class.getName());
+
+    /**
+     * warning message when the developer is using a ViewScoped Bean in a stateless (transient) view
+     */
+    private static final String VIEW_SCOPED_NOT_SUPPORTED_ON_STATELESS_VIEWS_MESSAGE = "@ViewScoped beans are not supported on stateless views";
+
     /**
      * Stores the constants to keep track of the active view maps.
      */
     public static final String ACTIVE_VIEW_MAPS = "com.sun.faces.application.view.activeViewMaps";
+
     /**
      * Stores the constant for the maximum active view map size.
      */
     public static final String ACTIVE_VIEW_MAPS_SIZE = "com.sun.faces.application.view.activeViewMapsSize";
+
     /**
      * Stores the view map.
      */
     public static final String VIEW_MAP = "com.sun.faces.application.view.viewMap";
+
     /**
      * Stores the view map id.
      */
     public static final String VIEW_MAP_ID = "com.sun.faces.application.view.viewMapId";
+
     /**
      * Stores the constant to keep track of the ViewScopeManager.
      */
     public static final String VIEW_SCOPE_MANAGER = "com.sun.faces.application.view.viewScopeManager";
+
     /**
      * Stores the CDI context manager.
      */
     private final ViewScopeContextManager contextManager;
 
     private final boolean distributable;
-    
-    private Integer numberOfActiveViewMapsInWebXml;
+    private final int numberOfActiveViewMapsInWebXml;
 
     /**
      * Constructor.
      */
     public ViewScopeManager() {
-        FacesContext context = FacesContext.getCurrentInstance();
-        contextManager = new ViewScopeContextManager();
-        WebConfiguration config = WebConfiguration.getInstance(context.getExternalContext());
+        final FacesContext context = FacesContext.getCurrentInstance();
+        final WebConfiguration config = WebConfiguration.getInstance(context.getExternalContext());
         distributable = config.isOptionEnabled(EnableDistributable);
+        contextManager = new ViewScopeContextManager(context, distributable);
+        numberOfActiveViewMapsInWebXml = getOptionIntValueOrDefault(config, NumberOfActiveViewMaps, 25);
+    }
 
-        String numberOfActiveViewMapsAsString = config.getOptionValue(NumberOfActiveViewMaps);
-        if (numberOfActiveViewMapsAsString != null) {
+    /**
+     * retrieve the NumberOfActiveViewMaps defined in the config or fallback to the defined default value
+     * or fallback to the hardcoded fallback passed parameter
+     * @param fallback hardcoded fallback value when everything fails
+     */
+    private static int getOptionIntValueOrDefault(WebConfiguration config, WebConfiguration.WebContextInitParameter param, int fallback) {
+        String valueOrAlternateValue = config.getOptionValue(param);
+        if (valueOrAlternateValue != null) {
+            // --- return the parsed value or warn ---
             try {
-                numberOfActiveViewMapsInWebXml = Integer.parseInt(numberOfActiveViewMapsAsString);
+                return Integer.parseInt(valueOrAlternateValue);
             }
             catch (NumberFormatException e) {
                 if (LOGGER.isLoggable(WARNING)) {
-                    LOGGER.log(WARNING, "Cannot parse " + NumberOfActiveViewMaps.getQualifiedName(), e);
+                    LOGGER.log(WARNING, "Cannot parse " + param.getQualifiedName(), e);
                 }
-            }
-        }
-    }
-    
-    /**
-     * Static method that locates the ID for a view map in the active view maps
-     * stored in the session. It just performs a == over the view map because
-     * it should be the same object.
-     *
-     * @param facesContext The faces context
-     * @param viewMap The view to locate
-     * @return located ID
-     */
-    protected static String locateViewMapId(FacesContext facesContext, Map<String, Object> viewMap) {
-        Object session = facesContext.getExternalContext().getSession(true);
-        
-        if (session != null) {
-            Map<String, Object> sessionMap = facesContext.getExternalContext().getSessionMap();
-            @SuppressWarnings("unchecked")
-            Map<String, Object> viewMaps = (Map<String, Object>) sessionMap.get(ACTIVE_VIEW_MAPS);
-            if (viewMaps != null) {
-                for (Map.Entry<String,Object> entry : viewMaps.entrySet()) {
-                    if (viewMap == entry.getValue()) {
-                        return entry.getKey();
+
+                // --- return the parsed default value or warn ---
+                try {
+                    return Integer.parseInt(param.getDefaultValue());
+                }
+                catch (NumberFormatException nre) {
+                    if (LOGGER.isLoggable(WARNING)) {
+                        LOGGER.log(WARNING, "Cannot parse the default value of " + param.getQualifiedName(), nre);
                     }
                 }
             }
         }
-        
-        return null;
+        // return the passed hardcoded fallback value
+        return fallback;
     }
+
+//    /**
+//     * Static method that locates the ID for a view map in the active view maps
+//     * stored in the session. It just performs a == over the view map because
+//     * it should be the same object.
+//     *
+//     * @param facesContext The faces context
+//     * @param viewMap The view to locate
+//     * @return located ID
+//     */
+//    @Deprecated(forRemoval = true)
+//    protected static String locateViewMapId(FacesContext facesContext, Map<String, Object> viewMap) {
+//        Object session = facesContext.getExternalContext().getSession(true);
+//
+//        if (session != null) {
+//            Map<String, Object> sessionMap = facesContext.getExternalContext().getSessionMap();
+//            @SuppressWarnings("unchecked")
+//            Map<String, Object> viewMaps = (Map<String, Object>) sessionMap.get(ACTIVE_VIEW_MAPS);
+//            if (viewMaps != null) {
+//                for (Map.Entry<String,Object> entry : viewMaps.entrySet()) {
+//                    if (viewMap == entry.getValue()) {
+//                        return entry.getKey();
+//                    }
+//                }
+//            }
+//        }
+//
+//        return null;
+//    }
 
     /**
      * Clear the current view map using the Faces context.
@@ -144,21 +178,21 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
         }
     }
 
-    /**
-     * Clear the given view map. Use the version with viewMapId.
-     *
-     * @param facesContext the Faces context.
-     * @param viewMap the view map.
-     */
-    @Deprecated
-    public void clear(FacesContext facesContext, Map<String, Object> viewMap) {
-        String viewMapId = locateViewMapId(facesContext, viewMap);
-        if (viewMapId != null) {
-            this.clear(facesContext, viewMapId, viewMap);
-        } else {
-            LOGGER.log(WARNING, "Cannot locate the view map to clear in the active maps: {0}", viewMap);
-        }
-    }
+//    /**
+//     * Clear the given view map. Use the version with viewMapId.
+//     *
+//     * @param facesContext the Faces context.
+//     * @param viewMap the view map.
+//     */
+//    @Deprecated
+//    public void clear(FacesContext facesContext, Map<String, Object> viewMap) {
+//        String viewMapId = locateViewMapId(facesContext, viewMap);
+//        if (viewMapId != null) {
+//            this.clear(facesContext, viewMapId, viewMap);
+//        } else {
+//            LOGGER.log(WARNING, "Cannot locate the view map to clear in the active maps: {0}", viewMap);
+//        }
+//    }
     
     /**
      * Clear the given view map.
@@ -253,55 +287,44 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
      *
      * @param systemEvent the system event.
      */
+    @SuppressWarnings("unchecked")
     private void processPostConstructViewMap(SystemEvent systemEvent) {
         LOGGER.log(FINEST, "Handling PostConstructViewMapEvent");
 
-        UIViewRoot viewRoot = (UIViewRoot) systemEvent.getSource();
-        Map<String, Object> viewMap = viewRoot.getViewMap(false);
+        final UIViewRoot viewRoot = (UIViewRoot) systemEvent.getSource();
+        final Map<String, Object> viewMap = viewRoot.getViewMap(false);
 
         if (viewMap != null) {
-            FacesContext facesContext = FacesContext.getCurrentInstance();
+            final FacesContext context = FacesContext.getCurrentInstance();
 
-            if (viewRoot.isTransient() && facesContext.isProjectStage(ProjectStage.Development)) {
-                FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_WARN, "@ViewScoped beans are not supported on stateless views",
-                        "@ViewScoped beans are not supported on stateless views");
-                facesContext.addMessage(viewRoot.getClientId(facesContext), message);
-
-                LOGGER.log(WARNING, "@ViewScoped beans are not supported on stateless views");
+            // ViewScoped Bean used inside a stateless view -> warn the developer
+            if (viewRoot.isTransient() && context.isProjectStage(ProjectStage.Development)) {
+                context.addMessage(viewRoot.getClientId(context), new FacesMessage(SEVERITY_WARN, VIEW_SCOPED_NOT_SUPPORTED_ON_STATELESS_VIEWS_MESSAGE, VIEW_SCOPED_NOT_SUPPORTED_ON_STATELESS_VIEWS_MESSAGE));
+                LOGGER.log(WARNING, VIEW_SCOPED_NOT_SUPPORTED_ON_STATELESS_VIEWS_MESSAGE);
             }
 
-            Object session = facesContext.getExternalContext().getSession(true);
+            // get or create a Session
+            final Object session = context.getExternalContext().getSession(true);
 
             if (session != null) {
-                Map<String, Object> sessionMap = facesContext.getExternalContext().getSessionMap();
-                Integer size = (Integer) sessionMap.get(ACTIVE_VIEW_MAPS_SIZE);
-                if (size == null) {
-                    size = numberOfActiveViewMapsInWebXml;
-                    
-                    if (size == null) {
-                        size = Integer.parseInt(NumberOfActiveViewMaps.getDefaultValue());
-                    }
-                }
+                final Map<String, Object> sessionMap = context.getExternalContext().getSessionMap();
+                final int maxNumberOfViewMaps = (int) sessionMap.computeIfAbsent(ACTIVE_VIEW_MAPS_SIZE, $ -> numberOfActiveViewMapsInWebXml);
+                final ConcurrentLRUMap<String, Object> viewMaps = (ConcurrentLRUMap<String, Object>) sessionMap.computeIfAbsent(ACTIVE_VIEW_MAPS, $ -> new ConcurrentLRUMap<>(maxNumberOfViewMaps));
 
-                if (sessionMap.get(ACTIVE_VIEW_MAPS) == null) {
-                    sessionMap.put(ACTIVE_VIEW_MAPS, new ConcurrentLRUMap<>(size));
-                }
-
-                @SuppressWarnings("unchecked")
-                Map<String, Object> viewMaps = (Map<String, Object>) sessionMap.get(ACTIVE_VIEW_MAPS);
                 synchronized (viewMaps) {
-                    String viewMapId = UUID.randomUUID().toString();
-                    while (viewMaps.containsKey(viewMapId)) {
-                        viewMapId = UUID.randomUUID().toString();
+
+                    // remove the eldest entry and destroy if we've reached the maximum capacity
+                    if (viewMaps.size() == maxNumberOfViewMaps) {
+                        final Map.Entry<String, Object> entry = viewMaps.popEldestEntry();
+                        if (entry != null) {
+                            final String eldestViewMapId = entry.getKey();
+                            final Map<String, Object> eldestViewMap = (Map<String, Object>) entry.getValue();
+                            removeEldestViewMap(context, eldestViewMapId, eldestViewMap);
+                        }
                     }
 
-                    if (viewMaps.size() == size) {
-                        String eldestViewMapId = viewMaps.keySet().iterator().next();
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> eldestViewMap = (Map<String, Object>) viewMaps.remove(eldestViewMapId);
-                        removeEldestViewMap(facesContext, eldestViewMapId, eldestViewMap);
-                    }
-
+                    // insert new element
+                    final String viewMapId = generateRandomKey(viewMaps.keySet());
                     viewMaps.put(viewMapId, viewMap);
                     viewRoot.getTransientStateHelper().putTransient(VIEW_MAP_ID, viewMapId);
                     viewRoot.getTransientStateHelper().putTransient(VIEW_MAP, viewMap);
@@ -314,7 +337,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
                 }
 
                 if (contextManager != null) {
-                    contextManager.fireInitializedEvent(facesContext, viewRoot);
+                    contextManager.fireInitializedEvent(context, viewRoot);
                 }
             }
         }
@@ -323,12 +346,12 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
     /**
      * Process the PreDestroyViewMap system event.
      *
-     * @param se the system event.
+     * @param event the system event.
      */
-    private void processPreDestroyViewMap(SystemEvent se) {
+    private void processPreDestroyViewMap(SystemEvent event) {
         LOGGER.log(FINEST, "Handling PreDestroyViewMapEvent");
         
-        UIViewRoot viewRoot = (UIViewRoot) se.getSource();
+        UIViewRoot viewRoot = (UIViewRoot) event.getSource();
         Map<String, Object> viewMap = viewRoot.getViewMap(false);
         String viewMapId = (String) viewRoot.getTransientStateHelper().getTransient(VIEW_MAP_ID);
 
@@ -361,6 +384,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
      * @param httpSessionEvent the HTTP session event.
      */
     @Override
+    @SuppressWarnings("unchecked")
     public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
         LOGGER.log(FINEST, "Cleaning up session for @ViewScoped beans");
 
@@ -370,13 +394,11 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
 
         HttpSession session = httpSessionEvent.getSession();
         
-        @SuppressWarnings("unchecked")
         Map<String, Object> activeViewMaps = (Map<String, Object>) session.getAttribute(ACTIVE_VIEW_MAPS);
         if (activeViewMaps != null) {
             Iterator<Object> activeViewMapsIterator = activeViewMaps.values().iterator();
             ApplicationAssociate applicationAssociate = ApplicationAssociate.getInstance(httpSessionEvent.getSession().getServletContext());
             while (activeViewMapsIterator.hasNext()) {
-                @SuppressWarnings("unchecked")
                 Map<String, Object> viewMap = (Map<String, Object>) activeViewMapsIterator.next();
                 destroyBeans(applicationAssociate, viewMap);
             }
@@ -404,4 +426,18 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
         // fixme / todo ? this method does nothing!
         destroyBeans(facesContext, eldestViewMap);
     }
+
+    // ------------------------------------------------------------------------- UTILS
+
+    /**
+     * @return a random {@link UUID} key that is not contained in the passes keys
+     */
+    private static String generateRandomKey(Set<String> keys) {
+        String uuid = UUID.randomUUID().toString();
+        while (keys.contains(uuid)) {
+            uuid = UUID.randomUUID().toString();
+        }
+        return uuid;
+    }
+
 }
