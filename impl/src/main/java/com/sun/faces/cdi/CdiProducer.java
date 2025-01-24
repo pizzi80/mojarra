@@ -27,6 +27,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.sun.faces.util.Util;
+
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.inject.spi.Bean;
@@ -175,13 +177,12 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
     }
 
     protected CdiProducer<T> types(Type... types) {
-        this.types = asSet(types);
-        this.types.add(getClass()); // Add producer class as well so it can at least be filtered from BeanManager#getBeans().
+        this.types = asSet(getClass(), types); // Add producer class as well so it can at least be filtered from BeanManager#getBeans().
         return this;
     }
 
     protected CdiProducer<T> qualifiers(Annotation... qualifiers) {
-        this.qualifiers = asSet(qualifiers);
+        this.qualifiers = Set.of(qualifiers);
         return this;
     }
 
@@ -196,8 +197,16 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
     }
 
     @SafeVarargs
-    private static <T> Set<T> asSet(T... a) {
-        return new HashSet<>(asList(a));
+    private static <T> Set<T> asSet(T elem, T... elems) {
+        if ( elems == null || elems.length == 0 ) {
+            return Set.of(elem);
+        }
+        else {
+            Set<T> set = new HashSet<>(Util.calculateMapCapacity(elems.length + 1));
+            set.add(elem);
+            set.addAll(asList(elems));
+            return set;
+        }
     }
 
 }
