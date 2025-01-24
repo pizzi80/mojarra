@@ -1600,7 +1600,7 @@ public class UIViewRoot extends UIComponentBase implements UniqueIdVendor {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getViewMap(boolean create) {
-        Map<String, Object> viewMap = (Map<String, Object>) getTransientStateHelper().getTransient("com.sun.faces.application.view.viewMap");
+        Map<String, Object> viewMap = (Map<String, Object>) getTransientStateHelper().getTransient(VIEW_MAP);
 
         if (create && viewMap == null) {
             viewMap = new ViewMap(getFacesContext().getApplication().getProjectStage());
