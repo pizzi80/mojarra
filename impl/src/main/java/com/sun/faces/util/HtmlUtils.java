@@ -334,12 +334,14 @@ public class HtmlUtils {
 
     public static boolean isAllowedXmlCharacter(int ch) {
 
-        // if it's a special char  se è un emoji non è un carattere "singolo" ma una coppia high/low surrogate
-        if ( isEmoji((char)ch) ) return true;
-
         // See https://www.w3.org/TR/xml/#charsets Character Range
         boolean isAllowedXmlChar = ch < 0x20 ? isPrintableControlChar(ch, true) : ch <= 0xD7FF || ch >= 0xE000 && ch <= 0xFFFD;
-//        if (!isAllowedXmlChar) System.out.println(">>>>>>>>>>>" + ch + " is not allowed");
+
+        // if it's not an allowed char check if it's an emoji
+        if ( !isAllowedXmlChar ) {
+            isAllowedXmlChar = isEmoji((char)ch);
+        }
+
         return isAllowedXmlChar;
     }
 
