@@ -56,10 +56,24 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
     // ------------------------------------------------------- LRUMap Custom methods
 
     /**
+     * Lock the access
+     */
+    public void lock() {
+        lock.lock();
+    }
+
+    /**
+     * Unlock the access
+     */
+    public void unlock() {
+        lock.unlock();
+    }
+
+    /**
      * Remove and return the eldest element from the Map if we've reached the maximum capacity.
      * @return the eldest element, if we've reached the maximum capacity, null otherwise.
      */
-    public V popEldestEntry() {
+    public Map.Entry<K,V> popEldestEntry() {
         return execAtomic(lock, lru::popEldestEntry);
     }
 
@@ -67,29 +81,29 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
     @Override
     public int size() {
-        return execAtomic( lock, lru::size );
+        return execAtomic(lock, lru::size);
     }
 
     @Override
     public boolean isEmpty() {
-        return execAtomic(lock, lru::isEmpty );
+        return execAtomic(lock, lru::isEmpty);
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return key != null && execAtomic(lock, () -> lru.containsKey(key) );
+        return key != null && execAtomic(lock, () -> lru.containsKey(key));
     }
 
     @Override
     public V get(Object key) {
-        return key == null ? null : execAtomic(lock, () -> lru.get(key) );
+        return key == null ? null : execAtomic(lock, () -> lru.get(key));
     }
 
     @Override
     public V put(K key, V value) {
         requireNonNull(key);
         requireNonNull(value);
-        return execAtomic( lock , () -> lru.put(key, value) ); 
+        return execAtomic(lock , () -> lru.put(key, value));
     }
 
     @Override

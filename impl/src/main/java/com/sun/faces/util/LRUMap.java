@@ -67,10 +67,11 @@ public class LRUMap<K, V> extends LinkedHashMap<K, V> {
      * Remove and return the eldest element from the Map if we've reached the maximum capacity.
      * @return the eldest element, if we've reached the maximum capacity, null otherwise.
      */
-    public V popEldestEntry() {
+    public Map.Entry<K,V> popEldestEntry() {
         if ( size() == maxCapacity ) {
             K eldestKey = keySet().iterator().next();   // the eldest key is the first one
-            return remove(eldestKey);                   // remove and return the element
+            V eldestValue = remove(eldestKey);          // remove and return the element
+            return Map.entry(eldestKey, eldestValue);
         }
         return null;
     }
