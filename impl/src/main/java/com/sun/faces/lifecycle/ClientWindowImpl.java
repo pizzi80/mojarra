@@ -32,6 +32,8 @@ import jakarta.faces.render.ResponseStateManager;
 
 public class ClientWindowImpl extends ClientWindow {
 
+    private static final String clientWindowCounterKey = "com.sun.faces.lifecycle.ClientWindowCounterKey";
+
     String id;
 
     public ClientWindowImpl() {
@@ -60,7 +62,7 @@ public class ClientWindowImpl extends ClientWindow {
 
     private String calculateClientWindow(FacesContext context) {
         return Util.execAtomic(getMutex(context.getExternalContext().getSession(true)), () -> {
-            final String clientWindowCounterKey = "com.sun.faces.lifecycle.ClientWindowCounterKey";
+
             ExternalContext extContext = context.getExternalContext();
             Map<String, Object> sessionAttrs = extContext.getSessionMap();
             Integer counter = (Integer) sessionAttrs.getOrDefault(clientWindowCounterKey, 0);
