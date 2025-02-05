@@ -288,7 +288,7 @@ public class ClasspathResourceHelper extends ResourceHelper {
             }
         } else if (root == null) {
             String contractName = ctx.getExternalContext().getRequestParameterMap().get("con");
-            if (null != contractName && 0 < contractName.length() && !ResourceManager.nameContainsForbiddenSequence(contractName)) {
+            if (null != contractName && !contractName.isEmpty() && !ResourceManager.nameContainsForbiddenSequence(contractName)) {
                 contracts = new ArrayList<>();
                 contracts.add(contractName);
             } else {
