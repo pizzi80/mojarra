@@ -17,6 +17,7 @@
 package com.sun.faces.facelets.tag;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 
 import jakarta.faces.FacesException;
@@ -43,7 +44,7 @@ import com.sun.faces.util.Util;
 public final class CompositeTagLibrary implements TagLibrary {
 
     private TagLibrary[] libraries;
-    private CompilationMessageHolder messageHolder;
+    private final CompilationMessageHolder messageHolder;
 
     public CompositeTagLibrary(TagLibrary[] libraries, CompilationMessageHolder unit) {
         Util.notNull("libraries", libraries);
@@ -66,7 +67,7 @@ public final class CompositeTagLibrary implements TagLibrary {
         for (int i = 0; i < libraries.length; i++) {
             if (libraries[i].containsNamespace(ns, null)) {
                 if (libraries[i] instanceof TagLibraryImpl) {
-                    containsNamespace = true; // In this case, we need to add FacesComponentTagLibrary to libraries as well because it can share the same namespace. 
+                    containsNamespace = true; // In this case, we need to add FacesComponentTagLibrary to libraries as well because it can share the same namespace.
                 }
                 else {
                     return true;
@@ -74,13 +75,13 @@ public final class CompositeTagLibrary implements TagLibrary {
             }
         }
         // PENDING: this is a terribly inefficient impl. Needs refactoring.
-        LazyTagLibrary lazyLibraries[] = new LazyTagLibrary[2];
+        LazyTagLibrary[] lazyLibraries = new LazyTagLibrary[2];
         lazyLibraries[0] = new CompositeComponentTagLibrary(ns);
         lazyLibraries[1] = new FacesComponentTagLibrary(ns);
         LazyTagLibrary toTest = null;
-        for (int i = 0; i < lazyLibraries.length; i++) {
-            if (lazyLibraries[i].tagLibraryForNSExists(ns)) {
-                toTest = lazyLibraries[i];
+        for (LazyTagLibrary lazyLibrary : lazyLibraries) {
+            if (lazyLibrary.tagLibraryForNSExists(ns)) {
+                toTest = lazyLibrary;
                 break;
             }
         }
@@ -88,9 +89,7 @@ public final class CompositeTagLibrary implements TagLibrary {
             TagLibrary[] librariesPlusOne = new TagLibrary[libraries.length + 1];
             System.arraycopy(libraries, 0, librariesPlusOne, 0, libraries.length);
             librariesPlusOne[libraries.length] = toTest;
-            for (int i = 0; i < libraries.length; i++) {
-                libraries[i] = null;
-            }
+            Arrays.fill(libraries, null);
             libraries = librariesPlusOne;
             return true;
         } else {
@@ -118,7 +117,7 @@ public final class CompositeTagLibrary implements TagLibrary {
         String result = t.getQName();
         if (null != result) {
             int i;
-            if (-1 != (i = result.indexOf(":"))) {
+            if (-1 != (i = result.indexOf(':'))) {
                 return result.substring(0, i);
             }
         }
@@ -132,8 +131,8 @@ public final class CompositeTagLibrary implements TagLibrary {
      */
     @Override
     public boolean containsTagHandler(String ns, String localName) {
-        for (int i = 0; i < libraries.length; i++) {
-            if (libraries[i].containsTagHandler(ns, localName)) {
+        for (TagLibrary library : libraries) {
+            if (library.containsTagHandler(ns, localName)) {
                 return true;
             }
         }
@@ -148,9 +147,9 @@ public final class CompositeTagLibrary implements TagLibrary {
      */
     @Override
     public TagHandler createTagHandler(String ns, String localName, TagConfig tag) throws FacesException {
-        for (int i = 0; i < libraries.length; i++) {
-            if (libraries[i].containsTagHandler(ns, localName)) {
-                return libraries[i].createTagHandler(ns, localName, tag);
+        for (TagLibrary library : libraries) {
+            if (library.containsTagHandler(ns, localName)) {
+                return library.createTagHandler(ns, localName, tag);
             }
         }
         return null;
@@ -163,8 +162,8 @@ public final class CompositeTagLibrary implements TagLibrary {
      */
     @Override
     public boolean containsFunction(String ns, String name) {
-        for (int i = 0; i < libraries.length; i++) {
-            if (libraries[i].containsFunction(ns, name)) {
+        for (TagLibrary library : libraries) {
+            if (library.containsFunction(ns, name)) {
                 return true;
             }
         }
@@ -178,9 +177,9 @@ public final class CompositeTagLibrary implements TagLibrary {
      */
     @Override
     public Method createFunction(String ns, String name) {
-        for (int i = 0; i < libraries.length; i++) {
-            if (libraries[i].containsFunction(ns, name)) {
-                return libraries[i].createFunction(ns, name);
+        for (TagLibrary library : libraries) {
+            if (library.containsFunction(ns, name)) {
+                return library.createFunction(ns, name);
             }
         }
         return null;
