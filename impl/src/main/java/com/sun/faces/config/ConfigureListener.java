@@ -170,14 +170,14 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
         try {
             if (LOGGER.isLoggable(INFO)) {
-                LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.27_pizzi" , servletContext.getContextPath()) );
+                LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.28_pizzi" , servletContext.getContextPath()) );
             }
 
             if (webConfig.isOptionEnabled(VerifyFacesConfigObjects)) {
-                LOGGER.warning(
-                    "JSF1059: WARNING!  The com.sun.faces.verifyObjects feature is to aid developers not using tools.  " +
-                    "It shouldn't be enabled if using an IDE, or if this application is being deployed for production as it " +
-                    "will impact application start times.");
+                LOGGER.warning("""
+                        JSF1059: WARNING!  The com.sun.faces.verifyObjects feature is to aid developers not using tools.  \
+                        It shouldn't be enabled if using an IDE, or if this application is being deployed for production as it \
+                        will impact application start times.""");
 
                 // If we're verifying, force bean validation to occur at startup as well
                 webConfig.overrideContextInitParameter(EnableLazyBeanValidation, false);
@@ -223,9 +223,9 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
                 ServerContainer serverContainer = (ServerContainer) servletContext.getAttribute(ServerContainer.class.getName());
 
                 if (serverContainer == null) {
-                    throw new UnsupportedOperationException(
-                        "Cannot enable f:websocket." +
-                        " The current websocket container implementation does not support programmatically registering a container-provided endpoint.");
+                    throw new UnsupportedOperationException("""
+                            Cannot enable f:websocket.\
+                             The current websocket container implementation does not support programmatically registering a container-provided endpoint.""");
                 }
 
                 serverContainer.addEndpoint(ServerEndpointConfig.Builder.create(WebsocketEndpoint.class, URI_TEMPLATE).build());
@@ -560,8 +560,9 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
          * @param context the ServletContext instance for this application
          */
         private void scanForFacesServlet(ServletContext context) {
-            InputStream in = context.getResourceAsStream(WEB_XML_PATH);
-            SAXParserFactory factory = getConfiguredFactory();
+            final SAXParserFactory factory = getConfiguredFactory();
+
+            final InputStream in = context.getResourceAsStream(WEB_XML_PATH);
             if (in != null) {
                 try {
                     SAXParser parser = factory.newSAXParser();
@@ -571,12 +572,10 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
                     facesServletPresent = true;
                     return;
                 } finally {
-                    if (in != null) {
-                        try {
-                            in.close();
-                        } catch (Exception ioe) {
-                            LOGGER.log(FINEST, "Closing stream", ioe);
-                        }
+                    try {
+                        in.close();
+                    } catch (Exception ioe) {
+                        LOGGER.log(FINEST, "Closing stream", ioe);
                     }
                 }
             }
@@ -797,8 +796,8 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
                     if (in != null) {
                         try {
                             in.close();
-                        } catch (IOException ignored) {
-                            LOGGER.log(FINEST, "Exception while closing stream", ignored);
+                        } catch (IOException ioe) {
+                            LOGGER.log(FINEST, "Exception while closing stream", ioe);
                         }
                     }
                 }
