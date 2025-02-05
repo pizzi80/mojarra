@@ -72,7 +72,7 @@ class CompilationUnit {
     }
 
     protected final FaceletHandler getNextFaceletHandler() {
-        if (children == null || children.size() == 0) {
+        if (children == null || children.isEmpty()) {
             return LEAF;
         }
         if (children.size() == 1) {
