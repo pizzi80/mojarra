@@ -43,6 +43,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import com.sun.faces.RIConstants;
 import com.sun.faces.util.Util;
@@ -76,6 +77,8 @@ public final class DevTools {
     private final static String TS = "&lt;";
 
     private static final String ERROR_TEMPLATE = "META-INF/facelet-dev-error.xml";
+
+    private static final Pattern AT_PATTERN = Pattern.compile("@@");
 
     private static String[] ERROR_PARTS;
 
@@ -299,7 +302,7 @@ public final class DevTools {
                 is.close();
             }
         }
-        return str.split("@@");
+        return AT_PATTERN.split(str);
 
     }
 
@@ -309,7 +312,7 @@ public final class DevTools {
                 "<table style=\"border: 1px solid #CCC; border-collapse: collapse; border-spacing: 0px; width: 100%; text-align: left;\"><caption style=\"text-align: left; padding: 10px 0; font-size: large;\">");
         writer.write(caption);
         writer.write(
-                "</caption><thead stype=\"padding: 2px; color: #030; background-color: #F9F9F9;\"><tr style=\"padding: 2px; color: #030; background-color: #F9F9F9;\"><th style=\"padding: 2px; color: #030; background-color: #F9F9F9;width: 10%; \">Name</th><th style=\"padding: 2px; color: #030; background-color: #F9F9F9;width: 90%; \">Value</th></tr></thead><tbody style=\"padding: 10px 6px;\">");
+                "</caption><thead style=\"padding: 2px; color: #030; background-color: #F9F9F9;\"><tr style=\"padding: 2px; color: #030; background-color: #F9F9F9;\"><th style=\"padding: 2px; color: #030; background-color: #F9F9F9;width: 10%; \">Name</th><th style=\"padding: 2px; color: #030; background-color: #F9F9F9;width: 90%; \">Value</th></tr></thead><tbody style=\"padding: 10px 6px;\">");
         boolean written = false;
         if (!vars.isEmpty()) {
             SortedMap<String, Object> map = new TreeMap<>(vars);
@@ -359,7 +362,7 @@ public final class DevTools {
                             if (v instanceof Collection || v instanceof Map || v instanceof Iterator) {
                                 continue;
                             }
-                            writer.write(" ");
+                            writer.write(' ');
                             writer.write(aPd.getName());
                             writer.write("=\"");
                             String str;
@@ -370,10 +373,6 @@ public final class DevTools {
                             }
                             writer.write(str.replace("<", TS));
                             writer.write("\"");
-                        }
-                    } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | IOException e) {
-                        if (LOGGER.isLoggable(Level.FINEST)) {
-                            LOGGER.log(Level.FINEST, "Error writing out attribute", e);
                         }
                     } catch (Exception e) {
                         if (LOGGER.isLoggable(Level.FINEST)) {
