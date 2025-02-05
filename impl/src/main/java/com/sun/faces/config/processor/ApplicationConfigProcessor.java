@@ -202,15 +202,15 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
      */
     private static final String SOURCE_CLASS = "source-class";
 
-    private List<ActionListener> actionListeners = new CopyOnWriteArrayList<>();
-    private List<NavigationHandler> navigationHandlers = new CopyOnWriteArrayList<>();
-    private List<ViewHandler> viewHandlers = new CopyOnWriteArrayList<>();
-    private List<StateManager> stateManagers = new CopyOnWriteArrayList<>();
-    private List<ResourceHandler> resourceHandlers = new CopyOnWriteArrayList<>();
-    private List<ELResolver> elResolvers = new CopyOnWriteArrayList<>();
-    private List<SystemEventListener> systemEventListeners = new CopyOnWriteArrayList<>();
-    private List<SearchExpressionHandler> searchExpressionHandlers = new CopyOnWriteArrayList<>();
-    private List<SearchKeywordResolver> searchKeywordResolvers = new CopyOnWriteArrayList<>();
+    private final List<ActionListener> actionListeners = new CopyOnWriteArrayList<>();
+    private final List<NavigationHandler> navigationHandlers = new CopyOnWriteArrayList<>();
+    private final List<ViewHandler> viewHandlers = new CopyOnWriteArrayList<>();
+    private final List<StateManager> stateManagers = new CopyOnWriteArrayList<>();
+    private final List<ResourceHandler> resourceHandlers = new CopyOnWriteArrayList<>();
+    private final List<ELResolver> elResolvers = new CopyOnWriteArrayList<>();
+    private final List<SystemEventListener> systemEventListeners = new CopyOnWriteArrayList<>();
+    private final List<SearchExpressionHandler> searchExpressionHandlers = new CopyOnWriteArrayList<>();
+    private final List<SearchKeywordResolver> searchKeywordResolvers = new CopyOnWriteArrayList<>();
 
     // -------------------------------------------- Methods from ConfigProcessor
 
@@ -221,12 +221,12 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
         LinkedHashMap<String, Node> viewHandlers = new LinkedHashMap<>();
         LinkedHashSet<String> defaultValidatorIds = null;
 
-        for (int i = 0; i < documentInfos.length; i++) {
+        for (DocumentInfo documentInfo : documentInfos) {
             if (LOGGER.isLoggable(FINE)) {
-                LOGGER.log(FINE, format("Processing application elements for document: ''{0}''", documentInfos[i].getSourceURI()));
+                LOGGER.log(FINE, format("Processing application elements for document: ''{0}''", documentInfo.getSourceURI()));
             }
 
-            Document document = documentInfos[i].getDocument();
+            Document document = documentInfo.getDocument();
             String namespace = document.getDocumentElement().getNamespaceURI();
             NodeList applicationElements = document.getDocumentElement().getElementsByTagNameNS(namespace, APPLICATION);
 
@@ -238,61 +238,61 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
                         for (int c = 0, csize = children.getLength(); c < csize; c++) {
                             Node n = children.item(c);
                             switch (n.getLocalName()) {
-                            case MESSAGE_BUNDLE:
-                                setMessageBundle(application, n);
-                                break;
-                            case DEFAULT_RENDERKIT_ID:
-                                setDefaultRenderKitId(application, n);
-                                break;
-                            case ACTION_LISTENER:
-                                addActionListener(servletContext, facesContext, application, n);
-                                break;
-                            case NAVIGATION_HANDLER:
-                                setNavigationHandler(servletContext, facesContext, application, n);
-                                break;
-                            case VIEW_HANDLER:
-                                String viewHandler = getNodeText(n);
-                                if (viewHandler != null) {
-                                    viewHandlers.put(viewHandler, n);
-                                }
-                                break;
-                            case STATE_MANAGER:
-                                setStateManager(servletContext, facesContext, application, n);
-                                break;
-                            case EL_RESOLVER:
-                                addELResolver(servletContext, facesContext, associate, n);
-                                break;
-                            case DEFAULT_LOCALE:
-                                setDefaultLocale(application, n);
-                                break;
-                            case SUPPORTED_LOCALE:
-                                addSupportedLocale(application, n);
-                                break;
-                            case RESOURCE_BUNDLE:
-                                addResouceBundle(associate, n);
-                                break;
-                            case RESOURCE_HANDLER:
-                                setResourceHandler(servletContext, facesContext, application, n);
-                                break;
-                            case SYSTEM_EVENT_LISTENER:
-                                addSystemEventListener(servletContext, facesContext, application, n);
-                                break;
-                            case DEFAULT_VALIDATORS:
-                                if (defaultValidatorIds == null) {
-                                    defaultValidatorIds = new LinkedHashSet<>();
-                                } else {
-                                    defaultValidatorIds.clear();
-                                }
-                                break;
-                            case VALIDATOR_ID:
-                                defaultValidatorIds.add(getNodeText(n));
-                                break;
-                            case SEARCH_EXPRESSION_HANDLER:
-                                setSearchExpressionHandler(servletContext, facesContext, application, n);
-                                break;
-                            case SEARCH_KEYWORD_RESOLVER:
-                                addSearchKeywordResolver(servletContext, facesContext, application, n);
-                                break;
+                                case MESSAGE_BUNDLE:
+                                    setMessageBundle(application, n);
+                                    break;
+                                case DEFAULT_RENDERKIT_ID:
+                                    setDefaultRenderKitId(application, n);
+                                    break;
+                                case ACTION_LISTENER:
+                                    addActionListener(servletContext, facesContext, application, n);
+                                    break;
+                                case NAVIGATION_HANDLER:
+                                    setNavigationHandler(servletContext, facesContext, application, n);
+                                    break;
+                                case VIEW_HANDLER:
+                                    String viewHandler = getNodeText(n);
+                                    if (viewHandler != null) {
+                                        viewHandlers.put(viewHandler, n);
+                                    }
+                                    break;
+                                case STATE_MANAGER:
+                                    setStateManager(servletContext, facesContext, application, n);
+                                    break;
+                                case EL_RESOLVER:
+                                    addELResolver(servletContext, facesContext, associate, n);
+                                    break;
+                                case DEFAULT_LOCALE:
+                                    setDefaultLocale(application, n);
+                                    break;
+                                case SUPPORTED_LOCALE:
+                                    addSupportedLocale(application, n);
+                                    break;
+                                case RESOURCE_BUNDLE:
+                                    addResouceBundle(associate, n);
+                                    break;
+                                case RESOURCE_HANDLER:
+                                    setResourceHandler(servletContext, facesContext, application, n);
+                                    break;
+                                case SYSTEM_EVENT_LISTENER:
+                                    addSystemEventListener(servletContext, facesContext, application, n);
+                                    break;
+                                case DEFAULT_VALIDATORS:
+                                    if (defaultValidatorIds == null) {
+                                        defaultValidatorIds = new LinkedHashSet<>();
+                                    } else {
+                                        defaultValidatorIds.clear();
+                                    }
+                                    break;
+                                case VALIDATOR_ID:
+                                    defaultValidatorIds.add(getNodeText(n));
+                                    break;
+                                case SEARCH_EXPRESSION_HANDLER:
+                                    setSearchExpressionHandler(servletContext, facesContext, application, n);
+                                    break;
+                                case SEARCH_KEYWORD_RESOLVER:
+                                    addSearchKeywordResolver(servletContext, facesContext, application, n);
+                                    break;
                             }
                         }
                     }
