@@ -53,11 +53,11 @@ public final class CompositeTagDecorator implements TagDecorator {
             tag = noFacesAttributes;
         }
 
-        Tag t = null;
-        for (int i = 0; i < decorators.length; i++) {
-            t = decorators[i].decorate(tag);
-            if (t != null) {
-                return t;
+
+        for (TagDecorator decorator : decorators) {
+            Tag decorated = decorator.decorate(tag);
+            if (decorated != null) {
+                return decorated;
             }
         }
         return tag;
