@@ -95,7 +95,7 @@ public class CheckboxRenderer extends HtmlBasicInputRenderer {
         writer.writeAttribute("type", "checkbox", "type");
         writer.writeAttribute("name", component.getClientId(context), "clientId");
 
-        if (Boolean.valueOf(currentValue)) {
+        if (Boolean.parseBoolean(currentValue)) {
             writer.writeAttribute("checked", Boolean.TRUE, "value");
         }
         if (null != (styleClass = (String) component.getAttributes().get("styleClass"))) {
@@ -114,7 +114,7 @@ public class CheckboxRenderer extends HtmlBasicInputRenderer {
 
     /**
      * @param value the submitted value
-     * @return "true" if the component was checked, otherise "false"
+     * @return "true" if the component was checked, otherwise "false"
      */
     private static boolean isChecked(String value) {
 
