@@ -17,7 +17,6 @@
 package com.sun.faces.facelets.compiler;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 import java.util.logging.Level;
@@ -53,6 +52,8 @@ final class CompilationManager {
 
     private final static Logger log = FacesLogger.FACELETS_COMPILER.getLogger();
 
+    private static final String FACES_JSFC_ATTRIBUTE = "jsfc";
+
     private final Compiler compiler;
 
     private final TagLibrary tagLibrary;
@@ -71,7 +72,7 @@ final class CompilationManager {
 
     private CompilationMessageHolder messageHolder = null;
 
-    private WebConfiguration config;
+    private final WebConfiguration config;
 
     public CompilationManager(String alias, Compiler compiler) {
 
@@ -92,7 +93,7 @@ final class CompilationManager {
         // for composition use
         finished = false;
 
-        // our compilationunit stack
+        // our compilation unit stack
         units = new Stack<>();
         units.push(new CompilationUnit());
 
@@ -135,7 +136,7 @@ final class CompilationManager {
         }
 
         // don't carelessly add empty tags
-        if (value.length() == 0) {
+        if (value.isEmpty()) {
             return;
         }
 
@@ -156,7 +157,7 @@ final class CompilationManager {
         }
 
         // don't carelessly add empty tags
-        if (value.length() == 0) {
+        if (value.isEmpty()) {
             return;
         }
 
@@ -180,7 +181,7 @@ final class CompilationManager {
         }
 
         // don't carelessly add empty tags
-        if (text.length() == 0) {
+        if (text.isEmpty()) {
             return;
         }
 
@@ -247,7 +248,7 @@ final class CompilationManager {
                 throw new TagException(orig, "Unable to find interface for implementation.");
             }
 
-            // Cleare the parent tags
+            // Clear the parent tags
             units.clear();
             NamespaceUnit nsUnit = namespaceManager.toNamespaceUnit(tagLibrary);
             units.push(nsUnit);
@@ -289,8 +290,7 @@ final class CompilationManager {
 
         CompilationUnit unit = currentUnit();
 
-        if (unit instanceof TextUnit) {
-            TextUnit t = (TextUnit) unit;
+        if (unit instanceof TextUnit t) {
             if (t.isClosed()) {
                 finishUnit();
             } else {
@@ -301,8 +301,7 @@ final class CompilationManager {
             unit = currentUnit();
         }
 
-        if (unit instanceof TagUnit) {
-            TagUnit t = (TagUnit) unit;
+        if (unit instanceof TagUnit t) {
             if (t instanceof TrimmedTagUnit) {
                 finished = true;
                 return;
@@ -343,7 +342,7 @@ final class CompilationManager {
     }
 
     public FaceletHandler createFaceletHandler() {
-        return units.get(0).createFaceletHandler();
+        return units.getFirst().createFaceletHandler();
     }
 
     private CompilationUnit currentUnit() {
@@ -390,32 +389,32 @@ final class CompilationManager {
         return t;
     }
 
-    protected static boolean isRemove(String ns, String name) {
+    private static boolean isRemove(String ns, String name) {
         return UILibrary.NAMESPACES.contains(ns) && "remove".equals(name);
     }
 
     // edburns: This is the magic line that tells the system to trim out the
     // extra content above and below the tag.
-    protected static boolean isTrimmed(String ns, String name) {
+    private static boolean isTrimmed(String ns, String name) {
         boolean matchInUILibrary = UILibrary.NAMESPACES.contains(ns)
                 && (CompositionHandler.Name.equals(name) || ComponentRefHandler.Name.equals(name));
         return matchInUILibrary;
     }
 
-    protected static boolean isImplementation(String ns, String name) {
+    private static boolean isImplementation(String ns, String name) {
         boolean matchInCompositeLibrary = CompositeLibrary.NAMESPACES.contains(ns)
                 && ImplementationHandler.Name.equals(name);
         return matchInCompositeLibrary;
     }
 
-    protected static boolean isInterface(String ns, String name) {
+    private static boolean isInterface(String ns, String name) {
         boolean matchInCompositeLibrary = CompositeLibrary.NAMESPACES.contains(ns)
                 && InterfaceHandler.Name.equals(name);
         return matchInCompositeLibrary;
     }
 
     private String[] determineQName(Tag tag) {
-        TagAttribute attr = tag.getAttributes().get("jsfc");
+        TagAttribute attr = tag.getAttributes().get(FACES_JSFC_ATTRIBUTE);
         if (attr != null) {
             if (log.isLoggable(Level.FINE)) {
                 log.fine(attr + " Facelet Compile Directive Found");
@@ -441,14 +440,14 @@ final class CompilationManager {
     }
 
     private Tag trimJSFCAttribute(Tag tag) {
-        TagAttribute attr = tag.getAttributes().get("jsfc");
+        TagAttribute attr = tag.getAttributes().get(FACES_JSFC_ATTRIBUTE);
         if (attr != null) {
             TagAttribute[] oa = tag.getAttributes().getAll();
             TagAttribute[] na = new TagAttribute[oa.length - 1];
             int p = 0;
-            for (int i = 0; i < oa.length; i++) {
-                if (!"jsfc".equals(oa[i].getLocalName())) {
-                    na[p++] = oa[i];
+            for (TagAttribute tagAttribute : oa) {
+                if (!FACES_JSFC_ATTRIBUTE.equals(tagAttribute.getLocalName())) {
+                    na[p++] = tagAttribute;
                 }
             }
             return new Tag(tag, new TagAttributesImpl(na));
@@ -491,11 +490,8 @@ final class CompilationManager {
      */
     private CompilationUnit getViewRootUnitFromStack(Stack<CompilationUnit> units) {
         CompilationUnit result = null;
-        Iterator<CompilationUnit> iterator = units.iterator();
-        while (iterator.hasNext()) {
-            CompilationUnit compilationUnit = iterator.next();
-            if (compilationUnit instanceof TagUnit) {
-                TagUnit tagUnit = (TagUnit) compilationUnit;
+        for (CompilationUnit compilationUnit : units) {
+            if (compilationUnit instanceof TagUnit tagUnit) {
                 String ns = tagUnit.getTag().getNamespace();
                 if (CoreLibrary.NAMESPACES.contains(ns) && tagUnit.getTag().getLocalName().equals("view")) {
                     result = tagUnit;
