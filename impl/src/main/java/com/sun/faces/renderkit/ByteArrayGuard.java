@@ -175,13 +175,13 @@ public final class ByteArrayGuard {
     }
 
     // fixme: 1) why not use Arrays.equals(array1,array2) ... ?
-    //        2) why after the first failed equality there is no break statement?
-    //        3) why is not static?
-    private boolean areArrayEqualsConstantTime(byte[] array1, byte[] array2) {
+    //        2) why is not static?
+    private static boolean areArrayEqualsConstantTime(byte[] array1, byte[] array2) {
         boolean result = true;
         for (int i = 0; i < array1.length; i++) {
             if (array1[i] != array2[i]) {
                 result = false;
+                break;
             }
         }
         return result;
