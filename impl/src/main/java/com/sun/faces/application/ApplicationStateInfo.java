@@ -19,21 +19,20 @@ package com.sun.faces.application;
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.PartialStateSaving;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FullStateSavingViewIds;
 import static com.sun.faces.util.Util.notNullViewId;
-import static java.util.Arrays.asList;
 
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
 
 import com.sun.faces.config.WebConfiguration;
 
 /**
- * This class maintains per-application information pertaining to partail or full state saving as a whole or partial
+ * This class maintains per-application information pertaining to partial or full state saving as a whole or partial
  * state saving with some views using full state saving.
  */
 public class ApplicationStateInfo {
 
     private final boolean partialStateSaving;
-    private Set<String> fullStateViewIds;
+    private final Set<String> fullStateViewIds;
 
     // ------------------------------------------------------------ Constructors
 
@@ -43,11 +42,10 @@ public class ApplicationStateInfo {
         partialStateSaving = config.isOptionEnabled(PartialStateSaving);
 
         if (partialStateSaving) {
-            String[] viewIds = config.getOptionValue(FullStateSavingViewIds, ",");
-            fullStateViewIds = new HashSet<>(viewIds.length, 1.0f);
-            fullStateViewIds.addAll(asList(viewIds));
+            fullStateViewIds = Set.of(config.getOptionValue(FullStateSavingViewIds, ","));
+        } else {
+            fullStateViewIds = Collections.emptySet();
         }
-
     }
 
     // --------------------------------------------------------- Private Methods
