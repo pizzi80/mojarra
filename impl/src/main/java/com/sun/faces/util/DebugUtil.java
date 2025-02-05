@@ -110,7 +110,7 @@ public class DebugUtil {
             doos = new DebugObjectOutputStream(oos);
             doos.writeObject(toPrint);
         } catch (IOException ioe) {
-            List pathToBadObject = doos.getStack();
+            List<Object> pathToBadObject = doos.getStack();
             builder.append("Path to non-Serializable Object: \n");
             for (Object cur : pathToBadObject) {
                 builder.append(cur.toString()).append("\n");
@@ -127,7 +127,7 @@ public class DebugUtil {
         for (int i = 0; i < curDepth; i++) {
             builder.append("  ");
         }
-        builder.append(str + "\n");
+        builder.append(str).append("\n");
 
         if (!(toPrint instanceof String)) {
             assertSerializability(builder, toPrint);
@@ -216,26 +216,22 @@ public class DebugUtil {
                 indentPrintln(out, "value = " + value);
             }
 
-            Iterator<String> it = root.getAttributes().keySet().iterator();
-            if (it != null) {
-                while (it.hasNext()) {
-                    String attrName = it.next();
-                    ve = root.getValueExpression(attrName);
-                    String expr = null;
-                    if (ve != null) {
-                        expr = ve.getExpressionString();
-                    }
-                    String val;
-                    try {
-                        val = root.getAttributes().get(attrName).toString();
-                    } catch (Exception e) {
-                        val = "UNAVAILABLE";
-                    }
-                    if (expr != null) {
-                        indentPrintln(out, "attr = " + attrName + " : [" + expr + " : " + val + " ]");
-                    } else {
-                        indentPrintln(out, "attr = " + attrName + " : " + val);
-                    }
+            for (String attrName : root.getAttributes().keySet()) {
+                ve = root.getValueExpression(attrName);
+                String expr = null;
+                if (ve != null) {
+                    expr = ve.getExpressionString();
+                }
+                String val;
+                try {
+                    val = root.getAttributes().get(attrName).toString();
+                } catch (Exception e) {
+                    val = "UNAVAILABLE";
+                }
+                if (expr != null) {
+                    indentPrintln(out, "attr = " + attrName + " : [" + expr + " : " + val + " ]");
+                } else {
+                    indentPrintln(out, "attr = " + attrName + " : " + val);
                 }
             }
         }
@@ -263,7 +259,7 @@ public class DebugUtil {
         } else {
             indentPrintln(out, "+id: " + root.getId());
         }
-        indentPrintln(out, " type: " + root.toString());
+        indentPrintln(out, " type: " + root);
 
         curDepth++;
         // print all the facets of this component
@@ -302,18 +298,16 @@ public class DebugUtil {
             return;
         }
 
-        Object obj;
-        for (int i = 0; i < root.length; i++) {
-            obj = root[i];
-            if (null == obj) {
+        for (Object object : root) {
+            if (null == object) {
                 indentPrintln(out, "null");
             } else {
-                if (obj.getClass().isArray()) {
+                if (object.getClass().isArray()) {
                     curDepth++;
-                    printTree((Object[]) obj, out);
+                    printTree((Object[]) object, out);
                     curDepth--;
                 } else {
-                    indentPrintln(out, obj.toString());
+                    indentPrintln(out, object.toString());
                 }
 
             }
@@ -328,20 +322,18 @@ public class DebugUtil {
             return;
         }
 
-        Object obj;
-        for (int i = 0; i < root.length; i++) {
-            obj = root[i];
-            if (null == obj) {
+        for (Object object : root) {
+            if (null == object) {
                 indentPrintln(out, "null");
             } else {
-                if (obj.getClass().isArray()) {
+                if (object.getClass().isArray()) {
                     curDepth++;
-                    printTree((Object[]) obj, out);
+                    printTree((Object[]) object, out);
                     curDepth--;
-                } else if (obj instanceof List) {
-                    printList((List) obj, out);
+                } else if (object instanceof List) {
+                    printList((List) object, out);
                 } else {
-                    indentPrintln(out, obj);
+                    indentPrintln(out, object);
                 }
 
             }
