@@ -55,15 +55,14 @@ import jakarta.faces.view.facelets.FaceletContext;
 final class DefaultFaceletContext extends FaceletContextImplBase {
 
     private final FacesContext faces;
-
     private final ELContext ctx;
-
     private final DefaultFacelet facelet;
     private final List<Facelet> faceletHierarchy;
 
     private VariableMapper varMapper;
-
     private FunctionMapper fnMapper;
+
+    private final List<TemplateManager> clients;
 
     private final Map<String, Integer> ids;
     private final Map<Integer, Integer> prefixes;
@@ -204,8 +203,8 @@ final class DefaultFaceletContext extends FaceletContextImplBase {
 
         if (prefix == null) {
             StringBuilder builder = new StringBuilder(faceletHierarchy.size() * 30);
-            for (int i = 0; i < faceletHierarchy.size(); i++) {
-                DefaultFacelet facelet = (DefaultFacelet) faceletHierarchy.get(i);
+            for (Facelet value : faceletHierarchy) {
+                DefaultFacelet facelet = (DefaultFacelet) value;
                 builder.append(facelet.getAlias());
             }
             Integer prefixInt = builder.toString().hashCode();
@@ -215,7 +214,7 @@ final class DefaultFaceletContext extends FaceletContextImplBase {
                 prefixes.put(prefixInt, 0);
                 prefix = prefixInt.toString();
             } else {
-                int i = cnt.intValue() + 1;
+                int i = cnt + 1;
                 prefixes.put(prefixInt, i);
                 prefix = prefixInt + "_" + i;
             }
@@ -226,20 +225,19 @@ final class DefaultFaceletContext extends FaceletContextImplBase {
             ids.put(base, 0);
             uniqueIdBuilder.delete(0, uniqueIdBuilder.length());
             uniqueIdBuilder.append(prefix);
-            uniqueIdBuilder.append("_");
+            uniqueIdBuilder.append('_');
             uniqueIdBuilder.append(base);
-            return uniqueIdBuilder.toString();
         } else {
-            int i = cnt.intValue() + 1;
+            int i = cnt + 1;
             ids.put(base, i);
             uniqueIdBuilder.delete(0, uniqueIdBuilder.length());
             uniqueIdBuilder.append(prefix);
-            uniqueIdBuilder.append("_");
+            uniqueIdBuilder.append('_');
             uniqueIdBuilder.append(base);
-            uniqueIdBuilder.append("_");
+            uniqueIdBuilder.append('_');
             uniqueIdBuilder.append(i);
-            return uniqueIdBuilder.toString();
         }
+        return uniqueIdBuilder.toString();
     }
 
     /*
@@ -289,12 +287,10 @@ final class DefaultFaceletContext extends FaceletContextImplBase {
         return ctx.getELResolver();
     }
 
-    private final List<TemplateManager> clients;
-
     @Override
     public void popClient(TemplateClient client) {
         if (!clients.isEmpty()) {
-            Iterator itr = clients.iterator();
+            Iterator<TemplateManager> itr = clients.iterator();
             while (itr.hasNext()) {
                 if (itr.next().equals(client)) {
                     itr.remove();
