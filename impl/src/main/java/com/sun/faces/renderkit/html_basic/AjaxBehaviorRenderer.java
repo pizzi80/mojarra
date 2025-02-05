@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import jakarta.faces.component.ActionSource;
 import jakarta.faces.component.EditableValueHolder;
@@ -58,6 +59,8 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
 
     // Log instance for this class
     protected static final Logger logger = FacesLogger.RENDERKIT.getLogger();
+
+    private static final Pattern THIS_PATTERN = Pattern.compile("@this");
 
     // ------------------------------------------------------ Rendering Methods
 
@@ -314,7 +317,7 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
         for (String id : ids) {
             String expression = id.trim();
 
-            if (expression.length() == 0) {
+            if (expression.isEmpty()) {
                 continue;
             }
             if (!first) {
@@ -326,7 +329,7 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
             boolean clientResolveableExpression = expression.equals("@all") || expression.equals("@none") || expression.equals("@form") || expression.equals("@this");
 
             if (composite != null && (ajaxBehavior instanceof RetargetedAjaxBehavior) && (expression.equals("@this") || expression.startsWith("@this" + separatorChar))) {
-                expression = expression.replaceFirst("@this", separatorChar + composite.getClientId(facesContext));
+                expression = THIS_PATTERN.matcher(expression).replaceFirst(separatorChar + composite.getClientId(facesContext));
                 clientResolveableExpression = false;
             }
 
