@@ -16,6 +16,8 @@
 
 package com.sun.faces.util;
 
+import java.util.Objects;
+
 import jakarta.faces.component.StateHolder;
 import jakarta.faces.context.FacesContext;
 
@@ -105,8 +107,7 @@ public class ComponentStruct implements StateHolder {
     public boolean equals(Object obj) {
         boolean result = false;
 
-        if (obj instanceof ComponentStruct) {
-            ComponentStruct struct = (ComponentStruct) obj;
+        if (obj instanceof ComponentStruct struct) {
             result = struct.clientId.equals(clientId);
         }
 
@@ -120,9 +121,7 @@ public class ComponentStruct implements StateHolder {
      */
     @Override
     public int hashCode() {
-        int hash = 5;
-        hash = 89 * hash + (clientId != null ? clientId.hashCode() : 0);
-        return hash;
+        return Objects.hash(clientId);
     }
 
     public String getAction() {
