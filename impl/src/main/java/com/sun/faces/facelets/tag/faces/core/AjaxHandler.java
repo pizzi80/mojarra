@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import jakarta.el.ELContext;
 import jakarta.el.MethodExpression;
@@ -92,6 +93,8 @@ import com.sun.faces.renderkit.RenderKitUtils;
  * @version $Id: AjaxHandler.java 5369 2008-09-08 19:53:45Z rogerk $
  */
 public final class AjaxHandler extends TagHandlerImpl implements BehaviorHolderAttachedObjectHandler {
+
+    private static final Pattern SPACES_PATTERN = Pattern.compile(" +");
 
     private final TagAttribute event;
     private final TagAttribute execute;
@@ -302,10 +305,10 @@ public final class AjaxHandler extends TagHandlerImpl implements BehaviorHolderA
             ValueExpression targets = ((BehaviorHolderWrapper) parent).getTargets();
 
             if (targets != null) {
-                String targetClientIds = (String) targets.getValue(ctx);
+                String targetClientIds = targets.getValue(ctx);
 
                 if (targetClientIds != null) {
-                    behavior = new RetargetedAjaxBehavior(behavior, asList(targetClientIds.trim().split(" +")));
+                    behavior = new RetargetedAjaxBehavior(behavior, asList(SPACES_PATTERN.split(targetClientIds.trim())));
                 }
             }
         }
