@@ -1253,7 +1253,7 @@ public class ELFlash extends Flash {
             try {
                 String urlDecodedValue = URLDecoder.decode(cookie.getValue(), UTF_8);
                 value = guard.decrypt(urlDecodedValue);
-                int i = value.indexOf("_");
+                int i = value.indexOf('_');
 
                 // IMPORTANT: what was "next" when the cookie was
                 // encoded is now "previous". Therefore decode "next" first.
