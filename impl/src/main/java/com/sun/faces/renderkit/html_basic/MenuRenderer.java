@@ -34,22 +34,20 @@ import static java.lang.reflect.Array.get;
 import static java.lang.reflect.Array.getLength;
 import static java.lang.reflect.Array.set;
 import static java.lang.reflect.Modifier.isAbstract;
-import static java.util.Arrays.stream;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.SEVERE;
-import static java.util.stream.Collectors.joining;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -124,7 +122,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
             }
 
             if (convertedValue == null) {
-                Object[] params = { newValues == null ? "" : stream(newValues).collect(joining("")), valueExpression.getExpressionString() };
+                Object[] params = { newValues == null ? NO_VALUE : String.join(NO_VALUE, newValues), valueExpression.getExpressionString() };
                 throw new ConverterException(getExceptionMessage(CONVERSION_ERROR_MESSAGE_ID, params));
             }
         } else {
@@ -281,7 +279,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
                     return newValues;
                 }
 
-                Object[] params = { stream(newValues).collect(joining(" ")), "null Converter" };
+                Object[] params = {String.join(" ", newValues), "null Converter" };
                 throw new ConverterException(getExceptionMessage(CONVERSION_ERROR_MESSAGE_ID, params));
             }
         }
@@ -371,9 +369,9 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
             }
 
             // Then "convert" submitted value to object based on collected available
-            // object items.
+            // object items. if there is no available item, then return the newValue
             for (String newValue : newValues) {
-                collection.add(availableItems.containsKey(newValue) ? availableItems.get(newValue) : newValue);
+                collection.add(availableItems.getOrDefault(newValue, newValue));
             }
         }
 
@@ -388,7 +386,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
         String valueString = getFormattedValue(context, component, curItem.getValue(), converter);
         boolean containsValue;
         if (submittedValues != null) {
-            containsValue = containsaValue(submittedValues);
+            containsValue = containsValue(submittedValues);
             if (containsValue) {
                 valuesArray = submittedValues;
                 itemValue = valueString;
@@ -467,13 +465,13 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
         writer.writeAttribute("size", "1", "size");
     }
 
-    protected boolean containsaValue(Object valueArray) {
+    protected boolean containsValue(Object valueArray) {
 
         if (valueArray != null) {
             int len = getLength(valueArray);
             for (int i = 0; i < len; i++) {
                 Object value = Array.get(valueArray, i);
-                if (value != null && !value.equals(NO_VALUE)) {
+                if (value != null && !NO_VALUE.equals(value)) {
                     return true;
                 }
             }
@@ -485,8 +483,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
     @SuppressWarnings("unchecked")
     protected Object getCurrentSelectedValues(UIComponent component) {
 
-        if (component instanceof UISelectMany) {
-            UISelectMany select = (UISelectMany) component;
+        if (component instanceof UISelectMany select) {
             Object value = select.getValue();
             if (value == null) {
                 return null;
@@ -521,13 +518,12 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
             return " multiple ";
         }
 
-        return "";
+        return NO_VALUE;
     }
 
     protected Object[] getSubmittedSelectedValues(UIComponent component) {
 
-        if (component instanceof UISelectMany) {
-            UISelectMany select = (UISelectMany) component;
+        if (component instanceof UISelectMany select) {
             return (Object[]) select.getSubmittedValue();
         }
 
@@ -656,7 +652,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
             writer.writeAttribute("class", styleClass, "styleClass");
         }
 
-        if (!getMultipleText(component).equals("")) {
+        if (!getMultipleText(component).isEmpty()) {
             writer.writeAttribute("multiple", true, "multiple");
         }
 
@@ -761,9 +757,9 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
 
         if (value instanceof Cloneable) {
 
-            // Even though Clonable marks an instance of a Class as being
+            // Even though Cloneable marks an instance of a Class as being
             // safe to call .clone(), .clone() by default is protected.
-            // The Collection classes that do implement Clonable do so at variable
+            // The Collection classes that do implement Cloneable do so at variable
             // locations within the class hierarchy, so we're stuck having to
             // use reflection.
             Method cloneMethod = lookupMethod(value, "clone");
@@ -803,11 +799,11 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
         }
 
         if (Queue.class.isAssignableFrom(type)) {
-            return new LinkedList<>();
+            return new ArrayDeque<>(initialSize);
         }
 
         if (Set.class.isAssignableFrom(type)) {
-            return new HashSet<>(initialSize);
+            return new HashSet<>(Util.calculateMapCapacity(initialSize));
         }
 
         // This covers the where type is List or Collection
@@ -858,7 +854,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
         Map<String, String[]> requestParameterValuesMap = context.getExternalContext().getRequestParameterValuesMap();
 
         if (requestParameterValuesMap.containsKey(clientId)) {
-            String newValues[] = requestParameterValuesMap.get(clientId);
+            String[] newValues = requestParameterValuesMap.get(clientId);
 
             if (newValues != null && newValues.length > 0) {
                 Set<String> disabledSelectItemValues = getDisabledSelectItemValues(context, component);
