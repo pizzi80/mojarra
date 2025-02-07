@@ -160,7 +160,7 @@ public class ConfigManager {
      * Mojarra, and one other providers to satisfy the requirements of the specification.
      * </p>
      */
-    private final List<ConfigurationResourceProvider> facesletsTagLibConfigProviders = List.of(
+    private final List<ConfigurationResourceProvider> faceletsTagLibConfigProviders = List.of(
             new MetaInfFaceletTaglibraryConfigProvider(), new WebFaceletTaglibResourceProvider());
 
     /**
@@ -258,10 +258,10 @@ public class ConfigManager {
                 // This invokes a chain or processors where each processor grabs its own elements of interest
                 // from each document.
 
-                DocumentInfo[] facesDocuments2 = facesDocuments;
-                configProcessors.subList(0, 3).stream().forEach(e -> {
+                final DocumentInfo[] facesDocuments2 = facesDocuments;
+                configProcessors.subList(0, 3).forEach(processor -> {
                     try {
-                        e.process(servletContext, facesContext, facesDocuments2);
+                        processor.process(servletContext, facesContext, facesDocuments2);
                     } catch (Exception e2) {
                         // TODO Auto-generated catch block
                         e2.printStackTrace();
@@ -274,11 +274,11 @@ public class ConfigManager {
                 ThreadContext threadContext = getThreadContext(containerConnector);
                 Object parentWebContext = threadContext != null ? threadContext.getParentWebContext() : null;
 
-                configProcessors.subList(3, configProcessors.size()).stream().forEach(e -> {
+                configProcessors.subList(3, configProcessors.size()).forEach(processor -> {
 
                     long currentThreadId = Thread.currentThread().getId();
 
-                    InitFacesContext initFacesContext = null;
+                    final InitFacesContext initFacesContext;
                     if (currentThreadId != parentThreadId) {
                         Thread.currentThread().setContextClassLoader(parentContextClassLoader);
                         initFacesContext = InitFacesContext.getInstance(servletContext);
@@ -291,7 +291,7 @@ public class ConfigManager {
                     }
 
                     try {
-                        e.process(servletContext, initFacesContext, facesDocuments2);
+                        processor.process(servletContext, initFacesContext, facesDocuments2);
                     } catch (Exception e1) {
                         // TODO Auto-generated catch block
                         e1.printStackTrace();
@@ -375,7 +375,7 @@ public class ConfigManager {
     }
 
     private List<ConfigurationResourceProvider> getFaceletConfigResourceProviders() {
-        return getConfigurationResourceProviders(facesletsTagLibConfigProviders, FaceletConfig);
+        return getConfigurationResourceProviders(faceletsTagLibConfigProviders, FaceletConfig);
     }
 
     private List<ConfigurationResourceProvider> getConfigurationResourceProviders(List<ConfigurationResourceProvider> defaultProviders, ConfigurationResourceProviderFactory.ProviderType providerType) {
@@ -464,8 +464,8 @@ public class ConfigManager {
     private void releaseFactories() {
         try {
             FactoryFinder.releaseFactories();
-        } catch (FacesException ignored) {
-            LOGGER.log(FINE, "Exception thrown from FactoryFinder.releaseFactories()", ignored);
+        } catch (FacesException e) {
+            LOGGER.log(FINE, "Exception thrown from FactoryFinder.releaseFactories()", e);
         }
     }
 
