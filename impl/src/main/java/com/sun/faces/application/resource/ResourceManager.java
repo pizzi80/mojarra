@@ -494,9 +494,9 @@ public class ResourceManager {
         String libraryName = null;
         String resourceName = null;
         int end = 0, start = 0;
-        if (-1 != (end = resourceId.lastIndexOf("/"))) {
+        if (-1 != (end = resourceId.lastIndexOf('/'))) {
             resourceName = resourceId.substring(end + 1);
-            if (-1 != (start = resourceId.lastIndexOf("/", end - 1))) {
+            if (-1 != (start = resourceId.lastIndexOf('/', end - 1))) {
                 libraryName = resourceId.substring(start + 1, end);
             } else {
                 libraryName = resourceId.substring(0, end);
@@ -527,9 +527,7 @@ public class ResourceManager {
      */
     private String getLocalePrefix(FacesContext context) {
 
-        String localePrefix = null;
-
-        localePrefix = context.getExternalContext().getRequestParameterMap().get("loc");
+        String localePrefix = context.getExternalContext().getRequestParameterMap().get("loc");
 
         if (localePrefix != null && !nameContainsForbiddenSequence(localePrefix)) {
             return localePrefix;
@@ -540,12 +538,7 @@ public class ResourceManager {
         String appBundleName = context.getApplication().getMessageBundle();
         if (null != appBundleName) {
 
-            Locale locale = null;
-            if (context.getViewRoot() != null) {
-                locale = context.getViewRoot().getLocale();
-            } else {
-                locale = context.getApplication().getViewHandler().calculateLocale(context);
-            }
+            final Locale locale = context.getViewRoot() != null ? context.getViewRoot().getLocale() : context.getApplication().getViewHandler().calculateLocale(context);
 
             try {
                 ResourceBundle appBundle = ResourceBundle.getBundle(appBundleName, locale, Util.getCurrentLoader(ResourceManager.class));
@@ -569,7 +562,7 @@ public class ResourceManager {
 
                 String param = context.getExternalContext().getRequestParameterMap().get("con");
                 if (!nameContainsForbiddenSequence(param) && param != null && !param.trim().isEmpty()) {
-                    return Arrays.asList(param);
+                    return Collections.singletonList(param);
                 }
             }
             // PENDING(edburns): calculate the contracts!
@@ -630,6 +623,7 @@ public class ResourceManager {
                     } catch (PatternSyntaxException pse) {
                         if (LOGGER.isLoggable(Level.WARNING)) {
                             // PENDING i18n
+                            // fixme: typo (also in .properties file)
                             LOGGER.log(Level.WARNING, "faces.resource.mime.type.configration.invalid", new Object[] { pattern, pse.getPattern() });
                         }
                     }
