@@ -26,6 +26,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -77,9 +78,9 @@ public class InjectionProviderFactory {
     /**
      * <p>
      * Creates a new instance of the class specified by the <code>com.sun.faces.InjectionProvider</code> system property. If
-     * this propery is not defined, then a default, no-op, <code>InjectionProvider</code> will be returned.
+     * this property is not defined, then a default, no-op, <code>InjectionProvider</code> will be returned.
      *
-     * @param extContext ExteranlContext for the current request
+     * @param extContext ExternalContext for the current request
      *
      * @return an implementation of the <code>InjectionProvider</code> interfaces
      */
@@ -111,7 +112,7 @@ public class InjectionProviderFactory {
                 Class<?> clazz = Util.loadClass(className, InjectionProviderFactory.class);
                 if (implementsInjectionProvider(clazz)) {
                     try {
-                        Constructor ctor = clazz.getConstructor(ServletContext.class);
+                        Constructor<?> ctor = clazz.getConstructor(ServletContext.class);
                         return (InjectionProvider) ctor.newInstance((ServletContext) extContext.getContext());
                     } catch (NoSuchMethodException nsme) {
                         return (InjectionProvider) clazz.getDeclaredConstructor().newInstance();
@@ -221,8 +222,8 @@ public class InjectionProviderFactory {
         } else {
             String[] serviceEntries = getServiceEntries();
             if (serviceEntries.length > 0) {
-                for (int i = 0; i < serviceEntries.length; i++) {
-                    provider = getProviderFromEntry(extContext.getApplicationMap(), serviceEntries[i]);
+                for (String serviceEntry : serviceEntries) {
+                    provider = getProviderFromEntry(extContext.getApplicationMap(), serviceEntry);
                     if (provider != null) {
                         break;
                     }
@@ -304,7 +305,7 @@ public class InjectionProviderFactory {
                     input = conn.getInputStream();
                     if (input != null) {
                         try {
-                            reader = new BufferedReader(new InputStreamReader(input, "UTF-8"));
+                            reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
                         } catch (Exception e) {
                             // The DM_DEFAULT_ENCODING warning is acceptable here
                             // because we explicitly *want* to use the Java runtime's
