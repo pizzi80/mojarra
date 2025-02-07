@@ -40,10 +40,12 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.MessageUtils;
 import com.sun.faces.util.Util;
 
+import jakarta.faces.application.FacesMessage;
 import jakarta.faces.component.NamingContainer;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIInput;
@@ -169,7 +171,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
         if (null != behaviorEvent) {
             List<ClientBehavior> behaviorsForEvent = behaviors.get(behaviorEvent);
 
-            if (behaviorsForEvent != null && behaviorsForEvent.size() > 0) {
+            if (behaviorsForEvent != null && !behaviorsForEvent.isEmpty()) {
                 String behaviorSource = BEHAVIOR_SOURCE_PARAM.getValue(context);
                 String clientId = component.getClientId();
                 if (isBehaviorSource(context, behaviorSource, clientId)) {
@@ -278,7 +280,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
         if (childCount > 0) {
             return component.getChildren().iterator();
         } else {
-            return Collections.<UIComponent>emptyList().iterator();
+            return Collections.emptyIterator();
         }
 
     }
@@ -299,9 +301,8 @@ public abstract class HtmlBasicRenderer extends Renderer {
             }
         }
 
-        String currentValue = null;
         Object currentObj = getValue(component);
-        currentValue = getFormattedValue(context, component, currentObj);
+        String currentValue = getFormattedValue(context, component, currentObj);
         return currentValue;
 
     }
@@ -352,7 +353,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
      * <code>forComponent</code> otherwise null if no match is found.
      */
     protected UIComponent getForComponent(FacesContext context, String forComponent, UIComponent component) {
-        if (forComponent == null || forComponent.length() == 0) {
+        if (forComponent == null || forComponent.isEmpty()) {
             return null;
         }
 
@@ -418,7 +419,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
 
         if (converter == null) {
             // If there is a converter attribute, use it to to ask application
-            // instance for a converter with this identifer.
+            // instance for a converter with this identifier.
             converter = ((ValueHolder) component).getConverter();
         }
 
@@ -426,7 +427,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
             // if value is null and no converter attribute is specified, then
             // return a zero length String.
             if (currentValue == null) {
-                return "";
+                return RIConstants.NO_VALUE;
             }
             // Do not look for "by-type" converters for Strings
             if (currentValue instanceof String) {
@@ -467,7 +468,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
     private static final Set<SearchExpressionHint> EXPRESSION_HINTS = EnumSet.of(SearchExpressionHint.IGNORE_NO_RESULT,
             SearchExpressionHint.RESOLVE_SINGLE_COMPONENT);
 
-    protected Iterator getMessageIter(FacesContext context, String forComponent, UIComponent component) {
+    protected Iterator<FacesMessage> getMessageIter(FacesContext context, String forComponent, UIComponent component) {
         // no "for" expression - return all messages
         if (forComponent == null) {
             return context.getMessages();
@@ -501,8 +502,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
             ArrayList<Param> parameterList = new ArrayList<>();
 
             for (UIComponent kid : command.getChildren()) {
-                if (kid instanceof UIParameter) {
-                    UIParameter uiParam = (UIParameter) kid;
+                if (kid instanceof UIParameter uiParam) {
                     if (!uiParam.isDisable()) {
                         Object value = uiParam.getValue();
                         Param param = new Param(uiParam.getName(), value == null ? null : value.toString());
@@ -527,7 +527,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
      */
     protected Collection<ClientBehaviorContext.Parameter> getBehaviorParameters(UIComponent command) {
 
-        ArrayList<ClientBehaviorContext.Parameter> params = null;
+        List<ClientBehaviorContext.Parameter> params = null;
         int childCount = command.getChildCount();
 
         if (childCount > 0) {
