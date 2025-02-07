@@ -16,8 +16,8 @@
 
 package com.sun.faces.facelets.compiler;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 import com.sun.faces.facelets.tag.TagLibrary;
 
@@ -38,13 +38,13 @@ final class NamespaceManager {
         }
     }
 
-    private final List<NS> namespaces;
+    private final Deque<NS> namespaces;
 
     /**
      *
      */
     public NamespaceManager() {
-        namespaces = new ArrayList<>();
+        namespaces = new ArrayDeque<>();
     }
 
     public void reset() {
@@ -53,39 +53,26 @@ final class NamespaceManager {
 
     public void pushNamespace(String prefix, String namespace) {
         NS ns = new NS(prefix, namespace);
-        namespaces.add(0, ns);
+        namespaces.addFirst(ns);
     }
 
     public String getNamespace(String prefix) {
-        NS ns = null;
-        for (int i = 0; i < namespaces.size(); i++) {
-            ns = namespaces.get(i);
-            if (ns.prefix.equals(prefix)) {
-                return ns.namespace;
+        for (NS namespace : namespaces) {
+            if (namespace.prefix.equals(prefix)) {
+                return namespace.namespace;
             }
         }
         return null;
     }
 
-    public void popNamespace(String prefix) {
-        NS ns = null;
-        for (int i = 0; i < namespaces.size(); i++) {
-            ns = namespaces.get(i);
-            if (ns.prefix.equals(prefix)) {
-                namespaces.remove(i);
-                return;
-            }
-        }
+    public void popNamespace(final String prefix) {
+        namespaces.removeIf(ns -> ns.prefix.equals(prefix));
     }
 
     public NamespaceUnit toNamespaceUnit(TagLibrary library) {
         NamespaceUnit unit = new NamespaceUnit(library);
-        if (namespaces.size() > 0) {
-            NS ns = null;
-            for (int i = namespaces.size() - 1; i >= 0; i--) {
-                ns = namespaces.get(i);
-                unit.setNamespace(ns.prefix, ns.namespace);
-            }
+        for (NS namespace : namespaces) {
+            unit.setNamespace(namespace.prefix, namespace.namespace);
         }
         return unit;
     }
