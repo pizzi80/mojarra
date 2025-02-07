@@ -82,7 +82,7 @@ public class UISelectOneTestCase extends UIInputTestCase {
         Iterator<FacesMessage> messages = facesContext.getMessages();
         while (messages.hasNext()) {
             FacesMessage message = messages.next();
-            assertTrue(message.getSummary().indexOf("mylabel") >= 0);
+            assertTrue(message.getSummary().contains("mylabel"));
         }
     }
 
@@ -187,9 +187,9 @@ public class UISelectOneTestCase extends UIInputTestCase {
         assertTrue(!selectOne.isValid());
     }
 
-    private String legalValues[] = { "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3" };
+    private final String[] legalValues = { "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3" };
 
-    private String illegalValues[] = { "D1", "D2", "Group A", "Group B", "Group C" };
+    private final String[] illegalValues = { "D1", "D2", "Group A", "Group B", "Group C" };
 
     // Test validation against a nested list of available options
     @Test
@@ -205,11 +205,11 @@ public class UISelectOneTestCase extends UIInputTestCase {
         checkMessages(0);
 
         // Verify that all legal values will validate
-        for (int i = 0; i < legalValues.length; i++) {
+        for (String legalValue : legalValues) {
             selectOne.setValid(true);
-            selectOne.setSubmittedValue(legalValues[i]);
+            selectOne.setSubmittedValue(legalValue);
             selectOne.validate(facesContext);
-            assertTrue(selectOne.isValid(), "Value '" + legalValues[i] + "' found");
+            assertTrue(selectOne.isValid(), "Value '" + legalValue + "' found");
             checkMessages(0);
         }
 
@@ -306,11 +306,11 @@ public class UISelectOneTestCase extends UIInputTestCase {
     protected List<SelectItem> setupOptions() {
         SelectItemGroup group, subgroup;
         subgroup = new SelectItemGroup("Group C");
-        subgroup.setSelectItems(new SelectItem[] { new SelectItem("C1"), new SelectItem("C2"), new SelectItem("C3") });
+        subgroup.setSelectItems(new SelectItem("C1"), new SelectItem("C2"), new SelectItem("C3"));
         List<SelectItem> options = new ArrayList<>();
         options.add(new SelectItem("A1"));
         group = new SelectItemGroup("Group B");
-        group.setSelectItems(new SelectItem[] { new SelectItem("B1"), subgroup, new SelectItem("B2"), new SelectItem("B3") });
+        group.setSelectItems(new SelectItem("B1"), subgroup, new SelectItem("B2"), new SelectItem("B3"));
         options.add(group);
         options.add(new SelectItem("A2"));
         options.add(new SelectItem("A3"));
