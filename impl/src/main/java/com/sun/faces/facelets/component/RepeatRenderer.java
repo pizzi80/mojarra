@@ -39,28 +39,28 @@ public class RepeatRenderer extends Renderer {
     @Override
     public void encodeChildren(FacesContext context, UIComponent component) throws IOException {
         if (component.getChildCount() > 0) {
-            Map a = component.getAttributes();
-            String tag = (String) a.get("alias.element");
+            Map<String, Object> attributes = component.getAttributes();
+            String tag = (String) attributes.get("alias.element");
             if (tag != null) {
                 ResponseWriter out = context.getResponseWriter();
                 out.startElement(tag, component);
-                String[] attrs = (String[]) a.get("alias.attributes");
+                String[] attrs = (String[]) attributes.get("alias.attributes");
                 String attr;
                 if (attrs != null) {
-                    for (int i = 0; i < attrs.length; i++) {
-                        attr = attrs[i];
+                    for (String s : attrs) {
+                        attr = s;
                         if ("styleClass".equals(attr)) {
                             attr = "class";
                         }
-                        out.writeAttribute(attr, a.get(attrs[i]), attrs[i]);
+                        out.writeAttribute(attr, attributes.get(s), s);
                     }
                 }
             }
 
-            Iterator itr = component.getChildren().iterator();
+            Iterator<UIComponent> itr = component.getChildren().iterator();
             UIComponent c;
             while (itr.hasNext()) {
-                c = (UIComponent) itr.next();
+                c = itr.next();
                 c.encodeAll(context);
             }
 
