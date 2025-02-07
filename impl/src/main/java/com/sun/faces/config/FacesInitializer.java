@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.faces.annotation.FacesConfig;
@@ -156,7 +157,7 @@ public class FacesInitializer implements ServletContainerInitializer {
         }
 
         // We have both existing and new classes, so create a new merged set.
-        Set<Class<?>> newAnnotatedClasses = new HashSet<Class<?>>();
+        Set<Class<?>> newAnnotatedClasses = new HashSet<>(Util.calculateMapCapacity(classes.size()+existingClasses.size()));
         newAnnotatedClasses.addAll(classes);
         newAnnotatedClasses.addAll(existingClasses);
 
