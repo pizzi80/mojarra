@@ -41,8 +41,8 @@ import jakarta.faces.render.ClientBehaviorRenderer;
  */
 public class RetargetedAjaxBehavior extends AjaxBehavior {
 
-    private AjaxBehavior retargeted;
-    private List<String> targetClientIds;
+    private final AjaxBehavior retargeted;
+    private final List<String> targetClientIds;
 
     public RetargetedAjaxBehavior(AjaxBehavior retargeted, List<String> targetClientIds) {
         this.retargeted = retargeted;
