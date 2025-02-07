@@ -52,18 +52,20 @@ import jakarta.faces.render.RenderKitFactory;
  */
 public class UIViewRootTestCase extends UIComponentBaseTestCase {
 
-    public static String FACTORIES[][] = { { FactoryFinder.APPLICATION_FACTORY, "com.sun.faces.mock.MockApplicationFactory" },
+    public static String[][] FACTORIES = {
+            { FactoryFinder.APPLICATION_FACTORY, "com.sun.faces.mock.MockApplicationFactory" },
             { FactoryFinder.FACES_CONTEXT_FACTORY, "com.sun.faces.mock.MockFacesContextFactory" },
             { FactoryFinder.LIFECYCLE_FACTORY, "com.sun.faces.mock.MockLifecycleFactory" },
-            { FactoryFinder.RENDER_KIT_FACTORY, "com.sun.faces.mock.MockRenderKitFactory" } };
+            { FactoryFinder.RENDER_KIT_FACTORY, "com.sun.faces.mock.MockRenderKitFactory" }
+    };
 
     @Override
     @BeforeEach
     public void setUp() throws Exception {
         FactoryFinder.releaseFactories();
         super.setUp();
-        for (int i = 0, len = FACTORIES.length; i < len; i++) {
-            System.getProperties().remove(FACTORIES[i][0]);
+        for (String[] factory : FACTORIES) {
+            System.getProperties().remove(factory[0]);
         }
 
         FactoryFinder.releaseFactories();
@@ -81,8 +83,7 @@ public class UIViewRootTestCase extends UIComponentBaseTestCase {
         RenderKit renderKit = new MockRenderKit();
         try {
             renderKitFactory.addRenderKit(RenderKitFactory.HTML_BASIC_RENDER_KIT, renderKit);
-        } catch (IllegalArgumentException e) {
-        }
+        } catch (IllegalArgumentException ignored) {}
     }
 
     /**
@@ -554,12 +555,12 @@ public class UIViewRootTestCase extends UIComponentBaseTestCase {
         event4 = new EventTestImpl(root, "4");
         event4.setPhaseId(PhaseId.INVOKE_APPLICATION);
         root.queueEvent(event4);
-        final Field fields[] = UIViewRoot.class.getDeclaredFields();
+        final Field[] fields = UIViewRoot.class.getDeclaredFields();
         Field field = null;
         List<List> events = null;
-        for (int i = 0; i < fields.length; ++i) {
-            if ("events".equals(fields[i].getName())) {
-                field = fields[i];
+        for (Field value : fields) {
+            if ("events".equals(value.getName())) {
+                field = value;
                 field.setAccessible(true);
                 try {
                     events = TypedCollections.dynamicallyCastList((List<?>) field.get(root), List.class);
@@ -710,8 +711,7 @@ public class UIViewRootTestCase extends UIComponentBaseTestCase {
             assertEquals("", ListenerTestImpl.trace());
         }
         root.processValidators(facesContext);
-        if (PhaseId.PROCESS_VALIDATIONS.equals(phaseId) || PhaseId.APPLY_REQUEST_VALUES.equals(phaseId) || PhaseId.APPLY_REQUEST_VALUES.equals(phaseId)
-                || PhaseId.ANY_PHASE.equals(phaseId)) {
+        if (PhaseId.PROCESS_VALIDATIONS.equals(phaseId) || PhaseId.APPLY_REQUEST_VALUES.equals(phaseId) || PhaseId.ANY_PHASE.equals(phaseId)) {
             assertEquals(expected, ListenerTestImpl.trace());
         } else {
             assertEquals("", ListenerTestImpl.trace());
@@ -753,14 +753,14 @@ public class UIViewRootTestCase extends UIComponentBaseTestCase {
     @Override
     @Test
     public void testChildrenListAfterAddViewPublish() {
-        // overridding to do nothing. UIViewRoot is a special cases
+        // overriding to do nothing. UIViewRoot is a special cases
         // and there should always only be on UIViewRoot in a tree
     }
 
     @Override
     @Test
     public void testFacetMapAfterAddViewPublish() {
-        // overridding to do nothing. UIViewRoot is a special cases
+        // overriding to do nothing. UIViewRoot is a special cases
         // and there should always only be on UIViewRoot in a tree
     }
 
@@ -783,7 +783,7 @@ public class UIViewRootTestCase extends UIComponentBaseTestCase {
         return component;
     }
 
-    public static class PhaseListenerBean extends Object implements PhaseListener {
+    public static class PhaseListenerBean implements PhaseListener {
 
         private static final long serialVersionUID = 1L;
 
