@@ -48,7 +48,8 @@ public @interface RequestCookieMap {
      *
      * @since 4.0
      */
-    public static final class Literal extends AnnotationLiteral<RequestCookieMap> implements RequestCookieMap {
+    final class Literal extends AnnotationLiteral<RequestCookieMap> implements RequestCookieMap {
+
         private static final long serialVersionUID = 1L;
 
         /**
