@@ -416,10 +416,12 @@ public class FlowHandlerImpl extends FlowHandler {
         private static final long serialVersionUID = 7915803727932706270L;
 
         private int returnDepth;
-        private ArrayDeque<E> data;
+        private final ArrayDeque<E> data;
 
         private static class RideAlong implements Serializable {
+
             private static final long serialVersionUID = -1899365746835118058L;
+
             String lastDisplayedViewId;
 
             public RideAlong(String lastDisplayedViewId) {
@@ -428,7 +430,7 @@ public class FlowHandlerImpl extends FlowHandler {
 
         }
 
-        private ArrayDeque<RideAlong> rideAlong;
+        private final ArrayDeque<RideAlong> rideAlong;
         private final String sessionKey;
 
         public FlowDeque(final String sessionKey) {
@@ -562,9 +564,9 @@ public class FlowHandlerImpl extends FlowHandler {
 
         public void popReturnMode() {
 
-            // Mojarra #4279 If ConfigureableNavigationHandler is attempting to obtain a NavigationCase outside of
+            // Mojarra #4279 If ConfigurableNavigationHandler is attempting to obtain a NavigationCase outside of
             // OutcomeTargetRenderer, then this method must perform exactly the reverse of pushReturnMode() to ensure
-            // that ConfigureableNavigationHandler's calls are idempotent. For more details, see
+            // that ConfigurableNavigationHandler's calls are idempotent. For more details, see
             // https://github.com/javaserverfaces/mojarra/issues/4279
             if (NavigationHandlerImpl.isResetFlowHandlerState(FacesContext.getCurrentInstance())) {
                 this.decrementMaxReturnDepth();
