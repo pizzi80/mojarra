@@ -25,6 +25,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -205,6 +206,8 @@ public class FaceletTaglibConfigProcessor extends AbstractConfigProcessor {
      */
     private static final String COMPOSITE_LIBRARY_NAME = "composite-library-name";
 
+    private static final Pattern WHITESPACES = Pattern.compile("\\s+");
+
     // -------------------------------------------- Methods from ConfigProcessor
 
     @Override
@@ -213,12 +216,12 @@ public class FaceletTaglibConfigProcessor extends AbstractConfigProcessor {
         ApplicationAssociate associate = ApplicationAssociate.getInstance(facesContext.getExternalContext());
         Compiler compiler = associate.getCompiler();
 
-        for (int i = 0, length = documentInfos.length; i < length; i++) {
+        for (DocumentInfo documentInfo : documentInfos) {
             if (LOGGER.isLoggable(FINE)) {
-                LOGGER.log(FINE, format("Processing facelet-taglibrary document: ''{0}''", documentInfos[i].getSourceURI()));
+                LOGGER.log(FINE, format("Processing facelet-taglibrary document: ''{0}''", documentInfo.getSourceURI()));
             }
 
-            Document document = documentInfos[i].getDocument();
+            Document document = documentInfo.getDocument();
             String namespace = document.getDocumentElement().getNamespaceURI();
             Element documentElement = document.getDocumentElement();
             NodeList libraryClass = documentElement.getElementsByTagNameNS(namespace, LIBRARY_CLASS);
@@ -600,7 +603,7 @@ public class FaceletTaglibConfigProcessor extends AbstractConfigProcessor {
 
         // Formatted XML might cause \n\t characters - make sure we only have space characters left
 
-        String signature = signatureParam.replaceAll("\\s+", " ");
+        String signature = WHITESPACES.matcher(signatureParam).replaceAll(" ");
         int pos = signature.indexOf(' ');
         if (pos == -1) {
             throw new Exception("Must Provide Return Type: " + signature);
