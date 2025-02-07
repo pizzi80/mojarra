@@ -19,6 +19,7 @@ package com.sun.faces.application.view;
 import static com.sun.faces.RIConstants.DYNAMIC_COMPONENT;
 import static com.sun.faces.RIConstants.FACELETS_ENCODING_KEY;
 import static com.sun.faces.RIConstants.FLOW_DEFINITION_ID_SUFFIX;
+import static com.sun.faces.RIConstants.NO_VALUE;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsBufferSize;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsViewMappings;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.StateSavingMethod;
@@ -1255,7 +1256,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             boolean result;
             String name = pd.getName();
             ValueExpression ve = (ValueExpression) pd.getValue("targetAttributeName");
-            String targetAttributeName = ve != null ? (String) ve.getValue(context.getELContext()) : "";
+            String targetAttributeName = ve != null ? (String) ve.getValue(context.getELContext()) : NO_VALUE;
 
             boolean isSpecialAttributeName = Util.isSpecialAttributeName(name) || Util.isSpecialAttributeName(targetAttributeName);
             result = !isSpecialAttributeName && (pd.getValue("type") != null || pd.getValue("method-signature") == null);
@@ -1554,7 +1555,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 Class<?>[] expectedParameters = NO_ARGS;
 
                 // Get expectedReturnType
-                int j, i = methodSignature.indexOf(" ");
+                int j, i = methodSignature.indexOf(' ');
                 if (-1 != i) {
                     String strValue = methodSignature.substring(0, i);
                     try {
@@ -1570,9 +1571,9 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 }
 
                 // derive the arguments
-                i = methodSignature.indexOf("(");
+                i = methodSignature.indexOf('(');
                 if (-1 != i) {
-                    j = methodSignature.indexOf(")", i + 1);
+                    j = methodSignature.indexOf(')', i + 1);
                     if (-1 != j) {
                         String strValue = methodSignature.substring(i + 1, j);
                         if (!strValue.isEmpty()) {
