@@ -37,14 +37,15 @@ class ZipDirectoryEntryScanner {
     private static final Logger LOGGER = FacesLogger.RESOURCE.getLogger();
     private static final String PREFIX = "META-INF/resources";
     private static final int PREFIX_LENGTH = PREFIX.length();
-    Map<String, Boolean> resourceLibraries;
+
+    private final Set<String> resourceLibraries;
 
     ZipDirectoryEntryScanner() {
         ExternalContext extContext = FacesContext.getCurrentInstance().getExternalContext();
         Set<String> webInfLibJars = extContext.getResourcePaths("/WEB-INF/lib");
-        resourceLibraries = new ConcurrentHashMap<>();
-        ZipEntry ze = null;
-        String entryName = null;
+        resourceLibraries = ConcurrentHashMap.newKeySet();
+        ZipEntry ze;
+        String entryName;
         if (webInfLibJars != null) {
             for (String cur : webInfLibJars) {
                 try (ZipInputStream zis = new ZipInputStream(extContext.getResourceAsStream(cur))) {
@@ -55,12 +56,10 @@ class ZipDirectoryEntryScanner {
                             if (!entryName.endsWith("/")) {
                                 // Assume this code is only reached if the zip entry
                                 // is NOT a 'directory' entry.
-                                int i = entryName.lastIndexOf("/");
+                                int i = entryName.lastIndexOf('/');
                                 if (-1 != i) {
                                     entryName = entryName.substring(0, i);
-                                    if (!resourceLibraries.containsKey(entryName)) {
-                                        resourceLibraries.put(entryName, Boolean.TRUE);
-                                    }
+                                    resourceLibraries.add(entryName);
                                 }
                             }
                         }
@@ -74,7 +73,7 @@ class ZipDirectoryEntryScanner {
         }
 
         // remove the optional local prefix entries
-        Iterator<String> iter = resourceLibraries.keySet().iterator();
+        Iterator<String> iter = resourceLibraries.iterator();
         String cur;
         while (iter.hasNext()) {
             cur = iter.next();
@@ -85,9 +84,9 @@ class ZipDirectoryEntryScanner {
     }
 
     boolean libraryExists(String libraryName, String localePrefix) {
-        String key = localePrefix != null ? localePrefix + "/" + libraryName : libraryName;
+        String key = localePrefix != null ? localePrefix + '/' + libraryName : libraryName;
 
-        return resourceLibraries.containsKey(key);
+        return resourceLibraries.contains(key);
     }
 
 }
