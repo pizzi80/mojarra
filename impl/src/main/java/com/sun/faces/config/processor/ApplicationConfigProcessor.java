@@ -269,7 +269,7 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
                                     addSupportedLocale(application, n);
                                     break;
                                 case RESOURCE_BUNDLE:
-                                    addResouceBundle(associate, n);
+                                    addResourceBundle(associate, n);
                                     break;
                                 case RESOURCE_HANDLER:
                                     setResourceHandler(servletContext, facesContext, application, n);
@@ -357,42 +357,47 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
         }
     }
 
+    static final String JAKARTA_FACES_BEANS_VALIDATION_AVAILABLE = "jakarta.faces.BEANS_VALIDATION_AVAILABLE";
+
     static boolean isBeanValidatorAvailable(FacesContext facesContext) {
+        final Map<String, Object> appMap = facesContext.getExternalContext().getApplicationMap();
+
+        // return from appMap, if present
+        final Boolean cachedResult = (Boolean) appMap.get(JAKARTA_FACES_BEANS_VALIDATION_AVAILABLE);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        // init, put in appMap and return
         boolean result = false;
-        final String beansValidationAvailabilityCacheKey = "jakarta.faces.BEANS_VALIDATION_AVAILABLE";
-        Map<String, Object> appMap = facesContext.getExternalContext().getApplicationMap();
+        try {
+            Thread.currentThread().getContextClassLoader().loadClass("jakarta.validation.MessageInterpolator");
 
-        if (appMap.containsKey(beansValidationAvailabilityCacheKey)) {
-            result = (Boolean) appMap.get(beansValidationAvailabilityCacheKey);
-        } else {
-            try {
-                Thread.currentThread().getContextClassLoader().loadClass("jakarta.validation.MessageInterpolator");
+            // Check if the Implementation is available.
+            Object cachedObject = appMap.get(BeanValidator.VALIDATOR_FACTORY_KEY);
+            if (cachedObject instanceof ValidatorFactory) {
+                result = true;
+            } else {
+                Context initialContext = null;
+                try {
+                    initialContext = new InitialContext();
+                } catch (NoClassDefFoundError nde) {
+                    // On google app engine InitialContext is forbidden to use and GAE throws
+                    // NoClassDefFoundError
+                    LOGGER.log(FINE, nde, nde::toString);
+                } catch (NamingException ne) {
+                    LOGGER.log(WARNING, ne, ne::toString);
+                }
 
-                // Check if the Implementation is available.
-                Object cachedObject = appMap.get(BeanValidator.VALIDATOR_FACTORY_KEY);
-                if (cachedObject instanceof ValidatorFactory) {
-                    result = true;
-                } else {
-                    Context initialContext = null;
-                    try {
-                        initialContext = new InitialContext();
-                    } catch (NoClassDefFoundError nde) {
-                        // On google app engine InitialContext is forbidden to use and GAE throws
-                        // NoClassDefFoundError
-                        LOGGER.log(FINE, nde, nde::toString);
-                    } catch (NamingException ne) {
-                        LOGGER.log(WARNING, ne, ne::toString);
+                try {
+                    Object validatorFactory = initialContext.lookup("java:comp/ValidatorFactory");
+                    if (validatorFactory != null) {
+                        appMap.put(BeanValidator.VALIDATOR_FACTORY_KEY, validatorFactory);
+                        result = true;
                     }
-
-                    try {
-                        Object validatorFactory = initialContext.lookup("java:comp/ValidatorFactory");
-                        if (validatorFactory != null) {
-                            appMap.put(BeanValidator.VALIDATOR_FACTORY_KEY, validatorFactory);
-                            result = true;
-                        }
-                    } catch (NamingException root) {
-                        LOGGER.fine(() -> "Could not build a default Jakarta Validation ValidatorFactory: " + root.getMessage());
-                    }
+                } catch (NamingException root) {
+                    LOGGER.fine(() -> "Could not build a default Jakarta Validation ValidatorFactory: " + root.getMessage());
+                }
 
                     if (!result) {
                         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
@@ -406,8 +411,7 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
                 LOGGER.fine("Unable to load Jakarta Validation");
             }
 
-            appMap.put(beansValidationAvailabilityCacheKey, result);
-        }
+        appMap.put(JAKARTA_FACES_BEANS_VALIDATION_AVAILABLE, result);
 
         return result;
     }
@@ -643,7 +647,7 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
         }
     }
 
-    private void addResouceBundle(ApplicationAssociate associate, Node resourceBundle) {
+    private void addResourceBundle(ApplicationAssociate associate, Node resourceBundle) {
         if (resourceBundle != null) {
 
             NodeList children = resourceBundle.getChildNodes();
@@ -746,7 +750,6 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
                 try {
                     // If there is an eventClass, use it, otherwise use
                     // SystemEvent.class
-                    // noinspection unchecked
                     Class<? extends SystemEvent> eventClazz;
 
                     if (eventClass != null) {
@@ -756,7 +759,7 @@ public class ApplicationConfigProcessor extends AbstractConfigProcessor {
                     }
 
                     // If there is a sourceClass, use it, otherwise use null
-                    Class<?> sourceClazz = sourceClass != null && sourceClass.length() != 0 ? Util.loadClass(sourceClass, this.getClass()) : null;
+                    Class<?> sourceClazz = sourceClass != null && !sourceClass.isEmpty() ? Util.loadClass(sourceClass, this.getClass()) : null;
                     application.subscribeToEvent(eventClazz, sourceClazz, systemEventListenerInstance);
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.log(Level.FINE, "Subscribing for event {0} and source {1} using listener {2}", new Object[] { eventClazz.getName(),
