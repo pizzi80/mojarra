@@ -18,16 +18,17 @@ package com.sun.faces.config.manager.tasks;
 
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.config.manager.FacesConfigInfo;
 import com.sun.faces.config.manager.documents.DocumentInfo;
 import com.sun.faces.spi.AnnotationScanner;
 import com.sun.faces.spi.InjectionProvider;
+import com.sun.faces.util.Util;
 
 public final class ProvideMetadataToAnnotationScanTask {
 
@@ -50,13 +51,13 @@ public final class ProvideMetadataToAnnotationScanTask {
             return;
         }
 
-        uris = new HashSet<>(documentInfos.length);
-        jarNames = new HashSet<>(documentInfos.length);
+        uris = new HashSet<>(Util.calculateMapCapacity(documentInfos.length));
+        jarNames = new HashSet<>(Util.calculateMapCapacity(documentInfos.length));
 
         for (DocumentInfo docInfo : documentInfos) {
 
             URI facesConfigURI = docInfo.getSourceURI();
-            Matcher jarMatcher = FACES_CONFIG_XML_IN_JAR_PATTERN.matcher(facesConfigURI == null ? "" : facesConfigURI.toString());
+            Matcher jarMatcher = FACES_CONFIG_XML_IN_JAR_PATTERN.matcher(facesConfigURI == null ? RIConstants.NO_VALUE : facesConfigURI.toString());
 
             if (jarMatcher.matches()) {
                 String jarName = jarMatcher.group(2);
@@ -73,7 +74,7 @@ public final class ProvideMetadataToAnnotationScanTask {
                          * The code below looks at the CodeSource of the class and determines whether or not it should be removed from the
                          * annotatedSet because the faces-config.xml that owns it has metadata-complete="true".
                          */
-                        ArrayList<Class<?>> toRemove = new ArrayList<>(1);
+                        Set<Class<?>> toRemove = new HashSet<>(1);
                         String facesConfigURIString = facesConfigURI.toString();
                         if (annotatedSet != null) {
                             for (Class<?> clazz : annotatedSet) {
