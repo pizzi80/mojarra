@@ -64,7 +64,7 @@ public class UIComponentTestCase extends JUnitFacesTestCaseBase {
     protected UIComponent component = null;
 
     // The set of attribute names expected on a pristine component instance
-    protected String expectedAttributes[] = null;
+    protected String[] expectedAttributes = null;
 
     // The expected component family on a pristine component instance
     protected String expectedFamily = null;
@@ -81,7 +81,7 @@ public class UIComponentTestCase extends JUnitFacesTestCaseBase {
     // The expected rendersChildren on a pristine component instance
     protected boolean expectedRendersChildren = false;
 
-    private Map.Entry<String, UIComponent> bogusEntry = new Map.Entry<>() {
+    private final Map.Entry<String, UIComponent> bogusEntry = new Map.Entry<>() {
         @Override
         public boolean equals(Object r) {
             return false;
@@ -226,9 +226,9 @@ public class UIComponentTestCase extends JUnitFacesTestCaseBase {
         component.setId("oldvalue");
         assertEquals("oldvalue", attributes.get("id")); // Property
         component.setRendered(false);
-        assertTrue(!((Boolean) attributes.get("rendered")).booleanValue());
+        assertTrue(!(Boolean) attributes.get("rendered"));
         component.setRendered(true);
-        assertTrue(((Boolean) attributes.get("rendered")).booleanValue());
+        assertTrue((Boolean) attributes.get("rendered"));
 
         // Test put()
         try {
@@ -334,7 +334,7 @@ public class UIComponentTestCase extends JUnitFacesTestCaseBase {
 
         assertEquals(component.getParent(), component.getAttributes().get("parent"));
 
-        assertEquals(component.isRendered(), ((Boolean) component.getAttributes().get("rendered")).booleanValue());
+        assertEquals(component.isRendered(), component.getAttributes().get("rendered"));
         component.setRendered(false);
         assertEquals(Boolean.FALSE, component.getAttributes().get("rendered"));
         component.setRendered(true);
@@ -353,7 +353,7 @@ public class UIComponentTestCase extends JUnitFacesTestCaseBase {
         component.getAttributes().put("rendererType", null);
         assertNull(component.getRendererType());
 
-        assertEquals(component.getRendersChildren(), ((Boolean) component.getAttributes().get("rendersChildren")).booleanValue());
+        assertEquals(component.getRendersChildren(), component.getAttributes().get("rendersChildren"));
 
     }
 
@@ -919,7 +919,7 @@ public class UIComponentTestCase extends JUnitFacesTestCaseBase {
         entrySet = facets.entrySet();
         try {
             entrySet.add(bogusEntry);
-            fail("Should have thrown UnsupportedOperationExcepton");
+            fail("Should have thrown UnsupportedOperationException");
         } catch (UnsupportedOperationException e) {
             // Expected result
         }
@@ -1536,8 +1536,8 @@ public class UIComponentTestCase extends JUnitFacesTestCaseBase {
 
         // Validate attributes
         checkAttributeCount(component, expectedAttributes.length);
-        for (int i = 0; i < expectedAttributes.length; i++) {
-            checkAttributePresent(component, expectedAttributes[i], null);
+        for (String expectedAttribute : expectedAttributes) {
+            checkAttributePresent(component, expectedAttribute, null);
         }
 
         // Validate properties
@@ -1698,8 +1698,8 @@ public class UIComponentTestCase extends JUnitFacesTestCaseBase {
         List<?> children = component.getChildren();
         assertTrue(!children.contains(child), "child " + child + " should not be contained");
         assertEquals(-1, children.indexOf(child));
-        for (int i = 0; i < children.size(); i++) {
-            if (child.equals(children.get(i))) {
+        for (Object object : children) {
+            if (child.equals(object)) {
                 fail("child " + child + " should be missing");
             }
         }
