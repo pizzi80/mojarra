@@ -22,6 +22,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.sun.faces.RIConstants;
+import com.sun.faces.util.Util;
+
 import jakarta.faces.view.facelets.Tag;
 import jakarta.faces.view.facelets.TagAttribute;
 import jakarta.faces.view.facelets.TagAttributes;
@@ -51,25 +54,24 @@ public final class TagAttributesImpl extends TagAttributes {
         this.attrs = attrs;
 
         // grab namespaces
-        int i = 0;
-        Set<String> set = new HashSet<>();
-        for (i = 0; i < this.attrs.length; i++) {
-            set.add(this.attrs[i].getNamespace());
+        Set<String> set = new HashSet<>(Util.calculateMapCapacity(this.attrs.length));
+        for (TagAttribute attr : this.attrs) {
+            set.add(attr.getNamespace());
         }
         ns = set.toArray(new String[set.size()]);
         Arrays.sort(ns);
 
         // assign attrs
         nsattrs = new ArrayList<>();
-        for (i = 0; i < ns.length; i++) {
-            nsattrs.add(i, new ArrayList<>());
+        for (int i = 0; i < ns.length; i++) {
+            nsattrs.add(new ArrayList<>());
         }
-        int nsIdx = 0;
-        for (i = 0; i < this.attrs.length; i++) {
-            nsIdx = Arrays.binarySearch(ns, this.attrs[i].getNamespace());
-            ((List) nsattrs.get(nsIdx)).add(this.attrs[i]);
+        int nsIdx;
+        for (TagAttribute attr : this.attrs) {
+            nsIdx = Arrays.binarySearch(ns, attr.getNamespace());
+            ((List) nsattrs.get(nsIdx)).add(attr);
         }
-        for (i = 0; i < ns.length; i++) {
+        for (int i = 0; i < ns.length; i++) {
             List r = (List) nsattrs.get(i);
             nsattrs.set(i, r.toArray(new TagAttribute[r.size()]));
         }
@@ -110,9 +112,9 @@ public final class TagAttributesImpl extends TagAttributes {
             int idx = Arrays.binarySearch(this.ns, ns);
             if (idx >= 0) {
                 TagAttribute[] uia = (TagAttribute[]) nsattrs.get(idx);
-                for (int i = 0; i < uia.length; i++) {
-                    if (localName.equals(uia[i].getLocalName())) {
-                        return uia[i];
+                for (TagAttribute tagAttribute : uia) {
+                    if (localName.equals(tagAttribute.getLocalName())) {
+                        return tagAttribute;
                     }
                 }
             }
@@ -128,9 +130,9 @@ public final class TagAttributesImpl extends TagAttributes {
      */
     @Override
     public TagAttribute[] getAll(String namespace) {
-        int idx = 0;
+        int idx;
         if (namespace == null) {
-            idx = Arrays.binarySearch(ns, "");
+            idx = Arrays.binarySearch(ns, RIConstants.NO_VALUE);
         } else {
             idx = Arrays.binarySearch(ns, namespace);
         }
