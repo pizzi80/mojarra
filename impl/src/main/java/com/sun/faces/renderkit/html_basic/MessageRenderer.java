@@ -40,7 +40,7 @@ import jakarta.faces.context.ResponseWriter;
 
 public class MessageRenderer extends HtmlBasicRenderer {
 
-    private OutputMessageRenderer omRenderer = null;
+    private final OutputMessageRenderer omRenderer;
 
     // ------------------------------------------------------------ Constructors
 
@@ -105,7 +105,7 @@ public class MessageRenderer extends HtmlBasicRenderer {
         }
 
         clientId = augmentIdReference(clientId, component);
-        Iterator messageIter = getMessageIter(context, clientId, component);
+        Iterator<FacesMessage> messageIter = getMessageIter(context, clientId, component);
 
         assert messageIter != null;
         if (!messageIter.hasNext()) {
@@ -117,7 +117,7 @@ public class MessageRenderer extends HtmlBasicRenderer {
             } // otherwise, return without rendering
             return;
         }
-        FacesMessage curMessage = (FacesMessage) messageIter.next();
+        FacesMessage curMessage = messageIter.next();
         if (curMessage.isRendered() && !message.isRedisplay()) {
             return;
         }
@@ -176,7 +176,7 @@ public class MessageRenderer extends HtmlBasicRenderer {
             styleClass = severityStyleClass;
         }
 
-        // Done intializing local variables. Move on to rendering.
+        // Done initializing local variables. Move on to rendering.
 
         boolean wroteSpan = false;
         if (styleClass != null || style != null || dir != null || lang != null || title != null || mustRender) {
@@ -203,7 +203,7 @@ public class MessageRenderer extends HtmlBasicRenderer {
         }
 
         Object val = component.getAttributes().get("tooltip");
-        boolean isTooltip = val != null && Boolean.valueOf(val.toString());
+        boolean isTooltip = val != null && Boolean.parseBoolean(val.toString());
 
         boolean wroteTooltip = false;
         if ((showSummary || showDetail) && isTooltip) {
@@ -211,7 +211,7 @@ public class MessageRenderer extends HtmlBasicRenderer {
             if (!wroteSpan) {
                 writer.startElement("span", component);
             }
-            if (title == null || title.length() == 0) {
+            if (title == null || title.isEmpty()) {
                 writer.writeAttribute("title", detail, "title");
             }
             writer.flush();
