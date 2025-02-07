@@ -48,8 +48,7 @@ import jakarta.faces.view.facelets.TagException;
 public class MetaRulesetImpl extends MetaRuleset {
 
     private final static Logger LOGGER = FacesLogger.FACELETS_META.getLogger();
-    private final static Map<Class<?>, WeakReference<MetadataTarget>> metadata = Collections
-            .synchronizedMap(new WeakHashMap<>());
+    private final static Map<Class<?>, WeakReference<MetadataTarget>> metadata = Collections.synchronizedMap(new WeakHashMap<>());
 
     private final Tag tag;
     private final Class<?> type;
@@ -69,11 +68,11 @@ public class MetaRulesetImpl extends MetaRuleset {
 
         // setup attributes
         TagAttribute[] attrs = this.tag.getAttributes().getAll();
-        for (int i = 0; i < attrs.length; i++) {
-            if (attrs[i].getLocalName().equals("class")) {
-                attributes.put("styleClass", attrs[i]);
+        for (TagAttribute attr : attrs) {
+            if (attr.getLocalName().equals("class")) {
+                attributes.put("styleClass", attr);
             } else {
-                attributes.put(attrs[i].getLocalName(), attrs[i]);
+                attributes.put(attr.getLocalName(), attr);
             }
         }
 
@@ -132,8 +131,8 @@ public class MetaRulesetImpl extends MetaRuleset {
         if (!attributes.isEmpty()) {
             if (rules.isEmpty()) {
                 if (LOGGER.isLoggable(Level.SEVERE)) {
-                    for (Iterator<TagAttribute> itr = attributes.values().iterator(); itr.hasNext();) {
-                        LOGGER.severe(itr.next() + " Unhandled by MetaTagHandler for type " + type.getName());
+                    for (TagAttribute tagAttribute : attributes.values()) {
+                        LOGGER.severe(tagAttribute + " Unhandled by MetaTagHandler for type " + type.getName());
                     }
                 }
             } else {
