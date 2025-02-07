@@ -22,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.Arrays;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -53,54 +55,48 @@ public abstract class ValueHolderTestCaseBase extends UIComponentBaseTestCase {
     @Test
     public void testAttributesTransparencyNonDeterministic() throws Exception {
         final int numThreads = 30;
-        final Boolean outcomes[] = new Boolean[numThreads];
-        Runnable runnables[] = new Runnable[numThreads];
-        int i = 0;
 
-        for (i = 0; i < outcomes.length; i++) {
-            outcomes[i] = null;
-        }
+        final Boolean[] outcomes = new Boolean[numThreads];
+        Arrays.fill(outcomes, null);
 
-        for (i = 0; i < runnables.length; i++) {
-            runnables[i] = new Runnable() {
-                @Override
-                public void run() {
-                    int threadNum = 0;
+        Runnable[] runnables = new Runnable[numThreads];
+        Arrays.fill(runnables, new Runnable() {
+            @Override
+            public void run() {
+                int threadNum = 0;
+                try {
+                    threadNum = Integer.parseInt(Thread.currentThread().getName());
+                } catch (NumberFormatException ex) {
+                    fail("Expected thread name to be an integer");
+                }
+                // Even threadNums use HtmlInputText, odd use this component
+                boolean isEven = threadNum % 2 == 0;
+                ValueHolder vh = null;
+                UIComponent newComp = null;
+                if (isEven) {
+                    newComp = new HtmlInputText();
+                    vh = (ValueHolder) newComp;
+                } else {
                     try {
-                        threadNum = Integer.valueOf(Thread.currentThread().getName()).intValue();
-                    } catch (NumberFormatException ex) {
-                        fail("Expected thread name to be an integer");
-                    }
-                    // Even threadNums use HtmlInputText, odd use this component
-                    boolean isEven = threadNum % 2 == 0;
-                    ValueHolder vh = null;
-                    UIComponent newComp = null;
-                    if (isEven) {
-                        newComp = new HtmlInputText();
+                        newComp = ValueHolderTestCaseBase.this.component.getClass().getDeclaredConstructor().newInstance();
                         vh = (ValueHolder) newComp;
-                    } else {
-                        try {
-                            newComp = ValueHolderTestCaseBase.this.component.getClass().getDeclaredConstructor()
-                                    .newInstance();
-                            vh = (ValueHolder) newComp;
 
-                        } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException ex) {
-                            fail("Can't instantiate class of " + ValueHolderTestCaseBase.this.component.getClass().getName());
-                        }
-                    }
-                    try {
-                        boolean result = doTestAttributesTransparency(vh, newComp);
-                        outcomes[threadNum] = Boolean.valueOf(result);
-                    } catch (Throwable e) {
-                        e.printStackTrace();
-                        outcomes[threadNum] = Boolean.FALSE;
+                    } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException ex) {
+                        fail("Can't instantiate class of " + ValueHolderTestCaseBase.this.component.getClass().getName());
                     }
                 }
-            };
-        }
+                try {
+                    boolean result = doTestAttributesTransparency(vh, newComp);
+                    outcomes[threadNum] = result;
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                    outcomes[threadNum] = Boolean.FALSE;
+                }
+            }
+        });
 //        clearDescriptors();
-        Thread thread = null;
-        for (i = 0; i < runnables.length; i++) {
+        Thread thread;
+        for (int i = 0; i < runnables.length; i++) {
             thread = new Thread(runnables[i], "" + i);
             thread.start();
         }
@@ -108,16 +104,17 @@ public abstract class ValueHolderTestCaseBase extends UIComponentBaseTestCase {
         // Keep polling the outcomes array until there are no nulls.
         boolean foundNull = false;
         while (!foundNull) {
-            for (i = 0; i < outcomes.length; i++) {
-                if (null != outcomes[i]) {
+            for (Boolean outcome : outcomes) {
+                if (null != outcome) {
                     foundNull = true;
+                    break;
                 }
             }
             Thread.sleep(500);
         }
 
-        for (i = 0; i < outcomes.length; i++) {
-            if (!outcomes[i].booleanValue()) {
+        for (int i = 0; i < outcomes.length; i++) {
+            if (!outcomes[i]) {
                 fail("Thread " + i + " failed");
             }
         }
