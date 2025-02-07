@@ -66,8 +66,9 @@ public class FindAnnotatedConfigClasses implements Callable<Map<Class<? extends 
 
         // We are executing on a different thread.
         facesContext.addInitContextEntryForCurrentThread();
-        Set<URI> scanUris = null;
-        com.sun.faces.spi.AnnotationScanner annotationScanner = metadataGetter.getAnnotationScanner();
+
+        final Set<URI> scanUris;
+        final com.sun.faces.spi.AnnotationScanner annotationScanner = metadataGetter.getAnnotationScanner();
 
         // This is where we discover what kind of InjectionProvider we have.
         if (provider instanceof FilterClassesFromFacesInitializerAnnotationProvider && annotationScanner != null) {
