@@ -122,7 +122,7 @@ public class FacesConfigInfo {
     private double getVersion(Document document) {
 
         String version = document.getDocumentElement().getAttributeNS(document.getNamespaceURI(), "version");
-        if (version != null && version.length() > 0) {
+        if (version != null && !version.isEmpty()) {
             return Double.parseDouble(version);
         }
 
@@ -176,11 +176,11 @@ public class FacesConfigInfo {
                         absoluteOrdering.add(getNodeText(n));
                         break;
                     case OTHERS:
-                        if (absoluteOrdering.contains("others")) {
+                        if (absoluteOrdering.contains(OTHERS)) {
                             throw new IllegalStateException(
                                     "'absolute-ordering' element defined with multiple 'others' child elements found within WEB-INF/faces-config.xml");
                         }
-                        absoluteOrdering.add("others");
+                        absoluteOrdering.add(OTHERS);
                         break;
                     }
                 }
