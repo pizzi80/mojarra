@@ -108,15 +108,15 @@ public class ELText {
 
         @Override
         public void write(Writer out, ELContext ctx) throws ELException, IOException {
-            for (int i = 0; i < txt.length; i++) {
-                txt[i].write(out, ctx);
+            for (ELText elText : txt) {
+                elText.write(out, ctx);
             }
         }
 
         @Override
         public void writeText(ResponseWriter out, ELContext ctx) throws ELException, IOException {
-            for (int i = 0; i < txt.length; i++) {
-                txt[i].writeText(out, ctx);
+            for (ELText elText : txt) {
+                elText.writeText(out, ctx);
             }
         }
 
@@ -174,7 +174,7 @@ public class ELText {
 
         @Override
         public ELText apply(ExpressionFactory factory, ELContext ctx) {
-            ELText result = null;
+            final ELText result;
             if (ve instanceof ContextualCompositeValueExpression) {
                 result = new ELTextVariable(ve);
             } else {
@@ -340,7 +340,7 @@ public class ELText {
             } else if (!esc && ('$' == c || '#' == c)) {
                 if (i < end) {
                     if ('{' == ca[i + 1]) {
-                        if (buff.length() > 0) {
+                        if (!buff.isEmpty()) {
                             text.add(new ELText(buff.toString()));
                             buff.setLength(0);
                         }
@@ -377,7 +377,7 @@ public class ELText {
             i++;
         }
 
-        if (buff.length() > 0) {
+        if (!buff.isEmpty()) {
             text.add(new ELText(buff.toString()));
             buff.setLength(0);
         }
