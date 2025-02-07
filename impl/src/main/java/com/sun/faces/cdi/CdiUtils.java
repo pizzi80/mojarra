@@ -111,6 +111,7 @@ public final class CdiUtils {
 
         for (Class<?> forClassOrSuperclass = forClass; managedConverter == null && forClassOrSuperclass != null
                 && forClassOrSuperclass != Object.class; forClassOrSuperclass = forClassOrSuperclass.getSuperclass()) {
+
             managedConverter = createConverter(beanManager, FacesConverter.Literal.of("", forClassOrSuperclass, true));
         }
 
@@ -238,7 +239,7 @@ public final class CdiUtils {
 
         Object beanReference = null;
 
-        Set<Bean<? extends Object>> beans = beanManager.getBeans(type, qualifiers);
+        Set<Bean<?>> beans = beanManager.getBeans(type, qualifiers);
         if (beanName != null) {
             beans = beans.stream()
                 .filter(bean -> beanName.equals(getBeanName(bean)))
@@ -373,10 +374,10 @@ public final class CdiUtils {
      * @return the current injection point
      */
     public static InjectionPoint getCurrentInjectionPoint(BeanManager beanManager, CreationalContext<?> creationalContext) {
-        Bean<? extends Object> bean = beanManager.resolve(beanManager.getBeans(InjectionPoint.class));
+        Bean<?> bean = beanManager.resolve(beanManager.getBeans(InjectionPoint.class));
         InjectionPoint injectionPoint = (InjectionPoint) beanManager.getReference(bean, InjectionPoint.class, creationalContext);
 
-        if (injectionPoint == null) { // It's broken in some Weld versions. Below is a work around.
+        if (injectionPoint == null) { // It's broken in some Weld versions. Below is a workaround.
             bean = beanManager.resolve(beanManager.getBeans(InjectionPointGenerator.class));
             injectionPoint = (InjectionPoint) beanManager.getInjectableReference(bean.getInjectionPoints().iterator().next(), creationalContext);
         }
