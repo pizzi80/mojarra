@@ -277,16 +277,16 @@ public class FactoryConfigProcessor extends AbstractConfigProcessor {
             ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
             try {
-                factoryNames.stream().forEach(e -> {
+                factoryNames.stream().forEach(factoryName -> {
 
                     Thread.currentThread().setContextClassLoader(contextClassLoader);
                     InitFacesContext.getInstance(servletContext);
 
                     try {
-                        FactoryFinder.getFactory(e);
+                        FactoryFinder.getFactory(factoryName);
                     } catch (Exception exception) {
                         exception.printStackTrace();
-                        exceptions.add(new ConfigurationException(format("Factory ''{0}'' was not configured properly.", e), exception));
+                        exceptions.add(new ConfigurationException(format("Factory ''{0}'' was not configured properly.", factoryName), exception));
                     } finally {
                         Thread.currentThread().setContextClassLoader(null);
                     }
