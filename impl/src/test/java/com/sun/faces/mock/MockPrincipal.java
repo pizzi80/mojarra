@@ -24,64 +24,62 @@ import java.security.Principal;
  */
 public class MockPrincipal implements Principal {
 
+    private static final String EMPTY_STRING = "";
+    private static final int EMPTY_STRING_HASHCODE = EMPTY_STRING.hashCode();
+    private static final String[] EMPTY_STRING_ARRAY = new String[0];
+
+    protected final String name;
+    protected final String[] roles;
+
     public MockPrincipal() {
         super();
-        this.name = "";
-        this.roles = new String[0];
+        this.name = EMPTY_STRING;
+        this.roles = EMPTY_STRING_ARRAY;
     }
 
     public MockPrincipal(String name) {
         super();
         this.name = name;
-        this.roles = new String[0];
+        this.roles = EMPTY_STRING_ARRAY;
     }
 
-    public MockPrincipal(String name, String roles[]) {
+    public MockPrincipal(String name, String[] roles) {
         super();
         this.name = name;
         this.roles = roles;
     }
 
-    protected String name = null;
-
-    protected String roles[] = null;
-
     @Override
     public String getName() {
-        return (this.name);
+        return this.name;
     }
 
     public boolean isUserInRole(String role) {
-        for (int i = 0; i < roles.length; i++) {
-            if (role.equals(roles[i])) {
-                return (true);
+        for (String s : roles) {
+            if (role.equals(s)) {
+                return true;
             }
         }
-        return (false);
+        return false;
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null) {
-            return (false);
+            return false;
         }
-        if (!(o instanceof Principal)) {
-            return (false);
+        if (!(o instanceof Principal principal)) {
+            return false;
         }
-        Principal p = (Principal) o;
         if (name == null) {
-            return (p.getName() == null);
+            return (principal.getName() == null);
         } else {
-            return (name.equals(p.getName()));
+            return (name.equals(principal.getName()));
         }
     }
 
     @Override
     public int hashCode() {
-        if (name == null) {
-            return ("".hashCode());
-        } else {
-            return (name.hashCode());
-        }
+        return name == null ? EMPTY_STRING_HASHCODE : name.hashCode();
     }
 }
