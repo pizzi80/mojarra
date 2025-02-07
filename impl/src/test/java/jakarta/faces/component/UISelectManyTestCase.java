@@ -67,12 +67,12 @@ public class UISelectManyTestCase extends UIInputTestCase {
     @Test
     public void testCompareValues() {
         SelectManyTestImpl selectMany = new SelectManyTestImpl();
-        Object values1a[] = new Object[] { "foo", "bar", "baz" };
-        Object values1b[] = new Object[] { "foo", "baz", "bar" };
-        Object values1c[] = new Object[] { "baz", "foo", "bar" };
-        Object values2[] = new Object[] { "foo", "bar" };
-        Object values3[] = new Object[] { "foo", "bar", "baz", "bop" };
-        Object values4[] = null;
+        Object[] values1a = new Object[] { "foo", "bar", "baz" };
+        Object[] values1b = new Object[] { "foo", "baz", "bar" };
+        Object[] values1c = new Object[] { "baz", "foo", "bar" };
+        Object[] values2 = new Object[] { "foo", "bar" };
+        Object[] values3 = new Object[] { "foo", "bar", "baz", "bop" };
+        Object[] values4 = null;
 
         assertTrue(!selectMany.compareValues(values1a, values1a));
         assertTrue(!selectMany.compareValues(values1a, values1b));
@@ -138,7 +138,7 @@ public class UISelectManyTestCase extends UIInputTestCase {
         Iterator<FacesMessage> messages = facesContext.getMessages();
         while (messages.hasNext()) {
             FacesMessage message = messages.next();
-            assertTrue(message.getSummary().indexOf("mylabel") >= 0);
+            assertTrue(message.getSummary().contains("mylabel"));
         }
     }
 
@@ -256,9 +256,9 @@ public class UISelectManyTestCase extends UIInputTestCase {
 
     }
 
-    private String legalValues[] = { "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3" };
+    private String[] legalValues = { "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3" };
 
-    private String illegalValues[] = { "D1", "D2", "Group A", "Group B", "Group C" };
+    private String[] illegalValues = { "D1", "D2", "Group A", "Group B", "Group C" };
 
     // Test validation against a nested list of available options
     @Test
@@ -274,11 +274,11 @@ public class UISelectManyTestCase extends UIInputTestCase {
         checkMessages(0);
 
         // Verify that all legal values will validate
-        for (int i = 0; i < legalValues.length; i++) {
+        for (String legalValue : legalValues) {
             selectMany.setValid(true);
-            selectMany.setSubmittedValue(new Object[] { legalValues[0], legalValues[i] });
+            selectMany.setSubmittedValue(new Object[]{legalValues[0], legalValue});
             selectMany.validate(facesContext);
-            assertTrue(selectMany.isValid(), "Value '" + legalValues[i] + "' found");
+            assertTrue(selectMany.isValid(), "Value '" + legalValue + "' found");
             checkMessages(0);
         }
 
@@ -306,11 +306,11 @@ public class UISelectManyTestCase extends UIInputTestCase {
         checkMessages(0);
 
         // Verify that all legal values will validate
-        for (int i = 0; i < legalValues.length; i++) {
+        for (String legalValue : legalValues) {
             selectMany.setValid(true);
-            selectMany.setSubmittedValue(new Object[] { legalValues[0], legalValues[i] });
+            selectMany.setSubmittedValue(new Object[]{legalValues[0], legalValue});
             selectMany.validate(facesContext);
-            assertTrue(selectMany.isValid(), "Value '" + legalValues[i] + "' found");
+            assertTrue(selectMany.isValid(), "Value '" + legalValue + "' found");
             checkMessages(0);
         }
 
