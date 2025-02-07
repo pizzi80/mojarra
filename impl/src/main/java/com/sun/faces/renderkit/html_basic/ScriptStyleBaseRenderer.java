@@ -174,9 +174,9 @@ public abstract class ScriptStyleBaseRenderer extends Renderer implements Compon
         // Special case of resource names that have query strings.
         // These resources actually use their query strings internally, not externally, so we don't need the resource to know
         // about them.
-        int queryPos = name.indexOf("?");
+        int queryPos = name.indexOf('?');
         String query = null;
-        if (queryPos > -1 && name.length() > queryPos) {
+        if (queryPos > -1) {
             query = name.substring(queryPos + 1);
             name = name.substring(0, queryPos);
         }
