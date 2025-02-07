@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.sun.faces.RIConstants;
+
 import jakarta.faces.FacesException;
 import jakarta.faces.component.ContextCallback;
 import jakarta.faces.component.UIComponent;
@@ -41,7 +43,7 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
     @Override
     public String resolveClientId(SearchExpressionContext searchExpressionContext, String expression) {
         if (expression == null) {
-            expression = "";
+            expression = RIConstants.NO_VALUE;
         } else {
             expression = expression.trim();
         }
@@ -89,7 +91,7 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
     @Override
     public List<String> resolveClientIds(SearchExpressionContext searchExpressionContext, String expressions) {
         if (expressions == null) {
-            expressions = "";
+            expressions = RIConstants.NO_VALUE;
         } else {
             expressions = expressions.trim();
         }
@@ -294,7 +296,7 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
                 callback.invokeContextCallback(facesContext, target);
             } else if (!isHintSet(searchExpressionContext, SearchExpressionHint.SKIP_VIRTUAL_COMPONENTS)) {
                 // fallback
-                // invokeOnComponent doesnt work with the leading ':'
+                // invokeOnComponent doesn't work with the leading ':'
                 char separatorChar = facesContext.getNamingContainerSeparatorChar();
                 if (expression.charAt(0) == separatorChar) {
                     expression = expression.substring(1);
@@ -316,13 +318,13 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
     @Override
     public String[] splitExpressions(FacesContext context, String expressions) {
         // we can't use a split(",") or split(" ") as keyword parameters might contain spaces or commas
-        List<String> tokens = new ArrayList<>();
-        StringBuilder buffer = new StringBuilder();
-        char[] separators = getExpressionSeperatorChars(context);
+        final List<String> tokens = new ArrayList<>();
+        final StringBuilder buffer = new StringBuilder();
+        final char[] separators = getExpressionSeperatorChars(context);
 
         int parenthesesCounter = 0;
 
-        char[] charArray = expressions.toCharArray();
+        final char[] charArray = expressions.toCharArray();
 
         for (char c : charArray) {
             if (c == '(') {
@@ -338,13 +340,14 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
                 for (char separator : separators) {
                     if (c == separator) {
                         isSeparator = true;
+                        break;
                     }
                 }
 
                 if (isSeparator) {
-                    // lets add token inside buffer to our tokens
+                    // let's add token inside buffer to our tokens
                     String bufferAsString = buffer.toString().trim();
-                    if (bufferAsString.length() > 0) {
+                    if (!bufferAsString.isEmpty()) {
                         tokens.add(bufferAsString);
                     }
                     // now we need to clear buffer
@@ -357,7 +360,7 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
             }
         }
 
-        // lets not forget about part after the separator
+        // let's not forget about part after the separator
         tokens.add(buffer.toString());
 
         return tokens.toArray(new String[tokens.size()]);
