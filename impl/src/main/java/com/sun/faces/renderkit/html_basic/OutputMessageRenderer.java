@@ -31,7 +31,7 @@ import jakarta.faces.component.UIParameter;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
 
-/** <B>OutputMessageRenderer</B> is a class that renderes UIOutput */
+/** <B>OutputMessageRenderer</B> is a class that renders UIOutput */
 
 public class OutputMessageRenderer extends HtmlBasicInputRenderer {
 
@@ -80,7 +80,7 @@ public class OutputMessageRenderer extends HtmlBasicInputRenderer {
         // If at least one substitution parameter was specified,
         // use the string as a MessageFormat instance.
         String message;
-        if (parameterList.size() > 0) {
+        if (!parameterList.isEmpty()) {
             MessageFormat fmt = new MessageFormat(currentValue, context.getViewRoot().getLocale());
             StringBuffer buf = new StringBuffer(currentValue.length() * 2);
             fmt.format(parameterList.toArray(new Object[parameterList.size()]), buf, null);
@@ -121,7 +121,7 @@ public class OutputMessageRenderer extends HtmlBasicInputRenderer {
         }
 
         Object val = component.getAttributes().get("escape");
-        boolean escape = val != null && Boolean.valueOf(val.toString());
+        boolean escape = val != null && Boolean.parseBoolean(val.toString());
 
         if (escape) {
             writer.writeText(message, component, "value");
