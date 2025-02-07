@@ -117,7 +117,7 @@ public class UINamingContainer extends UIComponentBase implements NamingContaine
             separatorChar = SEPARATOR_CHAR;
             if (initParam != null) {
                 initParam = initParam.trim();
-                if (initParam.length() != 0) {
+                if (!initParam.isEmpty()) {
                     separatorChar = initParam.charAt(0);
                 }
             }
