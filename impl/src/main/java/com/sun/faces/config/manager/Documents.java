@@ -128,9 +128,9 @@ public class Documents {
 
     public static List<DocumentInfo> getProgrammaticDocuments(List<ApplicationConfigurationPopulator> configPopulators) throws ParserConfigurationException {
 
-        List<DocumentInfo> programmaticDocuments = new ArrayList<>();
+        final List<DocumentInfo> programmaticDocuments = new ArrayList<>(configPopulators.size());
 
-        DOMImplementation domImpl = createDOMImplementation();
+        final DOMImplementation domImpl = createDOMImplementation();
         for (ApplicationConfigurationPopulator populator : configPopulators) {
 
             Document facesConfigDoc = createEmptyFacesConfigDocument(domImpl);
@@ -157,7 +157,7 @@ public class Documents {
         }
 
         if (isEmpty(facesDocuments)) {
-            return programmaticDocuments.toArray(new DocumentInfo[0]);
+            return programmaticDocuments.toArray(new DocumentInfo[programmaticDocuments.size()]);
         }
 
         List<DocumentInfo> mergedDocuments = new ArrayList<>(facesDocuments.length + programmaticDocuments.size());
@@ -172,7 +172,7 @@ public class Documents {
         // Copy the programmaticDocuments next, but skip the first one as we've already added that
         mergedDocuments.addAll(programmaticDocuments.subList(1, programmaticDocuments.size()));
 
-        return mergedDocuments.toArray(new DocumentInfo[0]);
+        return mergedDocuments.toArray(new DocumentInfo[mergedDocuments.size()]);
     }
 
     /**
@@ -188,17 +188,22 @@ public class Documents {
      */
     public static DocumentInfo[] sortDocuments(DocumentInfo[] facesDocuments, FacesConfigInfo webInfFacesConfig) {
 
-        int len = webInfFacesConfig.isWebInfFacesConfig() ? facesDocuments.length - 1 : facesDocuments.length;
+        // total number of faces documents to process
+        final int len = webInfFacesConfig.isWebInfFacesConfig() ? facesDocuments.length - 1 : facesDocuments.length;
 
-        List<String> absoluteOrdering = webInfFacesConfig.getAbsoluteOrdering();
-
+        // if the is more than one faces documents -> order the documents
         if (len > 1) {
+            // DocumentInfo[] -> DocumentOrderingWrapperInfo[]
             List<DocumentOrderingWrapper> list = new ArrayList<>();
             for (int i = 1; i < len; i++) {
                 list.add(new DocumentOrderingWrapper(facesDocuments[i]));
             }
-
             DocumentOrderingWrapper[] ordering = list.toArray(new DocumentOrderingWrapper[list.size()]);
+
+            // get the absolute ordering
+            final List<String> absoluteOrdering = webInfFacesConfig.getAbsoluteOrdering();
+
+            // if there is no absolute ordering -> sort with the default algo
             if (absoluteOrdering == null) {
                 DocumentOrderingWrapper.sort(ordering);
 
@@ -207,18 +212,20 @@ public class Documents {
                 for (int i = 1; i < len; i++) {
                     facesDocuments[i] = ordering[i - 1].getDocument();
                 }
-
                 return facesDocuments;
-            } else {
+            }
+            // else (there is an absolute ordering) -> sort with the default algo
+            else {
                 DocumentOrderingWrapper[] result = DocumentOrderingWrapper.sort(ordering, absoluteOrdering);
                 DocumentInfo[] ret = new DocumentInfo[webInfFacesConfig.isWebInfFacesConfig() ? result.length + 2 : result.length + 1];
 
+                // Add the impl specific config file
+                ret[0] = facesDocuments[0];
+
+                // Add all the documents sorted
                 for (int i = 1; i < len; i++) {
                     ret[i] = result[i - 1].getDocument();
                 }
-
-                // Add the impl specific config file
-                ret[0] = facesDocuments[0];
 
                 // Add the WEB-INF if necessary
                 if (webInfFacesConfig.isWebInfFacesConfig()) {
