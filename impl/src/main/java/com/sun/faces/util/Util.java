@@ -447,7 +447,7 @@ public class Util {
 
         // Trim any path segments that remain, leaving only the
         // last path segment.
-        int slash = input.lastIndexOf("/");
+        int slash = input.lastIndexOf('/');
 
         // Do we have a "/"?
         if (-1 != slash) {
@@ -481,7 +481,7 @@ public class Util {
 
         // Trim any path segments that remain, leaving only the
         // last path segment.
-        int lastSlash = input.lastIndexOf("/");
+        int lastSlash = input.lastIndexOf('/');
 
         // Do we have a "/"?
         if (-1 != lastSlash) {
@@ -979,7 +979,7 @@ public class Util {
             } else if (lang != null && country != null) {
                 result = new Locale(lang, country);
             } else if (lang != null) {
-                result = new Locale(lang, "");
+                result = new Locale(lang, NO_VALUE);
             }
         }
 
@@ -1179,13 +1179,14 @@ public class Util {
         // If needed, cache this after initialization of Faces
         Object context = externalContext.getContext();
         if (context instanceof ServletContext) {
-            return getFacesServletMappings((ServletContext) context).stream()
+            return getFacesServletMappings((ServletContext) context)
+                    .stream()
                     .filter(mapping -> mapping.contains("*"))
                     .map(mapping -> new HttpServletMapping() {
 
                         @Override
                         public String getServletName() {
-                            return "";
+                            return NO_VALUE;
                         }
 
                         @Override
@@ -1292,7 +1293,7 @@ public class Util {
         }
     }
 
-    static public boolean classHasAnnotations(Class<?> clazz) {
+    public static boolean classHasAnnotations(Class<?> clazz) {
         if (clazz != null) {
             while (clazz != Object.class) {
                 try {
@@ -1342,7 +1343,7 @@ public class Util {
         if (viewRoot instanceof NamingContainer) {
             return viewRoot.getContainerClientId(context) + UINamingContainer.getSeparatorChar(context);
         } else {
-            return "";
+            return NO_VALUE;
         }
     }
 
@@ -1462,7 +1463,7 @@ public class Util {
      * @return the version found, or "" if none found.
      */
     public static String getFacesConfigXmlVersion(FacesContext facesContext) {
-        String result = "";
+        String result = NO_VALUE;
         InputStream stream = null;
         try {
             URL url = facesContext.getExternalContext().getResource("/WEB-INF/faces-config.xml");
@@ -1506,7 +1507,7 @@ public class Util {
      * @return the version found, or "" if none found.
      */
     public static String getWebXmlVersion(FacesContext facesContext) {
-        String result = "";
+        String result = NO_VALUE;
         InputStream stream = null;
         try {
             URL url = facesContext.getExternalContext().getResource("/WEB-INF/web.xml");
