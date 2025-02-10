@@ -39,34 +39,36 @@ public final class ChooseHandler extends TagHandlerImpl {
     public ChooseHandler(TagConfig config) {
         super(config);
 
-        List whenList = new ArrayList();
-        Iterator itr = this.findNextByType(ChooseWhenHandler.class);
-        while (itr.hasNext()) {
-            whenList.add(itr.next());
-        }
-        if (whenList.isEmpty()) {
+        // --- when ---
+        Iterator<ChooseWhenHandler> iterator = findNextByType(ChooseWhenHandler.class);
+        if ( ! iterator.hasNext() ) {
             throw new TagException(tag, "Choose Tag must have one or more When Tags");
         }
-        when = (ChooseWhenHandler[]) whenList.toArray(new ChooseWhenHandler[whenList.size()]);
+        List<ChooseWhenHandler> whenList = new ArrayList<>();
+        while (iterator.hasNext()) {
+            whenList.add(iterator.next());
+        }
+        when = whenList.toArray(new ChooseWhenHandler[whenList.size()]);
 
-        itr = this.findNextByType(ChooseOtherwiseHandler.class);
-        if (itr.hasNext()) {
-            otherwise = (ChooseOtherwiseHandler) itr.next();
+        // --- otherwise ---
+        Iterator<ChooseOtherwiseHandler> iteratorOtherwise = findNextByType(ChooseOtherwiseHandler.class);
+        if (iteratorOtherwise.hasNext()) {
+            otherwise = iteratorOtherwise.next();
         } else {
             otherwise = null;
         }
     }
 
     @Override
-    public void apply(FaceletContext ctx, UIComponent parent) throws IOException {
-        for (int i = 0; i < when.length; i++) {
-            if (when[i].isTestTrue(ctx)) {
-                when[i].apply(ctx, parent);
+    public void apply(FaceletContext context, UIComponent parent) throws IOException {
+        for (ChooseWhenHandler chooseWhenHandler : when) {
+            if (chooseWhenHandler.isTestTrue(context)) {
+                chooseWhenHandler.apply(context, parent);
                 return;
             }
         }
         if (otherwise != null) {
-            otherwise.apply(ctx, parent);
+            otherwise.apply(context, parent);
         }
     }
 
