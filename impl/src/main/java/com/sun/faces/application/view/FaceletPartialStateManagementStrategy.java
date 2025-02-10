@@ -187,7 +187,6 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
      * @param context the Faces context.
      * @param stateContext the state context.
      * @param stateMap the state.
-     * @param viewRoot the view root.
      */
     private void restoreDynamicActions(FacesContext context, StateContext stateContext, Map<String, Object> stateMap) {
         if (LOGGER.isLoggable(FINEST)) {
@@ -343,6 +342,7 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
                 stateContext.setTrackViewModifications(false);
 
                 VisitContext visitContext = VisitContext.createVisitContext(context, null, SKIP_ITERATION_AND_EXECUTE_LIFECYCLE_HINTS);
+
                 viewRoot.visitTree(visitContext, (context1, target) -> {
                     VisitResult result = VisitResult.ACCEPT;
                     String cid = target.getClientId(context1.getFacesContext());
@@ -364,11 +364,14 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
 
                     return result;
                 });
+
                 restoreDynamicActions(context, stateContext, state);
-            } finally {
+            }
+            finally {
                 stateContext.setTrackViewModifications(true);
             }
-        } else {
+        }
+        else {
             viewRoot = null;
         }
         context.setProcessingEvents(processingEvents);
@@ -388,7 +391,7 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
         }
 
         List<ComponentStruct> actions = stateContext.getDynamicActions();
-        HashMap<String, UIComponent> componentMap = stateContext.getDynamicComponents();
+        Map<String, UIComponent> componentMap = stateContext.getDynamicComponents();
 
         if (actions != null) {
             List<Object> savedActions = new ArrayList<>(actions.size());
