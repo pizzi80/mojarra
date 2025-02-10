@@ -47,7 +47,7 @@ public final class DecorateHandler extends TagHandlerImpl implements TemplateCli
 
     private final TagAttribute template;
 
-    private final Map handlers;
+    private final Map<String,DefineHandler> handlers;
 
     private final ParamHandler[] params;
 
@@ -57,27 +57,24 @@ public final class DecorateHandler extends TagHandlerImpl implements TemplateCli
     public DecorateHandler(TagConfig config) {
         super(config);
         template = getRequiredAttribute("template");
-        handlers = new HashMap();
+        handlers = new HashMap<>();
 
-        Iterator itr = this.findNextByType(DefineHandler.class);
-        DefineHandler d = null;
-        while (itr.hasNext()) {
-            d = (DefineHandler) itr.next();
+        Iterator<DefineHandler> iterator = findNextByType(DefineHandler.class);
+        DefineHandler d;
+        while (iterator.hasNext()) {
+            d = iterator.next();
             handlers.put(d.getName(), d);
             if (log.isLoggable(Level.FINE)) {
-                log.fine(tag + " found Define[" + d.getName() + "]");
+                log.fine(tag + " found Define[" + d.getName() + ']');
             }
         }
-        List paramC = new ArrayList();
-        itr = this.findNextByType(ParamHandler.class);
-        while (itr.hasNext()) {
-            paramC.add(itr.next());
+        List<ParamHandler> paramC = new ArrayList<>();
+        Iterator<ParamHandler> iteratorParams = findNextByType(ParamHandler.class);
+        while (iteratorParams.hasNext()) {
+            paramC.add(iteratorParams.next());
         }
-        if (paramC.size() > 0) {
-            params = new ParamHandler[paramC.size()];
-            for (int i = 0; i < params.length; i++) {
-                params[i] = (ParamHandler) paramC.get(i);
-            }
+        if (!paramC.isEmpty()) {
+            params = paramC.toArray(new ParamHandler[paramC.size()]);
         } else {
             params = null;
         }
@@ -95,8 +92,8 @@ public final class DecorateHandler extends TagHandlerImpl implements TemplateCli
         if (params != null) {
             VariableMapper vm = new VariableMapperWrapper(orig);
             ctx.setVariableMapper(vm);
-            for (int i = 0; i < params.length; i++) {
-                params[i].apply(ctx, parent);
+            for (ParamHandler param : params) {
+                param.apply(ctx, parent);
             }
         }
 
@@ -104,7 +101,7 @@ public final class DecorateHandler extends TagHandlerImpl implements TemplateCli
         String path = null;
         try {
             path = template.getValue(ctx);
-            if (path.trim().length() == 0) {
+            if (path.isBlank()) {
                 throw new TagAttributeException(tag, template, "Invalid path : " + path);
             }
             ctx.includeFacelet(parent, path);
@@ -122,7 +119,7 @@ public final class DecorateHandler extends TagHandlerImpl implements TemplateCli
     @Override
     public boolean apply(FaceletContext ctx, UIComponent parent, String name) throws IOException {
         if (name != null) {
-            DefineHandler handler = (DefineHandler) handlers.get(name);
+            DefineHandler handler = handlers.get(name);
             if (handler != null) {
                 handler.applyDefinition(ctx, parent);
                 return true;

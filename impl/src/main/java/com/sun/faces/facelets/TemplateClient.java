@@ -26,7 +26,7 @@ import jakarta.faces.view.facelets.FaceletException;
 
 /**
  * FaceletHandlers can implement this contract and push themselves into the FaceletContext for participating in
- * templating. Templates will attempt to resolve content for a specified name until one of the TemplatClients return
+ * templating. Templates will attempt to resolve content for a specified name until one of the TemplateClients return
  * 'true'.
  *
  * @author Jacob Hookom
