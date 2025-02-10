@@ -89,15 +89,15 @@ public final class ByteArrayGuard {
     // ---------------------------------------------------------- Public Methods
 
     /**
-     * This method: Encrypts bytes using a cipher. Generates MAC for intialization vector of the cipher Generates MAC for
-     * encrypted data Returns a byte array consisting of the following concatenated together: |MAC for cnrypted Data | MAC
+     * This method: Encrypts bytes using a cipher. Generates MAC for initialization vector of the cipher Generates MAC for
+     * encrypted data Returns a byte array consisting of the following concatenated together: |MAC for encrypted Data | MAC
      * for Init Vector | Encrypted Data |
      *
      * @param bytes The byte array to be encrypted.
      * @return the encrypted byte array.
      */
     public byte[] encrypt(FacesContext facesContext, byte[] bytes) {
-        byte[] securedata = null;
+        final byte[] securedata;
         try {
             // Generate IV
             SecureRandom rand = new SecureRandom();
