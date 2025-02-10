@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import com.sun.faces.util.Util;
@@ -75,11 +76,7 @@ public class RequestHeaderMap extends BaseContextMap<String> {
 
     @Override
     public int hashCode() {
-        int hashCode = 7 * request.hashCode();
-        for (Map.Entry<String, String> entry : entrySet()) {
-            hashCode += entry.hashCode();
-        }
-        return hashCode;
+        return Objects.hash(request, entrySet());
     }
 
     // --------------------------------------------- Methods from BaseContextMap
