@@ -87,12 +87,12 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
     /**
      * Stores the class map.
      */
-    private Map<String, Class<?>> classMap;
+    private final Map<String, Class<?>> classMap;
 
     /**
      * Are we in development mode.
      */
-    private boolean isDevelopmentMode;
+    private final boolean isDevelopmentMode;
 
     /**
      * Constructor.
@@ -299,7 +299,7 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
      * @param context the Faces context.
      * @param state the component state.
      */
-    private void restoreComponentState(final FacesContext context, final HashMap<String, Object> state) {
+    private void restoreComponentState(final FacesContext context, final Map<String, Object> state) {
 
         final StateContext stateContext = StateContext.getStateContext(context);
         final UIViewRoot viewRoot = context.getViewRoot();
@@ -335,10 +335,9 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
      *
      * @param context the Faces context.
      * @param stateContext the state context.
-     * @param stateMap the state.
-     * @param viewRoot the view root.
+     * @param state the current state
      */
-    private void restoreDynamicActions(FacesContext context, StateContext stateContext, HashMap<String, Object> state) {
+    private void restoreDynamicActions(FacesContext context, StateContext stateContext, Map<String, Object> state) {
         if (LOGGER.isLoggable(FINEST)) {
             LOGGER.finest("FaceletFullStateManagementStrategy.restoreDynamicActions");
         }
@@ -574,7 +573,7 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
      */
     private Object saveComponentState(FacesContext context) {
 
-        final HashMap<String, Object> stateMap = new HashMap<>();
+        final Map<String, Object> stateMap = new HashMap<>();
         final StateContext stateContext = StateContext.getStateContext(context);
         final UIViewRoot viewRoot = context.getViewRoot();
         final FacesContext finalContext = context;
@@ -586,7 +585,7 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
             Object stateObj;
             if (!component.isTransient()) {
                 if (stateContext.componentAddedDynamically(component)) {
-                    component.getAttributes().put(DYNAMIC_COMPONENT, new Integer(getProperChildIndex(component)));
+                    component.getAttributes().put(DYNAMIC_COMPONENT, getProperChildIndex(component));
                     stateObj = new StateHolderSaver(finalContext, component);
                 } else {
                     stateObj = component.saveState(finalContext);
@@ -609,7 +608,7 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
      *
      * @param context the Faces context.
      * @param stateContext the state context.
-     * @param stateMap the state.
+     * @param viewRoot the current ViewRoot.
      */
     private void saveDynamicActions(FacesContext context, StateContext stateContext, UIViewRoot viewRoot) {
         if (LOGGER.isLoggable(FINEST)) {
@@ -617,7 +616,7 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
         }
 
         List<ComponentStruct> actions = stateContext.getDynamicActions();
-        HashMap<String, UIComponent> componentMap = stateContext.getDynamicComponents();
+        Map<String, UIComponent> componentMap = stateContext.getDynamicComponents();
 
         if (actions != null) {
             List<Object> savedActions = new ArrayList<>(actions.size());
@@ -654,7 +653,7 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
          */
         Util.checkIdUniqueness(context, viewRoot, new HashSet<>(viewRoot.getChildCount() << 1));
 
-        /**
+        /*
          * Save the dynamic actions.
          */
         StateContext stateContext = StateContext.getStateContext(context);
@@ -803,7 +802,7 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
             parent = in.readInt();
             componentType = in.readUTF();
             id = in.readUTF();
-            if (id.length() == 0) {
+            if (id.isEmpty()) {
                 id = null;
             }
         }
