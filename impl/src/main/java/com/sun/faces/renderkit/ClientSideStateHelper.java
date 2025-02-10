@@ -415,7 +415,7 @@ public class ClientSideStateHelper extends StateHelper {
 
     /**
      * <p>
-     * Initialze the various configuration options for client-side sate saving.
+     * Initialize the various configuration options for client-side sate saving.
      * </p>
      */
     protected void init() {
