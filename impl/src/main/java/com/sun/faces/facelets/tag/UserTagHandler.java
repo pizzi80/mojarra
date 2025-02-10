@@ -31,6 +31,7 @@ import com.sun.faces.facelets.tag.ui.DefineHandler;
 import jakarta.el.VariableMapper;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.view.facelets.FaceletContext;
+import jakarta.faces.view.facelets.FaceletHandler;
 import jakarta.faces.view.facelets.TagAttribute;
 import jakarta.faces.view.facelets.TagConfig;
 import jakarta.faces.view.facelets.TagException;
@@ -44,11 +45,11 @@ import jakarta.faces.view.facelets.TagException;
  */
 final class UserTagHandler extends TagHandlerImpl implements TemplateClient {
 
-    protected final TagAttribute[] vars;
+    private final TagAttribute[] vars;
 
-    protected final URL location;
+    private final URL location;
 
-    protected final Map handlers;
+    private final Map<String,DefineHandler> handlers;
 
     /**
      * @param config
@@ -57,13 +58,13 @@ final class UserTagHandler extends TagHandlerImpl implements TemplateClient {
         super(config);
         vars = tag.getAttributes().getAll();
         this.location = location;
-        Iterator itr = this.findNextByType(DefineHandler.class);
-        if (itr.hasNext()) {
-            handlers = new HashMap();
 
-            DefineHandler d = null;
-            while (itr.hasNext()) {
-                d = (DefineHandler) itr.next();
+        Iterator<DefineHandler> iterator = findNextByType(DefineHandler.class);
+        if (iterator.hasNext()) {
+            handlers = new HashMap<>();
+
+            while (iterator.hasNext()) {
+                DefineHandler d = iterator.next();
                 handlers.put(d.getName(), d);
             }
         } else {
@@ -88,8 +89,8 @@ final class UserTagHandler extends TagHandlerImpl implements TemplateClient {
         // setup a variable map
         if (vars.length > 0) {
             VariableMapper varMapper = new VariableMapperWrapper(orig);
-            for (int i = 0; i < vars.length; i++) {
-                varMapper.setVariable(vars[i].getLocalName(), vars[i].getValueExpression(ctx, Object.class));
+            for (TagAttribute var : vars) {
+                varMapper.setVariable(var.getLocalName(), var.getValueExpression(ctx, Object.class));
             }
             ctx.setVariableMapper(varMapper);
         }
@@ -114,7 +115,7 @@ final class UserTagHandler extends TagHandlerImpl implements TemplateClient {
             if (handlers == null) {
                 return false;
             }
-            DefineHandler handler = (DefineHandler) handlers.get(name);
+            DefineHandler handler = handlers.get(name);
             if (handler != null) {
                 handler.applyDefinition(ctx, parent);
                 return true;
