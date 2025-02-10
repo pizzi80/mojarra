@@ -46,13 +46,15 @@ public final class CompositionHandler extends TagHandlerImpl implements Template
 
     private static final Logger log = FacesLogger.FACELETS_COMPOSITION.getLogger();
 
+    private static final String FACES_UI_COMPOSITION_COUNT = "com.sun.faces.uiCompositionCount";
+
     public final static String Name = "composition";
 
-    protected final TagAttribute template;
+    private final TagAttribute template;
 
-    protected final Map handlers;
+    private final Map<String,Object> handlers;
 
-    protected final ParamHandler[] params;
+    private final ParamHandler[] params;
 
     /**
      * @param config
@@ -61,26 +63,24 @@ public final class CompositionHandler extends TagHandlerImpl implements Template
         super(config);
         template = getAttribute("template");
         if (template != null) {
-            handlers = new HashMap();
-            Iterator itr = this.findNextByType(DefineHandler.class);
-            DefineHandler d = null;
-            while (itr.hasNext()) {
-                d = (DefineHandler) itr.next();
+            handlers = new HashMap<>();
+            Iterator<DefineHandler> iterator = findNextByType(DefineHandler.class);
+            DefineHandler d;
+            while (iterator.hasNext()) {
+                d = iterator.next();
                 handlers.put(d.getName(), d);
                 if (log.isLoggable(Level.FINE)) {
-                    log.fine(tag + " found Define[" + d.getName() + "]");
+                    log.fine(tag + " found Define[" + d.getName() + ']');
                 }
             }
-            List paramC = new ArrayList();
-            itr = this.findNextByType(ParamHandler.class);
-            while (itr.hasNext()) {
-                paramC.add(itr.next());
+
+            List<ParamHandler> paramC = new ArrayList<>();
+            Iterator<ParamHandler> iteratorParams = findNextByType(ParamHandler.class);
+            while (iteratorParams.hasNext()) {
+                paramC.add(iteratorParams.next());
             }
-            if (paramC.size() > 0) {
-                params = new ParamHandler[paramC.size()];
-                for (int i = 0; i < params.length; i++) {
-                    params[i] = (ParamHandler) paramC.get(i);
-                }
+            if (!paramC.isEmpty()) {
+                params = paramC.toArray(new ParamHandler[paramC.size()]);
             } else {
                 params = null;
             }
@@ -102,20 +102,20 @@ public final class CompositionHandler extends TagHandlerImpl implements Template
         if (template != null) {
 
             FacesContext facesContext = ctx.getFacesContext();
-            Integer compositionCount = (Integer) facesContext.getAttributes().get("com.sun.faces.uiCompositionCount");
+            Integer compositionCount = (Integer) facesContext.getAttributes().get(FACES_UI_COMPOSITION_COUNT);
             if (compositionCount == null) {
                 compositionCount = 1;
             } else {
                 compositionCount++;
             }
-            facesContext.getAttributes().put("com.sun.faces.uiCompositionCount", compositionCount);
+            facesContext.getAttributes().put(FACES_UI_COMPOSITION_COUNT, compositionCount);
 
             VariableMapper orig = ctx.getVariableMapper();
             if (params != null) {
                 VariableMapper vm = new VariableMapperWrapper(orig);
                 ctx.setVariableMapper(vm);
-                for (int i = 0; i < params.length; i++) {
-                    params[i].apply(ctx, parent);
+                for (ParamHandler param : params) {
+                    param.apply(ctx, parent);
                 }
             }
 
@@ -123,7 +123,7 @@ public final class CompositionHandler extends TagHandlerImpl implements Template
             String path = null;
             try {
                 path = template.getValue(ctx);
-                if (path.trim().length() == 0) {
+                if (path.isBlank()) {
                     throw new TagAttributeException(tag, template, "Invalid path : " + path);
                 }
                 ctx.includeFacelet(parent, path);
@@ -136,13 +136,13 @@ public final class CompositionHandler extends TagHandlerImpl implements Template
                 ctx.popClient(this);
                 ctx.setVariableMapper(orig);
 
-                compositionCount = (Integer) facesContext.getAttributes().get("com.sun.faces.uiCompositionCount");
+                compositionCount = (Integer) facesContext.getAttributes().get(FACES_UI_COMPOSITION_COUNT);
                 compositionCount--;
 
                 if (compositionCount == 0) {
-                    facesContext.getAttributes().remove("com.sun.faces.uiCompositionCount");
+                    facesContext.getAttributes().remove(FACES_UI_COMPOSITION_COUNT);
                 } else {
-                    facesContext.getAttributes().put("com.sun.faces.uiCompositionCount", compositionCount);
+                    facesContext.getAttributes().put(FACES_UI_COMPOSITION_COUNT, compositionCount);
                 }
             }
         } else {
