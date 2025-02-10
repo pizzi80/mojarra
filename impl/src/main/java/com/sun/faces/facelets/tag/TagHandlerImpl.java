@@ -42,35 +42,25 @@ public abstract class TagHandlerImpl extends TagHandler {
      * @param type Class type to search for
      * @return iterator over instances of FaceletHandlers of the matching type
      */
-    protected final Iterator findNextByType(Class type) {
-        List found = new ArrayList();
-        if (type.isAssignableFrom(nextHandler.getClass())) {
-            found.add(nextHandler);
-        } else if (nextHandler instanceof CompositeFaceletHandler) {
-            FaceletHandler[] h = ((CompositeFaceletHandler) nextHandler).getHandlers();
-            for (int i = 0; i < h.length; i++) {
-                if (type.isAssignableFrom(h[i].getClass())) {
-                    found.add(h[i]);
-                }
-            }
-        }
-        return found.iterator();
+    protected final <T extends FaceletHandler> Iterator<T> findNextByType(Class<T> type) {
+        return findNextByType(nextHandler, type);
     }
 
-    public final static Iterator findNextByType(FaceletHandler nextHandler, Class type) {
-        List found = new ArrayList();
+    @SuppressWarnings("unchecked")
+    private static <T extends FaceletHandler> Iterator<T> findNextByType(FaceletHandler nextHandler, Class<T> type) {
+        List<FaceletHandler> found = new ArrayList<>();
         if (type.isAssignableFrom(nextHandler.getClass())) {
             found.add(nextHandler);
-        } else if (nextHandler instanceof CompositeFaceletHandler) {
-            FaceletHandler[] h = ((CompositeFaceletHandler) nextHandler).getHandlers();
-            for (int i = 0; i < h.length; i++) {
-                if (type.isAssignableFrom(h[i].getClass())) {
-                    found.add(h[i]);
+        }
+        else if (nextHandler instanceof CompositeFaceletHandler) {
+            FaceletHandler[] handlers = ((CompositeFaceletHandler) nextHandler).getHandlers();
+            for (FaceletHandler faceletHandler : handlers) {
+                if (type.isAssignableFrom(faceletHandler.getClass())) {
+                    found.add(faceletHandler);
                 }
             }
         }
-        return found.iterator();
-
+        return (Iterator<T>) found.iterator();
     }
 
 }
