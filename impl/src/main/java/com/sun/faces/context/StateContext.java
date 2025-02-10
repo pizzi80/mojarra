@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -63,7 +62,7 @@ public class StateContext {
     private boolean partialLocked;
     private boolean trackMods = true;
     private AddRemoveListener modListener;
-    private ApplicationStateInfo stateInfo;
+    private final ApplicationStateInfo stateInfo;
     private WeakReference<UIViewRoot> viewRootRef = new WeakReference<>(null);
 
     private static final Logger LOGGER = FacesLogger.CONTEXT.getLogger();
@@ -252,7 +251,7 @@ public class StateContext {
      *
      * @return the hash map of dynamic components.
      */
-    public HashMap<String, UIComponent> getDynamicComponents() {
+    public Map<String, UIComponent> getDynamicComponents() {
         return modListener != null ? modListener.getDynamicComponents() : null;
     }
 
@@ -262,12 +261,12 @@ public class StateContext {
         return isPartialStateSaving(context, root.getViewId()) ? new DynamicAddRemoveListener(context) : new StatelessAddRemoveListener(context);
     }
 
-    abstract private class AddRemoveListener implements SystemEventListener {
+    private abstract static class AddRemoveListener implements SystemEventListener {
 
         /**
          * Stores the state context we work for,
          */
-        private StateContext stateCtx;
+        private final StateContext stateCtx;
 
         /**
          * Constructor.
@@ -283,14 +282,14 @@ public class StateContext {
          *
          * @return the list of adds/removes.
          */
-        abstract public List<ComponentStruct> getDynamicActions();
+        public abstract List<ComponentStruct> getDynamicActions();
 
         /**
          * Get the hash map of dynamic components.
          *
          * @return the hash map of dynamic components.
          */
-        abstract public HashMap<String, UIComponent> getDynamicComponents();
+        public abstract Map<String, UIComponent> getDynamicComponents();
 
         /**
          * Process the add/remove event.
@@ -346,12 +345,7 @@ public class StateContext {
         abstract protected void handleAdd(FacesContext context, UIComponent component);
     }
 
-    public class NoopAddRemoveListener extends AddRemoveListener {
-
-        // This is silly. We should be able to use Collections.emptyMap(),
-        // but cannot as StateContext.getDynamicComponents() API returns a
-        // HashMap instead of a Map.
-        private HashMap emptyComponentsMap = new HashMap();
+    public static class NoopAddRemoveListener extends AddRemoveListener {
 
         public NoopAddRemoveListener(FacesContext context) {
             super(context);
@@ -363,8 +357,8 @@ public class StateContext {
         }
 
         @Override
-        public HashMap<String, UIComponent> getDynamicComponents() {
-            return emptyComponentsMap;
+        public Map<String, UIComponent> getDynamicComponents() {
+            return Collections.emptyMap();
         }
 
         @Override
@@ -381,7 +375,7 @@ public class StateContext {
      * itself. Instead, we use expando attributes on the dynamic components (and their parents) to track/preserve the
      * dynamic nature of these components.
      */
-    public class StatelessAddRemoveListener extends NoopAddRemoveListener {
+    public static class StatelessAddRemoveListener extends NoopAddRemoveListener {
 
         public StatelessAddRemoveListener(FacesContext context) {
             super(context);
@@ -528,6 +522,7 @@ public class StateContext {
          * Stores the list of adds/removes.
          */
         private List<ComponentStruct> dynamicActions;
+
         /**
          * Stores the hash map of dynamic components.
          */
@@ -564,7 +559,7 @@ public class StateContext {
          * @return the hash map of dynamic components.
          */
         @Override
-        public HashMap<String, UIComponent> getDynamicComponents() {
+        public Map<String, UIComponent> getDynamicComponents() {
             synchronized (this) {
                 if (dynamicComponents == null) {
                     dynamicComponents = new HashMap<>();
@@ -611,25 +606,11 @@ public class StateContext {
                 }
 
                 String facetName = findFacetNameForComponent(component);
-                if (facetName != null) {
-                    incrementDynamicChildCount(context, component.getParent());
-                    component.clearInitialState();
-                    component.getAttributes().put(DYNAMIC_COMPONENT, component.getParent().getChildren().indexOf(component));
-
-                    ComponentStruct struct = new ComponentStruct(ADD, facetName, component.getParent().getClientId(context), component.getClientId(context),
-                            component.getId());
-
-                    handleAddRemoveWithAutoPrune(component, struct);
-                } else {
-                    incrementDynamicChildCount(context, component.getParent());
-                    component.clearInitialState();
-                    component.getAttributes().put(DYNAMIC_COMPONENT, component.getParent().getChildren().indexOf(component));
-
-                    ComponentStruct struct = new ComponentStruct(ADD, null, component.getParent().getClientId(context), component.getClientId(context),
-                            component.getId());
-
-                    handleAddRemoveWithAutoPrune(component, struct);
-                }
+                incrementDynamicChildCount(context, component.getParent());
+                component.clearInitialState();
+                component.getAttributes().put(DYNAMIC_COMPONENT, component.getParent().getChildren().indexOf(component));
+                ComponentStruct struct = new ComponentStruct(ADD, facetName, component.getParent().getClientId(context), component.getClientId(context), component.getId());
+                handleAddRemoveWithAutoPrune(component, struct);
             }
         }
 
@@ -641,9 +622,7 @@ public class StateContext {
          */
         private String findFacetNameForComponent(UIComponent component) {
             Set<Entry<String, UIComponent>> entrySet = component.getParent().getFacets().entrySet();
-            Iterator<Entry<String, UIComponent>> entries = entrySet.iterator();
-            while (entries.hasNext()) {
-                Entry<String, UIComponent> candidate = entries.next();
+            for (Entry<String, UIComponent> candidate : entrySet) {
                 if (component == candidate.getValue()) {
                     return candidate.getKey();
                 }
@@ -686,7 +665,7 @@ public class StateContext {
          */
         private void handleAddRemoveWithAutoPrune(UIComponent component, ComponentStruct struct) {
             List<ComponentStruct> actionList = getDynamicActions();
-            HashMap<String, UIComponent> componentMap = getDynamicComponents();
+            Map<String, UIComponent> componentMap = getDynamicComponents();
 
             int firstIndex = actionList.indexOf(struct);
             if (firstIndex == -1) {
