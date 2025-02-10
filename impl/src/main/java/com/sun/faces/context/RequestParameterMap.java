@@ -20,8 +20,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.util.Util;
 
 import jakarta.faces.context.FacesContext;
@@ -54,7 +56,7 @@ public class RequestParameterMap extends BaseContextMap<String> {
         String mapKey = key.toString();
         String mapValue = request.getParameter(mapKey);
         if (mapValue == null && !mapKey.startsWith(getNamingContainerPrefix())) {
-            // Support cases where enduser manually obtains a request parameter while in a namespaced view.
+            // Support cases where end user manually obtains a request parameter while in a namespaced view.
             mapValue = request.getParameter(getNamingContainerPrefix() + mapKey);
         }
         return mapValue;
@@ -80,7 +82,7 @@ public class RequestParameterMap extends BaseContextMap<String> {
             FacesContext context = FacesContext.getCurrentInstance();
 
             if (context == null) {
-                return "";
+                return RIConstants.NO_VALUE;
             }
 
             namingContainerPrefix = Util.getNamingContainerPrefix(context);
@@ -106,11 +108,7 @@ public class RequestParameterMap extends BaseContextMap<String> {
 
     @Override
     public int hashCode() {
-        int hashCode = 7 * request.hashCode();
-        for (Map.Entry<String, String> stringStringEntry : entrySet()) {
-            hashCode += stringStringEntry.hashCode();
-        }
-        return hashCode;
+        return Objects.hash(request, entrySet());
     }
 
     // --------------------------------------------- Methods from BaseContextMap
