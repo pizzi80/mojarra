@@ -58,48 +58,48 @@ public class SetHandler extends TagHandlerImpl {
     }
 
     @Override
-    public void apply(FaceletContext ctx, UIComponent parent) throws IOException {
+    public void apply(FaceletContext context, UIComponent parent) throws IOException {
 
         StringBuilder bodyValue = new StringBuilder();
 
-        Iterator iter = TagHandlerImpl.findNextByType(nextHandler, TextHandler.class);
-        while (iter.hasNext()) {
-            TextHandler text = (TextHandler) iter.next();
-            bodyValue.append(text.getText(ctx));
+        Iterator<TextHandler> iterator = findNextByType(TextHandler.class);
+        while (iterator.hasNext()) {
+            TextHandler text = iterator.next();
+            bodyValue.append(text.getText(context));
         }
 
         // true if either a value in body or value attr
-        boolean valSet = bodyValue.length() > 0 || value != null && value.getValue().length() > 0;
+        boolean valSet = !bodyValue.isEmpty() || value != null && !value.getValue().isEmpty();
 
         // Apply precedence algorithm for attributes. The JstlCoreTLV doesn't
         // seem to enforce much in the way of this, so I edburns needs to check
-        // with an authority on the matter, probabyl Kin-Man Chung
+        // with an authority on the matter, probably Kin-Man Chung
 
         ValueExpression veObj;
         ValueExpression lhs;
         String expr;
 
         if (value != null) {
-            veObj = value.getValueExpression(ctx, Object.class);
+            veObj = value.getValueExpression(context, Object.class);
         } else {
-
-            veObj = ctx.getExpressionFactory().createValueExpression(ctx.getFacesContext().getELContext(), bodyValue.toString(), Object.class);
+            veObj = context.getExpressionFactory().createValueExpression(context.getFacesContext().getELContext(), bodyValue.toString(), Object.class);
         }
 
         // Otherwise, if var is set, ignore the other attributes
         if (var != null) {
-            String scopeStr, varStr = var.getValue(ctx);
+            String scopeStr;
+            final String varStr = var.getValue(context);
 
             // If scope is set, check for validity
             if (null != scope) {
-                if (0 == scope.getValue().length()) {
+                if (scope.getValue().isEmpty()) {
                     throw new TagException(tag, "zero length scope attribute set");
                 }
 
                 if (scope.isLiteral()) {
                     scopeStr = scope.getValue();
                 } else {
-                    scopeStr = scope.getValue(ctx);
+                    scopeStr = scope.getValue(context);
                 }
                 if (scopeStr.equals("page")) {
                     throw new TagException(tag, "page scope does not exist in Faces, consider using view scope instead.");
@@ -110,17 +110,17 @@ public class SetHandler extends TagHandlerImpl {
                 // otherwise, assume it's a valid scope. With custom scopes,
                 // it may be.
                 // Conjure up an expression
-                expr = "#{" + scopeStr + "." + varStr + "}";
-                lhs = ctx.getExpressionFactory().createValueExpression(ctx, expr, Object.class);
-                lhs.setValue(ctx, veObj.getValue(ctx));
+                expr = "#{" + scopeStr + '.' + varStr + '}';
+                lhs = context.getExpressionFactory().createValueExpression(context, expr, Object.class);
+                lhs.setValue(context, veObj.getValue(context));
             } else {
-                ctx.getVariableMapper().setVariable(varStr, veObj);
+                context.getVariableMapper().setVariable(varStr, veObj);
             }
         } else {
 
             // Otherwise, target, property and value must be set
-            if (null == target || null == target.getValue() || target.getValue().length() <= 0
-                    || null == property || null == property.getValue() || property.getValue().length() <= 0 || !valSet) {
+            if (null == target || null == target.getValue() || target.getValue().isEmpty()
+                    || null == property || null == property.getValue() || property.getValue().isEmpty() || !valSet) {
 
                 throw new TagException(tag, "when using this tag either one of var and value, or (target, property, value) must be set.");
             }
@@ -129,20 +129,22 @@ public class SetHandler extends TagHandlerImpl {
                 throw new TagException(tag, "value of target attribute must be an expression");
             }
             // Get the value of property
-            String propertyStr = null;
+            final String propertyStr;
             if (property.isLiteral()) {
                 propertyStr = property.getValue();
             } else {
-                propertyStr = property.getValue(ctx);
+                propertyStr = property.getValue(context);
             }
-            ValueExpression targetVe = target.getValueExpression(ctx, Object.class);
-            Object targetValue = targetVe.getValue(ctx);
-            ctx.getFacesContext().getELContext().getELResolver().setValue(ctx, targetValue, propertyStr, veObj.getValue(ctx));
+            ValueExpression targetVe = target.getValueExpression(context, Object.class);
+            Object targetValue = targetVe.getValue(context);
+            context.getFacesContext().getELContext().getELResolver().setValue(context, targetValue, propertyStr, veObj.getValue(context));
 
         }
     }
 
     // Swallow children - if they're text, we've already handled them.
     protected void applyNextHandler(FaceletContext ctx, UIComponent c) {
+        // do nothing
     }
+
 }
