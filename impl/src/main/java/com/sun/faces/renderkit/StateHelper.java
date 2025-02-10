@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.logging.Logger;
 
+import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
 import jakarta.faces.lifecycle.ClientWindow;
@@ -98,13 +99,14 @@ public abstract class StateHelper {
      * Constructs a new <code>StateHelper</code> instance.
      */
     public StateHelper() {
-        FacesContext ctx = FacesContext.getCurrentInstance();
-        serialProvider = SerializationProviderFactory.createInstance(ctx.getExternalContext());
-        webConfig = WebConfiguration.getInstance(ctx.getExternalContext());
+        final FacesContext context = FacesContext.getCurrentInstance();
+        final ExternalContext externalContext = context.getExternalContext();
+        serialProvider = SerializationProviderFactory.createInstance(externalContext);
+        webConfig = WebConfiguration.getInstance(externalContext);
         compressViewState = webConfig.isOptionEnabled(CompressViewState);
 
         if (serialProvider == null) {
-            serialProvider = SerializationProviderFactory.createInstance(FacesContext.getCurrentInstance().getExternalContext());
+            serialProvider = SerializationProviderFactory.createInstance(externalContext);
         }
     }
 
