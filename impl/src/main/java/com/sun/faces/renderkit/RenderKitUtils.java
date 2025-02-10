@@ -19,6 +19,7 @@ package com.sun.faces.renderkit;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.BEHAVIOR_EVENT_PARAM;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.BEHAVIOR_SOURCE_PARAM;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.PARTIAL_EVENT_PARAM;
+import static com.sun.faces.util.Util.calculateMapCapacity;
 import static jakarta.faces.application.ResourceHandler.FACES_SCRIPT_LIBRARY_NAME;
 import static jakarta.faces.application.ResourceHandler.FACES_SCRIPT_RESOURCE_NAME;
 
@@ -26,13 +27,14 @@ import java.io.IOException;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -101,6 +103,8 @@ public class RenderKitUtils {
      * <code>XHTML Transitional</code> content.
      */
     private static final String[] XHTML_PREFIX_ATTRIBUTES = { "lang" };
+
+    private static final Set<String> XHTML_PREFIX_ATTRIBUTES_SET = Set.of(XHTML_PREFIX_ATTRIBUTES);
 
     /**
      * <p>
@@ -218,7 +222,7 @@ public class RenderKitUtils {
         RenderKit renderKit = context.getRenderKit();
         if (renderKit == null) {
             // check request scope for a RenderKitFactory implementation
-            RenderKitFactory factory = (RenderKitFactory) RequestStateManager.get(context, RequestStateManager.RENDER_KIT_IMPL_REQ);
+            RenderKitFactory factory = RequestStateManager.get(context, RequestStateManager.RENDER_KIT_IMPL_REQ);
             if (factory != null) {
                 renderKit = factory.getRenderKit(context, renderKitId);
             } else {
@@ -455,7 +459,7 @@ public class RenderKitUtils {
 
     public static String prefixAttribute(final String attrName, boolean isXhtml) {
         if (isXhtml) {
-            if (Arrays.binarySearch(XHTML_PREFIX_ATTRIBUTES, attrName) > -1) {
+            if ( XHTML_PREFIX_ATTRIBUTES_SET.contains(attrName) ) {
                 return XHTML_ATTR_PREFIX + attrName;
             } else {
                 return attrName;
@@ -463,7 +467,6 @@ public class RenderKitUtils {
         } else {
             return attrName;
         }
-
     }
 
     /**
@@ -604,21 +607,37 @@ public class RenderKitUtils {
         String behaviorEventName = getSingleBehaviorEventName(behaviors);
         boolean renderedBehavior = false;
 
+        // sort the attributes set on the provided component...
         Collections.sort(setAttributes);
+
         boolean isXhtml = RIConstants.XHTML_CONTENT_TYPE.equals(writer.getContentType());
         Map<String, Object> attrMap = component.getAttributes();
+
+        // create 2 Map of knownAttributes indexed by name and event
+        // to speed up the retrieval in for loops
+        final Map<String, Attribute> knownAttributesByName = new HashMap<>(calculateMapCapacity(knownAttributes.length));
+        final Map<String, Attribute> knownAttributesByEvent = new HashMap<>(calculateMapCapacity(knownAttributes.length));
+        for ( Attribute attr : knownAttributes ) {
+            // by name
+            knownAttributesByName.put(attr.getName(), attr);
+            // by event if present
+            if ( attr.getEvents() != null && attr.getEvents().length > 0 ) {
+                final String event = attr.getEvents()[0];
+                if ( ! Util.isEmpty(event) ) {
+                    knownAttributesByEvent.put(event, attr);
+                }
+            }
+        }
+
+        // for each Attribute set on the component
         for (String name : setAttributes) {
 
-            // Note that this search can be optimized by switching from
-            // an array to a Map<String, Attribute>. This would change
-            // the search time from O(log n) to O(1).
-            int index = Arrays.binarySearch(knownAttributes, Attribute.attr(name));
-            if (index >= 0) {
+            // search if the Attribute is known
+            final Attribute attr = knownAttributesByName.get(name);
+
+            if ( attr != null ) {
                 Object value = attrMap.get(name);
                 if (value != null && shouldRenderAttribute(value)) {
-
-                    Attribute attr = knownAttributes[index];
-
                     if (isBehaviorEventAttribute(attr, behaviorEventName)) {
                         renderHandler(context, component, null, name, value, behaviorEventName, null, false, false);
 
@@ -633,18 +652,10 @@ public class RenderKitUtils {
         // We did not render out the behavior as part of our optimized
         // attribute rendering. Need to manually render it out now.
         if (behaviorEventName != null && !renderedBehavior) {
-
-            // Note that we can optimize this search by providing
-            // an event name -> Attribute inverse look up map.
-            // This would change the search time from O(n) to O(1).
-            for (Attribute attr : knownAttributes) {
-                String[] events = attr.getEvents();
-                if (events != null && events.length > 0 && behaviorEventName.equals(events[0])) {
-
-                    renderHandler(context, component, null, attr.getName(), null, behaviorEventName, null, false, false);
-                }
+            Attribute attr = knownAttributesByEvent.get(behaviorEventName);
+            if (attr != null) {
+                renderHandler(context, component, null, attr.getName(), null, behaviorEventName, null, false, false);
             }
-
         }
     }
 
