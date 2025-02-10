@@ -72,12 +72,12 @@ public abstract class AbstractConfigProcessor implements ConfigProcessor {
 
     // -------------------------------------------- Methods from ConfigProcessor
 
-    private ApplicationInstanceFactoryMetadataMap<String, Object> getClassMetadataMap(ServletContext servletContext) {
-        ApplicationInstanceFactoryMetadataMap<String, Object> classMetadataMap = (ApplicationInstanceFactoryMetadataMap<String, Object>) servletContext
+    private ApplicationInstanceFactoryMetadataMap getClassMetadataMap(ServletContext servletContext) {
+        ApplicationInstanceFactoryMetadataMap classMetadataMap = (ApplicationInstanceFactoryMetadataMap) servletContext
                 .getAttribute(getClassMetadataMapKey());
 
         if (classMetadataMap == null) {
-            classMetadataMap = new ApplicationInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
+            classMetadataMap = new ApplicationInstanceFactoryMetadataMap(new ConcurrentHashMap<>(3));
             servletContext.setAttribute(getClassMetadataMapKey(), classMetadataMap);
         }
 
@@ -124,7 +124,7 @@ public abstract class AbstractConfigProcessor implements ConfigProcessor {
             }
         }
 
-        return res != null && res.length() != 0 ? res : null;
+        return res != null && !res.isEmpty() ? res : null;
     }
 
     /**
@@ -213,7 +213,7 @@ public abstract class AbstractConfigProcessor implements ConfigProcessor {
                         returnObject = clazz.getDeclaredConstructor().newInstance();
                     }
 
-                    ApplicationInstanceFactoryMetadataMap<String, Object> classMetadataMap = getClassMetadataMap(sc);
+                    ApplicationInstanceFactoryMetadataMap classMetadataMap = getClassMetadataMap(sc);
 
                     if (classMetadataMap.hasAnnotations(className) && performInjection) {
                         InjectionProvider injectionProvider = (InjectionProvider) facesContext.getAttributes().get(INJECTION_PROVIDER_KEY);
@@ -254,7 +254,7 @@ public abstract class AbstractConfigProcessor implements ConfigProcessor {
 
     protected void destroyInstance(ServletContext sc, FacesContext facesContext, String className, Object instance) {
         if (instance != null) {
-            ApplicationInstanceFactoryMetadataMap<String, Object> classMetadataMap = getClassMetadataMap(sc);
+            ApplicationInstanceFactoryMetadataMap classMetadataMap = getClassMetadataMap(sc);
 
             if (classMetadataMap.hasAnnotations(className)) {
                 InjectionProvider injectionProvider = (InjectionProvider) facesContext.getAttributes().get(INJECTION_PROVIDER_KEY);
@@ -273,7 +273,7 @@ public abstract class AbstractConfigProcessor implements ConfigProcessor {
 
     protected Class<?> loadClass(ServletContext sc, FacesContext facesContext, String className, Object fallback, Class<?> expectedType)
             throws ClassNotFoundException {
-        ApplicationInstanceFactoryMetadataMap<String, Object> classMetadataMap = getClassMetadataMap(sc);
+        ApplicationInstanceFactoryMetadataMap classMetadataMap = getClassMetadataMap(sc);
 
         Class<?> clazz = (Class<?>) classMetadataMap.get(className);
         if (clazz == null) {
