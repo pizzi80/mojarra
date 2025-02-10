@@ -43,7 +43,7 @@ public class LRUCache<K,V> {
 
     public LRUCache(Cache.Factory<K,V> factory,int capacity) {
         this.cache = new LRUMap<>(capacity);
-        this.factory = factory;
+        this.factory = requireNonNull(factory);
     }
 
     /**
@@ -54,16 +54,9 @@ public class LRUCache<K,V> {
      *
      * @return the value from cache if exists, otherwise the newly created and saved value
      */
-    public V get(K key) {
+    public V get(final K key) {
         requireNonNull(key);
         return execAtomic( lock , () -> cache.computeIfAbsent( key , factory ) );
-    }
-
-    /**
-     * clear the cache
-     */
-    public void clear() {
-        execAtomic( lock , cache::clear );
     }
 
     /**
@@ -73,6 +66,13 @@ public class LRUCache<K,V> {
     public V remove(final K key) {
         requireNonNull(key);
         return execAtomic( lock , () -> cache.remove(key) );
+    }
+
+    /**
+     * clear the cache
+     */
+    public void clear() {
+        execAtomic( lock , cache::clear );
     }
 
 }
