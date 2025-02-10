@@ -18,6 +18,7 @@ package com.sun.faces.context;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -81,14 +82,16 @@ abstract class StringArrayValuesMap extends BaseContextMap<String[]> {
     }
 
     @Override
-    public int hashCode() {
-        return this.hashCode(this);
-    }
+    public abstract int hashCode();
 
     // ------------------------------------------------------- Protected Methods
 
-    protected int hashCode(Object someObject) {
-        int hashCode = 7 * someObject.hashCode();
+    /**
+     * hash code default implementation to deal
+     * with Map.Entry with String[] value
+     */
+    protected int hashCode(Object obj) {
+        int hashCode = Objects.hash(obj);
         for (Map.Entry<String,String[]> entry : entrySet()) {
             hashCode += entry.getKey().hashCode();
             hashCode += Arrays.hashCode(entry.getValue());
