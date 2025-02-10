@@ -134,7 +134,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
         @Override
         public boolean remove(Object o) {
-            return o instanceof Map.Entry && removeKey(((Map.Entry) o).getKey());
+            return o instanceof Map.Entry<?,?> entry && removeKey(entry.getKey());
         }
 
     }
@@ -303,7 +303,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
         @Override
         public boolean equals(Object obj) {
-            if ( !(obj instanceof Map.Entry entry) ) {
+            if ( !(obj instanceof Map.Entry<?,?> entry) ) {
                 return false;
             }
 
