@@ -62,7 +62,7 @@ final class CurrentThreadToServletContext {
         FactoryFinderInstance toCopy = null;
 
         if (factoryFinder == null && create) {
-            boolean createNewFactoryFinderInstance = false;
+            final boolean createNewFactoryFinderInstance;
             if (isSpecialInitializationCase) {
 
                 // We need to obtain a reference to the correct FactoryFinderInstance.
@@ -135,11 +135,11 @@ final class CurrentThreadToServletContext {
 
     /**
      * This method is used to detect the following special initialization case. IF no FactoryFinderInstance can be found for
-     * key, AND this call to getApplicationFactoryFinderInstance() *does* have a currentKeyrent FacesContext BUT a previous
-     * call to getApplicationFactoryFinderInstance *did not* have a currentKeyrent FacesContext
+     * key, AND this call to getApplicationFactoryFinderInstance() *does* have a current FacesContext BUT a previous
+     * call to getApplicationFactoryFinderInstance *did not* have a current FacesContext
      *
-     * @param facesContext the currentKeyrent FacesContext for this request
-     * @return true if the currentKeyrent execution falls into the special initialization case.
+     * @param facesContext the current FacesContext for this request
+     * @return true if the current execution falls into the special initialization case.
      */
     private boolean detectSpecialInitializationCase(FacesContext facesContext) {
         if (facesContext == null) {
