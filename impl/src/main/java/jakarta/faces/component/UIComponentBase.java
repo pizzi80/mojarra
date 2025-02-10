@@ -2169,32 +2169,24 @@ public abstract class UIComponentBase extends UIComponent {
 
         @Override
         public boolean addAll(Collection<? extends UIComponent> collection) {
-            Iterator<UIComponent> elements = new ArrayList<UIComponent>(collection).iterator();
+            Iterator<? extends UIComponent> elements = collection.iterator();
             boolean changed = false;
             while (elements.hasNext()) {
-                UIComponent element = elements.next();
-                if (element == null) {
-                    throw new NullPointerException();
-                } else {
-                    add(element);
-                    changed = true;
-                }
+                UIComponent element = Objects.requireNonNull(elements.next());
+                add(element);
+                changed = true;
             }
             return changed;
         }
 
         @Override
         public boolean addAll(int index, Collection<? extends UIComponent> collection) {
-            Iterator<UIComponent> elements = new ArrayList<UIComponent>(collection).iterator();
+            Iterator<? extends UIComponent> elements = collection.iterator();
             boolean changed = false;
             while (elements.hasNext()) {
-                UIComponent element = elements.next();
-                if (element == null) {
-                    throw new NullPointerException();
-                } else {
-                    add(index++, element);
-                    changed = true;
-                }
+                UIComponent element = Objects.requireNonNull(elements.next());
+                add(index++, element);
+                changed = true;
             }
             return changed;
         }
@@ -2456,7 +2448,7 @@ public abstract class UIComponentBase extends UIComponent {
         private final FacesContext context;
 
         public FacetsMap(UIComponent component) {
-            super(3, 1.0f);
+            super(3);
             this.component = component;
             context = component.getFacesContext();
         }
@@ -2527,7 +2519,7 @@ public abstract class UIComponentBase extends UIComponent {
         }
 
         Iterator<String> keySetIterator() {
-            return new ArrayList<>(super.keySet()).iterator();
+            return new ArrayList<>(super.keySet()).iterator(); // todo: why copy the keySet ?
         }
 
     }
