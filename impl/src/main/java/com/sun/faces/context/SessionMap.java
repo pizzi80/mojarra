@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -140,13 +141,11 @@ public class SessionMap extends BaseContextMap<Object> {
     @Override
     public int hashCode() {
         HttpSession session = getSession(false);
-        int hashCode = 7 * (session != null ? session.hashCode() : super.hashCode());
         if (session != null) {
-            for (Map.Entry<String, Object> stringObjectEntry : entrySet()) {
-                hashCode += stringObjectEntry.hashCode();
-            }
+            return Objects.hash(session, entrySet());
+        } else {
+            return 0;
         }
-        return hashCode;
     }
 
     // --------------------------------------------- Methods from BaseContextMap
