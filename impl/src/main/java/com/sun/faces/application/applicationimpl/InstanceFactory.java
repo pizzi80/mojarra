@@ -19,6 +19,7 @@ package com.sun.faces.application.applicationimpl;
 import static com.sun.faces.application.ApplicationImpl.THIS_LIBRARY;
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.DateTimeConverterUsesSystemTimezone;
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.RegisterConverterPropertyEditors;
+import static com.sun.faces.util.Util.calculateMapCapacity;
 import static com.sun.faces.util.Util.isEmpty;
 import static com.sun.faces.util.Util.loadClass;
 import static com.sun.faces.util.Util.notNull;
@@ -103,7 +104,6 @@ public class InstanceFactory {
 
     private static final Map<String, Class<?>[]> STANDARD_CONV_ID_TO_TYPE_MAP = new HashMap<>(8, 1.0f);
     private static final Map<Class<?>, String> STANDARD_TYPE_TO_CONV_ID_MAP = new HashMap<>(16, 1.0f);
-
     static {
         STANDARD_CONV_ID_TO_TYPE_MAP.put(ByteConverter.CONVERTER_ID, new Class<?>[] { Byte.TYPE, Byte.class });
         STANDARD_CONV_ID_TO_TYPE_MAP.put(BooleanConverter.CONVERTER_ID, new Class<?>[] { Boolean.TYPE, Boolean.class });
@@ -230,7 +230,7 @@ public class InstanceFactory {
             ValueExpression valueExpression = (ValueExpression) componentBeanDescriptor.getValue(COMPOSITE_COMPONENT_TYPE_KEY);
 
             if (valueExpression != null) {
-                String componentType = (String) valueExpression.getValue(context.getELContext());
+                String componentType = valueExpression.getValue(context.getELContext());
                 if (!isEmpty(componentType)) {
                     result = app.createComponent(componentType);
                 }
@@ -419,11 +419,13 @@ public class InstanceFactory {
     public Converter<?> createConverter(String converterId) {
         notNull("converterId", converterId);
 
+        // --- CDI ----------------------------------------------
         Converter<?> converter = createCDIConverter(converterId);
         if (converter != null) {
             return converter;
         }
 
+        // --- Class --------------------------------------------
         converter = newThing(converterId, converterIdMap);
 
         notNullNamedObject(converter, converterId, "faces.cannot_instantiate_converter_error");
@@ -444,9 +446,9 @@ public class InstanceFactory {
     /*
      * @see jakarta.faces.application.Application#createConverter(Class)
      */
-    public Converter createConverter(Class<?> targetClass) {
+    public Converter<?> createConverter(Class<?> targetClass) {
         notNull("targetClass", targetClass);
-        Converter returnVal = null;
+        Converter<?> returnVal;
 
         BeanManager beanManager = getBeanManager();
         returnVal = CdiUtils.createConverter(beanManager, targetClass);
@@ -454,7 +456,7 @@ public class InstanceFactory {
             return returnVal;
         }
 
-        returnVal = (Converter) newConverter(targetClass, converterTypeMap, targetClass);
+        returnVal = (Converter<?>) newConverter(targetClass, converterTypeMap, targetClass);
         if (returnVal != null) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
@@ -469,19 +471,17 @@ public class InstanceFactory {
         // Search for converters registered to interfaces implemented by
         // targetClass
         Class<?>[] interfaces = targetClass.getInterfaces();
-        if (interfaces != null) {
-            for (int i = 0; i < interfaces.length; i++) {
-                returnVal = createConverterBasedOnClass(interfaces[i], targetClass);
-                if (returnVal != null) {
-                    if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
-                    }
-                    if (passDefaultTimeZone && returnVal instanceof DateTimeConverter) {
-                        ((DateTimeConverter) returnVal).setTimeZone(systemTimeZone);
-                    }
-                    associate.getAnnotationManager().applyConverterAnnotations(FacesContext.getCurrentInstance(), returnVal);
-                    return returnVal;
+        for (Class<?> anInterface : interfaces) {
+            returnVal = createConverterBasedOnClass(anInterface, targetClass);
+            if (returnVal != null) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
                 }
+                if (passDefaultTimeZone && returnVal instanceof DateTimeConverter) {
+                    ((DateTimeConverter) returnVal).setTimeZone(systemTimeZone);
+                }
+                associate.getAnnotationManager().applyConverterAnnotations(FacesContext.getCurrentInstance(), returnVal);
+                return returnVal;
             }
         }
 
@@ -580,7 +580,7 @@ public class InstanceFactory {
         defaultValidatorIds.add(validatorId);
     }
 
-    /*
+    /**
      * @see jakarta.faces.application.Application#getDefaultValidatorInfo()
      */
     public Map<String, String> getDefaultValidatorInfo() {
@@ -605,8 +605,8 @@ public class InstanceFactory {
 
                     }
                 }
+                defaultValidatorInfo = unmodifiableMap(defaultValidatorInfo);
             }
-            defaultValidatorInfo = unmodifiableMap(defaultValidatorInfo);
         }
 
         return defaultValidatorInfo;
@@ -668,7 +668,7 @@ public class InstanceFactory {
         UIComponent c;
 
         try {
-            c = (UIComponent) componentExpression.getValue(ctx.getELContext());
+            c = componentExpression.getValue(ctx.getELContext());
 
             if (c == null) {
                 c = this.createComponentApplyAnnotations(ctx, componentType, rendererType, applyAnnotations);
@@ -759,7 +759,7 @@ public class InstanceFactory {
      * @return The new object instance.
      */
     @SuppressWarnings("unchecked")
-    private <T> T newThing(String key, ViewMemberInstanceFactoryMetadataMap<String, Object> map) {
+    private <T> T newThing(String key, ViewMemberInstanceFactoryMetadataMap map) {
 
         Object result;
         Class<?> clazz;
@@ -845,7 +845,7 @@ public class InstanceFactory {
      * <code>PropertyEditorManager.registerEditor()</code>, passing the <code>ConverterPropertyEditor</code> class for the
      * <code>targetClass</code> if the target class is not one of the standard by-type converter target classes.
      *
-     * @param targetClass the target class for which a PropertyEditory may or may not be created
+     * @param targetClass the target class for which a PropertyEditor may or may not be created
      */
     private void addPropertyEditorIfNecessary(Class<?> targetClass) {
 
@@ -865,7 +865,7 @@ public class InstanceFactory {
         }
 
         for (String standardClass : STANDARD_BY_TYPE_CONVERTER_CLASSES) {
-            if (standardClass.indexOf(className) != -1) {
+            if (standardClass.contains(className)) {
                 return;
             }
         }
@@ -880,9 +880,9 @@ public class InstanceFactory {
         }
     }
 
-    private Converter createConverterBasedOnClass(Class<?> targetClass, Class<?> baseClass) {
+    private Converter<?> createConverterBasedOnClass(Class<?> targetClass, Class<?> baseClass) {
 
-        Converter returnVal = (Converter) newConverter(targetClass, converterTypeMap, baseClass);
+        Converter<?> returnVal = (Converter<?>) newConverter(targetClass, converterTypeMap, baseClass);
         if (returnVal != null) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
@@ -893,15 +893,13 @@ public class InstanceFactory {
         // Search for converters registered to interfaces implemented by
         // targetClass
         Class<?>[] interfaces = targetClass.getInterfaces();
-        if (interfaces != null) {
-            for (int i = 0; i < interfaces.length; i++) {
-                returnVal = createConverterBasedOnClass(interfaces[i], null);
-                if (returnVal != null) {
-                    if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
-                    }
-                    return returnVal;
+        for (Class<?> anInterface : interfaces) {
+            returnVal = createConverterBasedOnClass(anInterface, null);
+            if (returnVal != null) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
                 }
+                return returnVal;
             }
         }
 
@@ -971,7 +969,7 @@ public class InstanceFactory {
             clazz = (Class<?>) value;
         }
 
-        Constructor ctor = ReflectionUtils.lookupConstructor(clazz, Class.class);
+        Constructor<?> ctor = ReflectionUtils.lookupConstructor(clazz, Class.class);
         Throwable cause = null;
         if (ctor != null) {
             try {
