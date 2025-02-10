@@ -398,7 +398,7 @@ public class ConfigManager {
     }
 
     private List<ApplicationConfigurationPopulator> getConfigPopulators() {
-        List<ApplicationConfigurationPopulator> configPopulators = new ArrayList<>();
+        List<ApplicationConfigurationPopulator> configPopulators = new ArrayList<>(2);
 
         configPopulators.add(new MojarraRuntimePopulator());
 
