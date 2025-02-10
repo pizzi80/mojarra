@@ -79,12 +79,12 @@ public class ServerSideStateHelper extends StateHelper {
     /**
      * The number of logical views as configured by the user.
      */
-    protected final Integer numberOfLogicalViews;
+    protected final int numberOfLogicalViews;
 
     /**
      * The number of views as configured by the user.
      */
-    protected final Integer numberOfViews;
+    protected final int numberOfViews;
 
     /**
      * Flag determining how server state IDs are generated.
@@ -102,9 +102,8 @@ public class ServerSideStateHelper extends StateHelper {
      * Construct a new <code>ServerSideStateHelper</code> instance.
      */
     public ServerSideStateHelper() {
-        numberOfLogicalViews = getIntegerConfigValue(NumberOfLogicalViews);
-        numberOfViews = getIntegerConfigValue(NumberOfViews);
-        WebConfiguration webConfig = WebConfiguration.getInstance();
+        numberOfLogicalViews = getIntegerConfigValue(webConfig, NumberOfLogicalViews);
+        numberOfViews = getIntegerConfigValue(webConfig, NumberOfViews);
         generateUniqueStateIds = webConfig.isOptionEnabled(GenerateUniqueServerStateIds);
         if (generateUniqueStateIds) {
             // Construct secure RNG.
@@ -300,34 +299,6 @@ public class ServerSideStateHelper extends StateHelper {
     // ------------------------------------------------------- Protected Methods
 
     /**
-     * <p>
-     * Utility method for obtaining the <code>Integer</code> based configuration values used to change the behavior of the
-     * <code>ServerSideStateHelper</code>.
-     *
-     * @param param the parameter to parse
-     * @return the Integer representation of the parameter value
-     */
-    protected Integer getIntegerConfigValue(WebContextInitParameter param) {
-        String noOfViewsStr = webConfig.getOptionValue(param);
-        Integer value = null;
-        try {
-            value = Integer.valueOf(noOfViewsStr);
-        } catch (NumberFormatException nfe) {
-            String defaultValue = param.getDefaultValue();
-            if (LOGGER.isLoggable(WARNING)) {
-                LOGGER.log(WARNING, "faces.state.server.cannot.parse.int.option", new Object[] { param.getQualifiedName(), defaultValue });
-            }
-            try {
-                value = Integer.valueOf(defaultValue);
-            } catch (NumberFormatException ne) {
-                LOGGER.log(FINEST, "Unable to convert number", ne);
-            }
-        }
-
-        return value;
-    }
-
-    /**
      * @param state the object returned from <code>UIView.processSaveState</code>
      * @return If option <code>SerializeServerState</code> is <code>true</code>, serialize and return the state, otherwise, return <code>state</code> unchanged.
      */
@@ -412,6 +383,35 @@ public class ServerSideStateHelper extends StateHelper {
 
         String compoundId = getStateParamValue(facesContext);
         return STATELESS.equals(compoundId);
+    }
+
+    // ---------------------------------------------------------------------------------- Utility Methods
+
+    /**
+     * <p>
+     * Utility method for obtaining the <code>Integer</code> based configuration values used to change the behavior of the
+     * <code>ServerSideStateHelper</code>.
+     *
+     * @param param the parameter to parse
+     * @return the Integer representation of the parameter value
+     */
+    private static int getIntegerConfigValue(WebConfiguration webConfig, WebContextInitParameter param) {
+        final String optionValue = webConfig.getOptionValue(param);
+        int value;
+        try {
+            value = Integer.parseInt(optionValue);
+        }
+        catch (NumberFormatException nfe) {
+            final String defaultValue = param.getDefaultValue();
+            if (LOGGER.isLoggable(WARNING)) {
+                LOGGER.log(WARNING, "faces.state.server.cannot.parse.int.option", new Object[] { param.getQualifiedName(), defaultValue });
+            }
+            // At this point if the conversion fails
+            // it's a Faces internal error that must be fixed
+            value = Integer.parseInt(defaultValue);
+        }
+
+        return value;
     }
 
 }
