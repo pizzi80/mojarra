@@ -169,6 +169,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
         Throwable caughtThrowable = null;
 
         try {
+
             if (LOGGER.isLoggable(INFO)) {
                 LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.28_pizzi" , servletContext.getContextPath()) );
             }
