@@ -19,6 +19,7 @@ package com.sun.faces.facelets.tag;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.facelets.tag.faces.PassThroughAttributeLibrary;
 import com.sun.faces.facelets.tag.faces.PassThroughElementLibrary;
 import com.sun.faces.facelets.tag.faces.html.HtmlLibrary;
@@ -58,9 +59,9 @@ class DefaultTagDecorator implements TagDecorator {
                 .map("checkbox", "selectBooleanCheckbox").map("file", "inputFile").map("submit", "commandButton").map("reset", "commandButton")
                 .map("button", "button"));
 
-        private ElementConverter elementConverter;
+        private final ElementConverter elementConverter;
 
-        private Mapper(final ElementConverter... elementConverters) {
+        Mapper(final ElementConverter... elementConverters) {
             if (elementConverters.length == 1) {
                 elementConverter = elementConverters[0];
             } else {
@@ -79,7 +80,7 @@ class DefaultTagDecorator implements TagDecorator {
             }
         }
 
-        private Mapper(String faceletTag) {
+        Mapper(String faceletTag) {
             elementConverter = new ElementConverter(faceletTag);
         }
     }
@@ -87,14 +88,14 @@ class DefaultTagDecorator implements TagDecorator {
     private enum Namespace {
         p(PassThroughAttributeLibrary.DEFAULT_NAMESPACE), faces(PassThroughElementLibrary.DEFAULT_NAMESPACE), h(HtmlLibrary.DEFAULT_NAMESPACE);
 
-        private String uri;
+        private final String uri;
 
         Namespace(String uri) {
             this.uri = uri;
         }
     }
 
-    private ElementConverter defaultElementConverter = new ElementConverter("faces:element");
+    private final ElementConverter defaultElementConverter = new ElementConverter("faces:element");
 
     @Override
     public Tag decorate(Tag tag) {
@@ -131,8 +132,8 @@ class DefaultTagDecorator implements TagDecorator {
         private String localName;
         private Namespace namespace;
         private String arbiterAttributeName;
-        private String arbiterAttributeNamespace = "";
-        private Map<String, String> additionalMappings = new HashMap<>();
+        private String arbiterAttributeNamespace = RIConstants.NO_VALUE;
+        private final Map<String, String> additionalMappings = new HashMap<>();
         private String otherHtmlIdAttribute;
 
         private ElementConverter() {
@@ -181,7 +182,7 @@ class DefaultTagDecorator implements TagDecorator {
             }
 
             // PENDING
-            /**
+            /*
              * if (!arbiterAttribute.isLiteral()) { // TODO should we throw an exception here? }
              **/
 
@@ -197,7 +198,7 @@ class DefaultTagDecorator implements TagDecorator {
         protected Tag convertTag(Tag tag, Namespace namespace, String localName) {
             Location location = tag.getLocation();
             String ns = namespace.uri;
-            String qName = namespace.name() + ":" + localName;
+            String qName = namespace.name() + ':' + localName;
 
             TagAttributes attributes = convertAttributes(tag.getAttributes());
 
@@ -245,9 +246,9 @@ class DefaultTagDecorator implements TagDecorator {
             if (PassThroughElementLibrary.NAMESPACES.contains(attribute.getNamespace())) {
                 // make this a component attribute
                 qName = myLocalName;
-                ns = "";
+                ns = RIConstants.NO_VALUE;
             } else {
-                if (ns.length() != 0 && !ns.equals(attribute.getTag().getNamespace())) {
+                if (!ns.isEmpty() && !ns.equals(attribute.getTag().getNamespace())) {
                     // the attribute has a different namespace than the tag. preserve it.
                     return attribute;
                 }
