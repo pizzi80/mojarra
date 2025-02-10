@@ -61,6 +61,7 @@ public class LifecycleConfigProcessor extends AbstractConfigProcessor {
      * </p>
      */
     private static final String PHASE_LISTENER = "phase-listener";
+
     private final List<PhaseListener> appPhaseListeners;
 
     public LifecycleConfigProcessor() {
