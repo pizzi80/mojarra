@@ -142,9 +142,4 @@ public class SetHandler extends TagHandlerImpl {
         }
     }
 
-    // Swallow children - if they're text, we've already handled them.
-    protected void applyNextHandler(FaceletContext ctx, UIComponent c) {
-        // do nothing
-    }
-
 }
