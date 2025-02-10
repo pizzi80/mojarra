@@ -16,7 +16,6 @@
 
 package com.sun.faces.ext.component;
 
-import static com.sun.faces.util.Util.reverse;
 import static jakarta.faces.validator.BeanValidator.EMPTY_VALIDATION_GROUPS_PATTERN;
 import static jakarta.faces.validator.BeanValidator.ENABLE_VALIDATE_WHOLE_BEAN_PARAM_NAME;
 import static jakarta.faces.validator.BeanValidator.VALIDATION_GROUPS_DELIMITER;
@@ -25,6 +24,7 @@ import static java.lang.Boolean.TRUE;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import jakarta.faces.FacesException;
 import jakarta.faces.component.EditableValueHolder;
@@ -44,6 +44,8 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
     private static final String ERROR_MISPLACED_COMPONENT = "f:validateWholeBean must be placed at the end of UIForm.";
 
     public static final String FAMILY = "com.sun.faces.ext.validateWholeBean";
+
+    private static final Pattern EMPTY_VALIDATION_GROUPS_PATTERN_PATTERN = Pattern.compile(EMPTY_VALIDATION_GROUPS_PATTERN);
 
     private transient Class<?>[] cachedValidationGroups;
     private transient String validationGroups = "";
@@ -82,7 +84,7 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
         String newValidationGroups = validationGroups;
 
         // Treat empty list as null
-        if (newValidationGroups != null && newValidationGroups.matches(EMPTY_VALIDATION_GROUPS_PATTERN)) {
+        if (newValidationGroups != null && EMPTY_VALIDATION_GROUPS_PATTERN_PATTERN.matcher(newValidationGroups).matches()) {
             newValidationGroups = null;
         }
         // Only clear cache of validation group classes if value is changing
@@ -135,7 +137,10 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
 
     private static void misplacedComponentCheck(UIComponent parentComponent, String clientId) throws IllegalArgumentException {
         try {
-            reverse(parentComponent.getChildren()).stream().forEach((UIComponent childComponent) -> {
+            parentComponent.getChildren()
+                           .reversed()
+                           .forEach( childComponent -> {
+
                 if (childComponent.isRendered()) {
                     if (childComponent instanceof EditableValueHolder && !(childComponent instanceof UIValidateWholeBean)) {
                         throw new IllegalArgumentException(ERROR_MISPLACED_COMPONENT);
@@ -182,7 +187,7 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
 
         for (String className : validationGroupsStr.split(VALIDATION_GROUPS_DELIMITER)) {
             className = className.trim();
-            if (className.length() == 0) {
+            if (className.isEmpty()) {
                 continue;
             }
 
@@ -234,14 +239,13 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
         if (context == null) {
             throw new NullPointerException();
         }
-        Object[] result = null;
         if (!initialStateMarked()) {
             Object[] values = new Object[2];
             values[0] = validationGroups;
             values[1] = super.saveState(context);
             return values;
         }
-        return result;
+        return null;
     }
 
     @Override
@@ -259,7 +263,7 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
 
     // ----------------------------------------------------- Private helper methods
 
-    private Class<?> classForName(String className) {
+    private static Class<?> classForName(String className) {
         try {
             return Class.forName(className, false, Thread.currentThread().getContextClassLoader());
         } catch (ClassNotFoundException e1) {
