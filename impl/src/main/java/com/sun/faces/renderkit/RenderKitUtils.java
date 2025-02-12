@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -369,7 +368,7 @@ public class RenderKitUtils {
         if (!incExec) {
             params = Collections.emptyList();
         } else {
-            params = new LinkedList<>();
+            params = new ArrayList<>(1);
             params.add(new ClientBehaviorContext.Parameter("incExec", true));
         }
         renderHandler(context, component, params, handlerName, userHandler, behaviorEventName, null, false, incExec);
@@ -392,7 +391,7 @@ public class RenderKitUtils {
         if (!incExec) {
             params = Collections.emptyList();
         } else {
-            params = new LinkedList<>();
+            params = new ArrayList<>(1);
             params.add(new ClientBehaviorContext.Parameter("incExec", true));
         }
         renderHandler(context, component, params, handlerName, userHandler, behaviorEventName, null, false, incExec);
@@ -1628,7 +1627,7 @@ public class RenderKitUtils {
 
         if (behaviors == null || behaviors.isEmpty()) {
 
-            // No behaviors and no params means user handler only,
+            // No behaviors and no params mean user handler only,
             // if we have a param only because of includeExec while having
             // no behaviors, also, user handler only
             if (params.isEmpty() && !needsSubmit || includeExec) {
