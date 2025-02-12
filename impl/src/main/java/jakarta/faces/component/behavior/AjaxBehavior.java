@@ -659,7 +659,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
             }
         }
 
-        return result == null ? Collections.<String>emptyList() : result;
+        return result == null ? Collections.emptyList() : result;
     }
 
     // Sets a property, converting it from a literal
@@ -738,7 +738,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
 
     // Converts a String with no spaces to a singleton list
     private static List<String> toSingletonList(String propertyName, String value) {
-        if (null == value || value.length() == 0) {
+        if (null == value || value.isEmpty()) {
             return null;
         }
 
