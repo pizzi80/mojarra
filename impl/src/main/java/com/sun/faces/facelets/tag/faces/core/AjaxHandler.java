@@ -52,6 +52,7 @@ import jakarta.faces.view.facelets.TagConfig;
 import jakarta.faces.view.facelets.TagException;
 import jakarta.faces.view.facelets.TagHandler;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.component.behavior.AjaxBehaviors;
 import com.sun.faces.facelets.tag.TagHandlerImpl;
 import com.sun.faces.facelets.tag.composite.BehaviorHolderWrapper;
@@ -380,7 +381,7 @@ class AjaxBehaviorListenerImpl implements AjaxBehaviorListener, Serializable {
     public void processAjaxBehavior(AjaxBehaviorEvent event) throws AbortProcessingException {
         final ELContext elContext = FacesContext.getCurrentInstance().getELContext();
         try {
-            noArgListener.invoke(elContext, new Object[] {});
+            noArgListener.invoke(elContext, RIConstants.EMPTY_METH_ARGS);
         } catch (MethodNotFoundException | IllegalArgumentException mnfe) {
             // Attempt to call public void method(AjaxBehaviorEvent event)
             oneArgListener.invoke(elContext, new Object[] { event });
