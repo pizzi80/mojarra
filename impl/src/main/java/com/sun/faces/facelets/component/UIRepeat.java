@@ -107,7 +107,7 @@ public class UIRepeat extends UINamingContainer {
         }
         ValueExpression ve = getValueExpression("end");
         if (ve != null) {
-            return (Integer) ve.getValue(getFacesContext().getELContext());
+            return ve.getValue(getFacesContext().getELContext());
         }
         return null;
 
@@ -124,7 +124,7 @@ public class UIRepeat extends UINamingContainer {
         }
         ValueExpression ve = getValueExpression("size");
         if (ve != null) {
-            return (Integer) ve.getValue(getFacesContext().getELContext());
+            return ve.getValue(getFacesContext().getELContext());
         }
         return null;
 
@@ -141,7 +141,7 @@ public class UIRepeat extends UINamingContainer {
         }
         ValueExpression ve = getValueExpression("offset");
         if (ve != null) {
-            return (Integer) ve.getValue(getFacesContext().getELContext());
+            return ve.getValue(getFacesContext().getELContext());
         }
         return null;
 
@@ -158,7 +158,7 @@ public class UIRepeat extends UINamingContainer {
         }
         ValueExpression ve = getValueExpression("begin");
         if (ve != null) {
-            return (Integer) ve.getValue(getFacesContext().getELContext());
+            return ve.getValue(getFacesContext().getELContext());
         }
         return null;
 
@@ -175,7 +175,7 @@ public class UIRepeat extends UINamingContainer {
         }
         ValueExpression ve = getValueExpression("step");
         if (ve != null) {
-            return (Integer) ve.getValue(getFacesContext().getELContext());
+            return ve.getValue(getFacesContext().getELContext());
         }
         return null;
 
@@ -378,9 +378,9 @@ public class UIRepeat extends UINamingContainer {
         String id = c.getId();
         c.setId(id);
 
-        Iterator itr = c.getFacetsAndChildren();
-        while (itr.hasNext()) {
-            removeChildState(faces, (UIComponent) itr.next());
+        Iterator<UIComponent> iterator = c.getFacetsAndChildren();
+        while (iterator.hasNext()) {
+            removeChildState(faces, iterator.next());
         }
         if (childState != null) {
             childState.remove(c.getClientId(faces));
@@ -400,9 +400,9 @@ public class UIRepeat extends UINamingContainer {
         }
 
         // continue hack
-        Iterator itr = c.getFacetsAndChildren();
-        while (itr.hasNext()) {
-            saveChildState(faces, (UIComponent) itr.next());
+        Iterator<UIComponent> iterator = c.getFacetsAndChildren();
+        while (iterator.hasNext()) {
+            saveChildState(faces, iterator.next());
         }
     }
 
@@ -415,27 +415,26 @@ public class UIRepeat extends UINamingContainer {
         }
     }
 
-    private void restoreChildState(FacesContext faces, UIComponent c) {
+    private void restoreChildState(FacesContext context, UIComponent component) {
         // reset id
-        String id = c.getId();
-        c.setId(id);
+        String id = component.getId();
+        component.setId(id);
 
         // hack
-        if (c instanceof EditableValueHolder) {
-            EditableValueHolder evh = (EditableValueHolder) c;
-            String clientId = c.getClientId(faces);
+        if (component instanceof EditableValueHolder editableValueHolder) {
+            String clientId = component.getClientId(context);
             SavedState ss = getChildState().get(clientId);
             if (ss != null) {
-                ss.apply(evh);
+                ss.apply(editableValueHolder);
             } else {
-                NULL_STATE.apply(evh);
+                NULL_STATE.apply(editableValueHolder);
             }
         }
 
         // continue hack
-        Iterator itr = c.getFacetsAndChildren();
-        while (itr.hasNext()) {
-            restoreChildState(faces, (UIComponent) itr.next());
+        Iterator<UIComponent> iterator = component.getFacetsAndChildren();
+        while (iterator.hasNext()) {
+            restoreChildState(context, iterator.next());
         }
     }
 
@@ -814,9 +813,9 @@ public class UIRepeat extends UINamingContainer {
     // from RI
     private final static class SavedState implements Serializable {
 
-        private Object submittedValue;
-
         private static final long serialVersionUID = 2920252657338389849L;
+
+        private Object submittedValue;
 
         Object getSubmittedValue() {
             return submittedValue;
@@ -933,8 +932,7 @@ public class UIRepeat extends UINamingContainer {
 
     @Override
     public void broadcast(FacesEvent event) throws AbortProcessingException {
-        if (event instanceof IndexedEvent) {
-            IndexedEvent idxEvent = (IndexedEvent) event;
+        if (event instanceof IndexedEvent idxEvent) {
             FacesEvent target = idxEvent.getTarget();
             FacesContext ctx = target.getFacesContext();
             resetDataModel(ctx);
