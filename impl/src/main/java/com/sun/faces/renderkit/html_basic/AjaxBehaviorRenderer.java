@@ -22,12 +22,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+
+import com.sun.faces.facelets.tag.composite.RetargetedAjaxBehavior;
+import com.sun.faces.renderkit.RenderKitUtils;
+import com.sun.faces.util.FacesLogger;
 
 import jakarta.faces.component.ActionSource;
 import jakarta.faces.component.EditableValueHolder;
@@ -45,10 +48,6 @@ import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.AjaxBehaviorEvent;
 import jakarta.faces.event.PhaseId;
 import jakarta.faces.render.ClientBehaviorRenderer;
-
-import com.sun.faces.facelets.tag.composite.RetargetedAjaxBehavior;
-import com.sun.faces.renderkit.RenderKitUtils;
-import com.sun.faces.util.FacesLogger;
 
 /*
  *<b>AjaxBehaviorRenderer</b> renders Ajax behavior for a component.
@@ -164,11 +163,14 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
         for (ClientBehaviorContext.Parameter param : params) {
             if (param.getName().equals("incExec") && (Boolean) param.getValue()) {
                 foundparam = param;
+                break;
             }
         }
         if (foundparam != null && !execute.contains(sourceId)) {
-            execute = new LinkedList<>(execute);
-            execute.add(component.getClientId());
+            final Collection<String> executeCopy = new ArrayList<>(execute.size()+1);
+            executeCopy.addAll(execute);
+            executeCopy.add(component.getClientId());
+            execute = executeCopy;
         }
         if (foundparam != null) {
             try {
@@ -292,7 +294,8 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
             return;
         }
 
-        Collection<String> ids = new ArrayList<>(idsOrNull);
+        Collection<String> ids = new ArrayList<>(Math.min(idsOrNull.size()*2,10)); // make room for more elements
+        ids.addAll(idsOrNull);
         UIComponent composite = UIComponent.getCompositeComponentParent(component);
         String separatorChar = String.valueOf(getSeparatorChar(facesContext));
 
@@ -342,7 +345,7 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
                 if (handler == null) {
                     handler = facesContext.getApplication().getSearchExpressionHandler();
                 }
-                String resolvedClientId = null;
+                String resolvedClientId;
                 try {
                     resolvedClientId = handler.resolveClientId(searchExpressionContext, expression);
                 } catch (ComponentNotFoundException cnfe) {
