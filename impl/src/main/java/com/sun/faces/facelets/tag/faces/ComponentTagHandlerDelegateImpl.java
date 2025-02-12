@@ -128,10 +128,8 @@ public class ComponentTagHandlerDelegateImpl extends TagHandlerDelegate {
         if (null == c && context.isPostback() && UIComponent.isCompositeComponent(parent) && parent.getAttributes().get(id) != null) {
             c = findReparentedComponent(ctx, parent, id);
         } else {
-            /**
-             * If we found a child that is dynamic, the actual parent might have changed, so we need to remove it from the actual
-             * parent. The reapplyDynamicActions will then replay the actions and will make sure it ends up in the correct order.
-             */
+            // If we found a child that is dynamic, the actual parent might have changed, so we need to remove it from the actual
+            // parent. The reapplyDynamicActions will then replay the actions and will make sure it ends up in the correct order.
             if (c != null && c.getParent() != parent && c.getAttributes().containsKey(DYNAMIC_COMPONENT)) {
                 c.getParent().getChildren().remove(c);
             }
@@ -227,12 +225,12 @@ public class ComponentTagHandlerDelegateImpl extends TagHandlerDelegate {
         List<UIComponent> children = parent.getChildren();
         List<UIComponent> dynamicChildren = Collections.emptyList();
 
-        for (UIComponent cur : children) {
-            if (stateContext.componentAddedDynamically(cur)) {
+        for (UIComponent component : children) {
+            if (stateContext.componentAddedDynamically(component)) {
                 if (dynamicChildren.isEmpty()) {
                     dynamicChildren = new ArrayList<>(children.size());
                 }
-                dynamicChildren.add(cur);
+                dynamicChildren.add(component);
             }
         }
 
