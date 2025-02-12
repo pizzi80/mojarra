@@ -25,7 +25,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.Queue;
 
 /**
@@ -106,7 +106,7 @@ public class SerializationCopier implements Copier {
 
     private static class Out extends ObjectOutputStream {
 
-        Queue<Class<?>> queue = new LinkedList<>();
+        private final Queue<Class<?>> queue = new ArrayDeque<>(10);
 
         Out(OutputStream out) throws IOException {
             super(out);
@@ -122,4 +122,5 @@ public class SerializationCopier implements Copier {
             queue.add(c);
         }
     }
+
 }
