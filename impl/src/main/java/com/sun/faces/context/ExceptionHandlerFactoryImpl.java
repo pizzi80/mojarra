@@ -40,23 +40,25 @@ public class ExceptionHandlerFactoryImpl extends ExceptionHandlerFactory {
      */
     @Override
     public ExceptionHandler getExceptionHandler() {
-        FacesContext fc = FacesContext.getCurrentInstance();
-        ApplicationAssociate myAssociate = getAssociate(fc);
+        final FacesContext context = FacesContext.getCurrentInstance();
+        final ApplicationAssociate applicationAssociate = getAssociate(context);
 
-        ExceptionHandler result = new AjaxNoAjaxExceptionHandler(new AjaxExceptionHandlerImpl(new ExceptionHandlerImpl(fc, Boolean.TRUE)),
-                new ExceptionHandlerImpl(fc, myAssociate != null ? myAssociate.isErrorPagePresent() : Boolean.TRUE));
+        final ExceptionHandler result = new AjaxNoAjaxExceptionHandler(
+            new AjaxExceptionHandlerImpl(new ExceptionHandlerImpl(context, Boolean.TRUE)),
+            new ExceptionHandlerImpl(context, applicationAssociate != null ? applicationAssociate.isErrorPagePresent() : Boolean.TRUE)
+        );
         return result;
 
     }
 
     // --------------------------------------------------------- Private Methods
 
-    private ApplicationAssociate getAssociate(FacesContext ctx) {
+    private ApplicationAssociate getAssociate(FacesContext context) {
 
         if (associate == null) {
             associate = ApplicationAssociate.getCurrentInstance();
-            if (associate == null && ctx != null) {
-                associate = ApplicationAssociate.getInstance(ctx.getExternalContext());
+            if (associate == null && context != null) {
+                associate = ApplicationAssociate.getInstance(context.getExternalContext());
             }
         }
         return associate;
