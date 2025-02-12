@@ -31,12 +31,12 @@ public class AjaxNoAjaxExceptionHandler extends ExceptionHandlerWrapper {
 
     @Override
     public ExceptionHandler getWrapped() {
-        FacesContext fc = FacesContext.getCurrentInstance();
-        if (null != fc && fc.getPartialViewContext().isAjaxRequest()) {
+        FacesContext context = FacesContext.getCurrentInstance();
+
+        if (context != null && context.getPartialViewContext().isAjaxRequest()) {
             return ajaxExceptionHandlerImpl;
         }
         return super.getWrapped();
-
     }
 
 }
