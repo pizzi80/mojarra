@@ -109,7 +109,6 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
                 i.remove();
             }
         }
-        LOGGER.info((handledExceptions != null ? handledExceptions.size() : 0) + " exceptions handled");
     }
 
     /**
@@ -125,7 +124,6 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
             unhandledExceptions.add((ExceptionQueuedEvent) event);
         }
 
-        LOGGER.info(unhandledExceptions.size() + " unhandled exceptions");
     }
 
     /**
@@ -173,7 +171,7 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
                     msg = t.getMessage();
                 }
             }
-            writer.write(msg != null ? msg : "");
+            writer.write(msg != null ? msg : RIConstants.NO_VALUE);
             writer.endError();
             writer.endDocument();
 
