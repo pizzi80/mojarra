@@ -16,9 +16,9 @@
 
 package com.sun.faces.facelets.tag.faces;
 
-import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Set;
 
 import jakarta.faces.view.facelets.FaceletContext;
@@ -86,8 +86,12 @@ public class IterationIdManager {
             synchronized(IterationIdManager.class) {
                 stack = _getStackOfTrackedIdsAttribute(context);
                 if(stack == null) {
-                   stack = new ArrayDeque<>();
-                   context.setAttribute(_STACK_OF_TRACKED_IDS, stack);
+                    // At the moment we need a LinkedList
+                    // because we use the null value
+                    // to suspend Id tracking
+                    // (see the startNamingContainer method)
+                    stack = new LinkedList<>();
+                    context.setAttribute(_STACK_OF_TRACKED_IDS, stack);
                 }
             }
         }
