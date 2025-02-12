@@ -48,13 +48,12 @@ import com.sun.faces.renderkit.RenderKitUtils;
 // Mock Object for FacesContext
 public class MockFacesContext extends FacesContext {
 
-    private static final String POST_BACK_MARKER
-            = MockFacesContext.class.getName() + "_POST_BACK";
+    private static final String POST_BACK_MARKER = MockFacesContext.class.getName() + "_POST_BACK";
 
     private Severity maxSeverity;
 
     private Map<Object, Object> attributes = null;
-    private PartialViewContext partialView = new MockPartialViewContext();
+    private final PartialViewContext partialView = new MockPartialViewContext();
 
     private boolean released;
 
@@ -164,7 +163,7 @@ public class MockFacesContext extends FacesContext {
     }
 
     // messages
-    private Map<String, List<FacesMessage>> messages = new HashMap<>();
+    private final Map<String, List<FacesMessage>> messages = new HashMap<>();
 
     @Override
     public Iterator<FacesMessage> getMessages() {
@@ -181,9 +180,7 @@ public class MockFacesContext extends FacesContext {
     @Override
     public List<FacesMessage> getMessageList() {
         List<FacesMessage> results = new ArrayList<>();
-        Iterator<String> clientIds = messages.keySet().iterator();
-        while (clientIds.hasNext()) {
-            String clientId = clientIds.next();
+        for (String clientId : messages.keySet()) {
             results.addAll(messages.get(clientId));
         }
         return results;
@@ -293,7 +290,7 @@ public class MockFacesContext extends FacesContext {
             this.getAttributes().put(POST_BACK_MARKER, postback);
         }
 
-        return postback.booleanValue();
+        return postback;
 
     }
 
@@ -328,11 +325,7 @@ public class MockFacesContext extends FacesContext {
                 maxSeverity = sev;
             }
         }
-        List<FacesMessage> list = messages.get(clientId);
-        if (list == null) {
-            list = new ArrayList<>();
-            messages.put(clientId, list);
-        }
+        List<FacesMessage> list = messages.computeIfAbsent(clientId, $ -> new ArrayList<>());
         list.add(message);
     }
 
