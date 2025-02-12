@@ -373,11 +373,11 @@ public class PartialViewContextImpl extends PartialViewContext {
 
         String param = parameterName.getValue(ctx);
         if (param == null) {
-            return new ArrayList<>();
+            return new ArrayList<>(1);
         } else {
-            Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
+            Map<String, Object> appMap = ctx.getExternalContext().getApplicationMap();
             String[] pcs = Util.split(appMap, param, "[ \t]+");
-            return pcs != null && pcs.length != 0 ? new ArrayList<>(Arrays.asList(pcs)) : new ArrayList<>();
+            return pcs != null && pcs.length != 0 ? new ArrayList<>(Arrays.asList(pcs)) : new ArrayList<>(1);
         }
 
     }
@@ -399,7 +399,7 @@ public class PartialViewContextImpl extends PartialViewContext {
                 Collection<String> unvisitedClientIds = partialVisitContext.getUnvisitedClientIds();
                 StringBuilder builder = new StringBuilder();
                 for (String cur : unvisitedClientIds) {
-                    builder.append(cur).append(" ");
+                    builder.append(cur).append(' ');
                 }
                 LOGGER.log(Level.FINER, "faces.context.partial_visit_context_unvisited_children", new Object[] { builder.toString() });
             }
@@ -420,18 +420,9 @@ public class PartialViewContextImpl extends PartialViewContext {
         // NOTE: this is indeed a copy of the one in UIViewRoot#resetValues().
         // The difference is that we want to be able to control the visit hints.
         // This isn't possible via the UIViewRoot#resetValues() API in its current form.
-        component.visitTree(createPartialVisitContext(context, clientIds, false), new DoResetValues());
-    }
 
-    private static class DoResetValues implements VisitCallback {
-
-        @Override
-        public VisitResult visit(VisitContext context, UIComponent target) {
-            if (target instanceof EditableValueHolder) {
-                ((EditableValueHolder) target).resetValue();
-            }
-            return VisitResult.ACCEPT;
-        }
+        // NOTE2: After Faces 5.0 the UIViewRoot#resetValues() will have the visit hints param
+        component.visitTree(createPartialVisitContext(context, clientIds, false), UIViewRoot.DoResetValues.INSTANCE);
     }
 
     /**
