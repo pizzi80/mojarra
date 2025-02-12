@@ -1029,9 +1029,9 @@ public class UIViewRoot extends UIComponentBase implements UniqueIdVendor {
         visitTree(VisitContext.createVisitContext(context, clientIds, null), DoResetValues.INSTANCE);
     }
 
-    private static class DoResetValues implements VisitCallback {
+    public static class DoResetValues implements VisitCallback {
 
-        private static final DoResetValues INSTANCE = new DoResetValues();
+        public static final DoResetValues INSTANCE = new DoResetValues();
 
         @Override
         public VisitResult visit(VisitContext context, UIComponent target) {
