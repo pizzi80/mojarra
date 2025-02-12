@@ -170,7 +170,7 @@ public class UIInputTestCase extends UIOutputTestCase {
         input.addValueChangeListener(new ValueChangeListenerTestImpl("PV1"));
         input.addValueChangeListener(new ValueChangeListenerTestImpl("PV2"));
 
-        ValueChangeListener listeners[] = input.getValueChangeListeners();
+        ValueChangeListener[] listeners = input.getValueChangeListeners();
         assertEquals(5, listeners.length);
         input.removeValueChangeListener(listeners[2]);
         listeners = input.getValueChangeListeners();
@@ -183,7 +183,7 @@ public class UIInputTestCase extends UIOutputTestCase {
         InputTestImpl input = new InputTestImpl();
 
         // No listeners added, should be empty
-        ValueChangeListener listeners[] = input.getValueChangeListeners();
+        ValueChangeListener[] listeners = input.getValueChangeListeners();
         assertEquals(0, listeners.length);
     }
 
@@ -233,7 +233,7 @@ public class UIInputTestCase extends UIOutputTestCase {
         Iterator<FacesMessage> messages = facesContext.getMessages();
         while (messages.hasNext()) {
             FacesMessage message = messages.next();
-            assertTrue(message.getSummary().indexOf("mylabel") >= 0);
+            assertTrue(message.getSummary().contains("mylabel"));
         }
 
         input.setValid(true);
@@ -288,8 +288,8 @@ public class UIInputTestCase extends UIOutputTestCase {
 
     protected boolean listenersAreEqual(FacesContext context, UIInput comp1, UIInput comp2) {
 
-        ValueChangeListener list1[] = comp1.getValueChangeListeners();
-        ValueChangeListener list2[] = comp2.getValueChangeListeners();
+        ValueChangeListener[] list1 = comp1.getValueChangeListeners();
+        ValueChangeListener[] list2 = comp2.getValueChangeListeners();
         assertNotNull(list1);
         assertNotNull(list2);
         assertEquals(list1.length, list2.length);
@@ -305,8 +305,8 @@ public class UIInputTestCase extends UIOutputTestCase {
 
     protected boolean validatorsAreEqual(FacesContext context, UIInput comp1, UIInput comp2) {
 
-        Validator list1[] = comp1.getValidators();
-        Validator list2[] = comp2.getValidators();
+        Validator[] list1 = comp1.getValidators();
+        Validator[] list2 = comp2.getValidators();
         assertNotNull(list1);
         assertNotNull(list2);
         assertEquals(list1.length, list2.length);
