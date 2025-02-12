@@ -17,9 +17,10 @@
 package com.sun.faces.context;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,8 +55,8 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
     private static final String LOG_AFTER_KEY = "faces.context.exception.handler.log_after";
     private static final String LOG_KEY = "faces.context.exception.handler.log";
 
-    private LinkedList<ExceptionQueuedEvent> unhandledExceptions;
-    private LinkedList<ExceptionQueuedEvent> handledExceptions;
+    private Queue<ExceptionQueuedEvent> unhandledExceptions;
+    private Queue<ExceptionQueuedEvent> handledExceptions;
     private ExceptionQueuedEvent handled;
 
     public AjaxExceptionHandlerImpl(ExceptionHandler handler) {
@@ -102,12 +103,13 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
 
             } finally {
                 if (handledExceptions == null) {
-                    handledExceptions = new LinkedList<>();
+                    handledExceptions = new ArrayDeque<>(4);
                 }
                 handledExceptions.add(event);
                 i.remove();
             }
         }
+        LOGGER.info((handledExceptions != null ? handledExceptions.size() : 0) + " exceptions handled");
     }
 
     /**
@@ -118,11 +120,12 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
 
         if (event != null) {
             if (unhandledExceptions == null) {
-                unhandledExceptions = new LinkedList<>();
+                unhandledExceptions = new ArrayDeque<>(4);
             }
             unhandledExceptions.add((ExceptionQueuedEvent) event);
         }
 
+        LOGGER.info(unhandledExceptions.size() + " unhandled exceptions");
     }
 
     /**
@@ -131,7 +134,7 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
     @Override
     public Iterable<ExceptionQueuedEvent> getUnhandledExceptionQueuedEvents() {
 
-        return unhandledExceptions != null ? unhandledExceptions : Collections.<ExceptionQueuedEvent>emptyList();
+        return unhandledExceptions != null ? unhandledExceptions : Collections.emptyList();
 
     }
 
@@ -141,7 +144,7 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
     @Override
     public Iterable<ExceptionQueuedEvent> getHandledExceptionQueuedEvents() {
 
-        return handledExceptions != null ? handledExceptions : Collections.<ExceptionQueuedEvent>emptyList();
+        return handledExceptions != null ? handledExceptions : Collections.emptyList();
 
     }
 

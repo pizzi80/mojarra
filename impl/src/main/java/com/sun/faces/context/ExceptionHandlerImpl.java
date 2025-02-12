@@ -16,9 +16,10 @@
 
 package com.sun.faces.context;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,8 +54,8 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
     public static final java.util.logging.Level INCIDENT_ERROR = Level.parse(Integer.toString(Level.SEVERE.intValue() + 100));
 
-    private LinkedList<ExceptionQueuedEvent> unhandledExceptions;
-    private LinkedList<ExceptionQueuedEvent> handledExceptions;
+    private Queue<ExceptionQueuedEvent> unhandledExceptions;
+    private Queue<ExceptionQueuedEvent> handledExceptions;
     private ExceptionQueuedEvent handled;
     private final boolean errorPagePresent;
 
@@ -115,7 +116,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
             } finally {
                 if (handledExceptions == null) {
-                    handledExceptions = new LinkedList<>();
+                    handledExceptions = new ArrayDeque<>(4);
                 }
                 handledExceptions.add(event);
                 i.remove();
@@ -142,7 +143,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
         if (event != null) {
             if (unhandledExceptions == null) {
-                unhandledExceptions = new LinkedList<>();
+                unhandledExceptions = new ArrayDeque<>(4);
             }
             unhandledExceptions.add((ExceptionQueuedEvent) event);
         }
@@ -181,7 +182,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
     @Override
     public Iterable<ExceptionQueuedEvent> getUnhandledExceptionQueuedEvents() {
 
-        return unhandledExceptions != null ? unhandledExceptions : Collections.<ExceptionQueuedEvent>emptyList();
+        return unhandledExceptions != null ? unhandledExceptions : Collections.emptyList();
 
     }
 
@@ -191,7 +192,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
     @Override
     public Iterable<ExceptionQueuedEvent> getHandledExceptionQueuedEvents() {
 
-        return handledExceptions != null ? handledExceptions : Collections.<ExceptionQueuedEvent>emptyList();
+        return handledExceptions != null ? handledExceptions : Collections.emptyList();
 
     }
 
@@ -238,8 +239,10 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
      */
     private boolean shouldUnwrap(Class<? extends Throwable> c) {
 
-        return FacesException.class.equals(c) || ELException.class.equals(c);
+        // return FacesException.class.equals(c) || ELException.class.equals(c);
 
+        // https://github.com/jakartaee/faces/issues/864
+        return FacesException.class.isAssignableFrom(c) || ELException.class.isAssignableFrom(c);
     }
 
     private boolean isRethrown(Throwable t) {
