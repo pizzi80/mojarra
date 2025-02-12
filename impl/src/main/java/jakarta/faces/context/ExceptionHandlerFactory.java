@@ -51,15 +51,7 @@ import jakarta.faces.FacesWrapper;
 
 public abstract class ExceptionHandlerFactory implements FacesWrapper<ExceptionHandlerFactory> {
 
-    private ExceptionHandlerFactory wrapped;
-
-    /**
-     * @deprecated Use the other constructor taking the implementation being wrapped.
-     */
-    @Deprecated
-    public ExceptionHandlerFactory() {
-
-    }
+    private final ExceptionHandlerFactory wrapped;
 
     /**
      * <p class="changed_added_2_3">
