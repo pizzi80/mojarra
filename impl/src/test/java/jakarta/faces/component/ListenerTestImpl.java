@@ -61,7 +61,7 @@ public class ListenerTestImpl implements FacesListener {
     }
 
     // Accumulated trace log
-    private static StringBuffer trace = new StringBuffer();
+    private static final StringBuffer trace = new StringBuffer();
 
     // Append to the current trace log (or clear if null)
     public static void trace(String text) {
