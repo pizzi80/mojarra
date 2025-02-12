@@ -81,7 +81,7 @@ public abstract class DataModelTestCaseBase {
     // Test positioning to all rows in ascending order
     @Test
     public void testPositionAscending() throws Exception {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         model.setRowIndex(-1);
         model.addDataModelListener(new ListenerTestImpl());
         ListenerTestImpl.trace(null);
@@ -97,7 +97,7 @@ public abstract class DataModelTestCaseBase {
     // Test positioning to all rows in descending order
     @Test
     public void testPositionDescending() throws Exception {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         model.setRowIndex(-1);
         model.addDataModelListener(new ListenerTestImpl());
         ListenerTestImpl.trace(null);
