@@ -21,8 +21,8 @@ import static java.util.stream.Collectors.toSet;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -313,7 +313,7 @@ public final class CdiUtils {
             return Optional.of(annotated.getAnnotation(annotationType));
         }
 
-        Queue<Annotation> annotations = new LinkedList<>(annotated.getAnnotations());
+        Queue<Annotation> annotations = new ArrayDeque<>(annotated.getAnnotations());
 
         while (!annotations.isEmpty()) {
             Annotation annotation = annotations.remove();
