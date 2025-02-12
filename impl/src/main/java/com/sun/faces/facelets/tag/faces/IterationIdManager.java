@@ -16,9 +16,9 @@
 
 package com.sun.faces.facelets.tag.faces;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Set;
 
 import jakarta.faces.view.facelets.FaceletContext;
@@ -74,24 +74,29 @@ public class IterationIdManager {
     }
 
     static boolean isIterating(FaceletContext context) {
-        @SuppressWarnings("unchecked")
-        Deque<Set<String>> iterationIds = (Deque<Set<String>>) context.getAttribute(_STACK_OF_TRACKED_IDS);
+
+        Deque<Set<String>> iterationIds = _getStackOfTrackedIdsAttribute(context);
 
         return iterationIds != null && iterationIds.peek() != null;
     }
 
-    private static Deque<Set<String>> _getStackOfTrackedIds(FaceletContext ctx) {
-        Deque<Set<String>> stack = (Deque<Set<String>>)ctx.getAttribute(_STACK_OF_TRACKED_IDS);
+    private static Deque<Set<String>> _getStackOfTrackedIds(FaceletContext context) {
+        Deque<Set<String>> stack = _getStackOfTrackedIdsAttribute(context);
         if (stack == null) {
             synchronized(IterationIdManager.class) {
-                stack = (Deque<Set<String>>)ctx.getAttribute(_STACK_OF_TRACKED_IDS);
+                stack = _getStackOfTrackedIdsAttribute(context);
                 if(stack == null) {
-                   stack = new LinkedList<>();
-                   ctx.setAttribute(_STACK_OF_TRACKED_IDS, stack);
+                   stack = new ArrayDeque<>();
+                   context.setAttribute(_STACK_OF_TRACKED_IDS, stack);
                 }
             }
         }
         return stack;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Deque<Set<String>> _getStackOfTrackedIdsAttribute(FaceletContext context) {
+        return (Deque<Set<String>>)context.getAttribute(_STACK_OF_TRACKED_IDS);
     }
 
     private static final String _STACK_OF_TRACKED_IDS = "com.sun.faces.facelets.tag.js._TRACKED_IDS";
