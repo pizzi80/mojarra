@@ -47,9 +47,9 @@ public class RIConstants {
 
     public static final String NO_VALUE = "";
 
-    public static final Class<?>[] EMPTY_CLASS_ARGS = new Class[0];
-    public static final Object[] EMPTY_METH_ARGS = new Object[0];
-    public static final String[][] EMPTY_STRING_MATRIX = new String[0][0];
+    public static final Class<?>[] EMPTY_CLASS_ARGS = {};
+    public static final Object[] EMPTY_METH_ARGS = {};
+    public static final String[][] EMPTY_STRING_MATRIX = {};
 
     /**
      * <p>
