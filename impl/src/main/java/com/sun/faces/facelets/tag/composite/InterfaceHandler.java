@@ -136,8 +136,7 @@ public class InterfaceHandler extends TagHandlerImpl {
         buf = null;
 
         // Traverse the declared facets
-        Map<String, PropertyDescriptor> declaredFacets = (Map<String, PropertyDescriptor>) componentMetadata.getBeanDescriptor()
-                .getValue(UIComponent.FACETS_KEY);
+        Map<String, PropertyDescriptor> declaredFacets = (Map<String, PropertyDescriptor>) componentMetadata.getBeanDescriptor().getValue(UIComponent.FACETS_KEY);
         if (null != declaredFacets) {
             for (PropertyDescriptor cur : declaredFacets.values()) {
                 required = false;
@@ -165,7 +164,7 @@ public class InterfaceHandler extends TagHandlerImpl {
             facetMessage = MessageUtils.getExceptionMessageString(MessageUtils.MISSING_COMPONENT_FACET, buf.toString());
         }
 
-        if (0 < attrMessage.length() || 0 < facetMessage.length()) {
+        if (!attrMessage.isEmpty() || !facetMessage.isEmpty()) {
             throw new TagException(usingPageTag, attrMessage + " " + facetMessage);
         }
     }
