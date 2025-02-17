@@ -116,9 +116,9 @@ public final class HtmlLibrary extends AbstractHtmlLibrary {
 
         addHtmlComponent("outputText", HtmlOutputText.COMPONENT_TYPE, "jakarta.faces.Text");
 
-        this.addComponent("outputScript", UIOutput.COMPONENT_TYPE, "jakarta.faces.resource.Script", ScriptResourceHandler.class);
+        addComponent("outputScript", UIOutput.COMPONENT_TYPE, "jakarta.faces.resource.Script", ScriptResourceHandler.class);
 
-        this.addComponent("outputStylesheet", UIOutput.COMPONENT_TYPE, "jakarta.faces.resource.Stylesheet", StylesheetResourceHandler.class);
+        addComponent("outputStylesheet", UIOutput.COMPONENT_TYPE, "jakarta.faces.resource.Stylesheet", StylesheetResourceHandler.class);
 
         addHtmlComponent("panelGrid", HtmlPanelGrid.COMPONENT_TYPE, "jakarta.faces.Grid");
 
