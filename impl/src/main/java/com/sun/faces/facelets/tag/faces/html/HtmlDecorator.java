@@ -30,7 +30,7 @@ public final class HtmlDecorator implements TagDecorator {
 
     public final static String XhtmlNamespace = "http://www.w3.org/1999/xhtml";
 
-    public final static HtmlDecorator Instance = new HtmlDecorator();
+    public final static HtmlDecorator INSTANCE = new HtmlDecorator();
 
     /**
      *
@@ -47,32 +47,36 @@ public final class HtmlDecorator implements TagDecorator {
     @Override
     public Tag decorate(Tag tag) {
         if (XhtmlNamespace.equals(tag.getNamespace())) {
-            String n = tag.getLocalName();
-            if ("a".equals(n)) {
-                return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "commandLink", tag.getQName(), tag.getAttributes());
-            }
-            if ("form".equals(n)) {
-                return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "form", tag.getQName(), tag.getAttributes());
-            }
-            if ("input".equals(n)) {
-                TagAttribute attr = tag.getAttributes().get("type");
-                if (attr != null) {
-                    String t = attr.getValue();
-                    TagAttributes na = removeType(tag.getAttributes());
-                    if ("text".equals(t)) {
-                        return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "inputText", tag.getQName(), na);
-                    }
-                    if ("password".equals(t)) {
-                        return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "inputSecret", tag.getQName(), na);
-                    }
-                    if ("hidden".equals(t)) {
-                        return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "inputHidden", tag.getQName(), na);
-                    }
-                    if ("submit".equals(t)) {
-                        return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "commandButton", tag.getQName(), na);
-                    }
-                    if ("file".equals(t)) {
-                        return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "inputFile", tag.getQName(), na);
+            String localName = tag.getLocalName();
+            switch (localName) {
+                case "a" -> {
+                    return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "commandLink", tag.getQName(), tag.getAttributes());
+                }
+                case "form" -> {
+                    return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "form", tag.getQName(), tag.getAttributes());
+                }
+                case "input" -> {
+                    TagAttribute attr = tag.getAttributes().get("type");
+                    if (attr != null) {
+                        TagAttributes na = removeTypeAttribute(tag.getAttributes());
+                        String t = attr.getValue();
+                        switch (t) {
+                            case "text" -> {
+                                return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "inputText", tag.getQName(), na);
+                            }
+                            case "password" -> {
+                                return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "inputSecret", tag.getQName(), na);
+                            }
+                            case "hidden" -> {
+                                return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "inputHidden", tag.getQName(), na);
+                            }
+                            case "submit" -> {
+                                return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "commandButton", tag.getQName(), na);
+                            }
+                            case "file" -> {
+                                return new Tag(tag.getLocation(), HtmlLibrary.DEFAULT_NAMESPACE, "inputFile", tag.getQName(), na);
+                            }
+                        }
                     }
                 }
             }
@@ -80,16 +84,18 @@ public final class HtmlDecorator implements TagDecorator {
         return null;
     }
 
-    private TagAttributes removeType(TagAttributes attrs) {
-        TagAttribute[] o = attrs.getAll();
-        TagAttribute[] a = new TagAttribute[o.length - 1];
+    // OMG: this creates a copy of N arrays only to remove an attribute from a Set of attributes
+    private static TagAttributes removeTypeAttribute(TagAttributes attrs) {
+        TagAttribute[] tagAttributes = attrs.getAll();
+
+        TagAttribute[] tagAttributesCopy = new TagAttribute[tagAttributes.length - 1];
         int p = 0;
-        for (TagAttribute tagAttribute : o) {
+        for (TagAttribute tagAttribute : tagAttributes) {
             if (!"type".equals(tagAttribute.getLocalName())) {
-                a[p++] = tagAttribute;
+                tagAttributesCopy[p++] = tagAttribute;
             }
         }
-        return new TagAttributesImpl(a);
+        return new TagAttributesImpl(tagAttributesCopy);
     }
 
 }
