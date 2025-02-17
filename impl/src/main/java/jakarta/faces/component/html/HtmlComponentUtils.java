@@ -7,12 +7,13 @@ import java.util.Map;
 import jakarta.el.ValueExpression;
 import jakarta.faces.component.UIComponent;
 
-class HtmlComponentUtils {
+public class HtmlComponentUtils {
+    private HtmlComponentUtils() {}
 
     private static final String ATTRIBUTES_THAT_ARE_SET = "jakarta.faces.component.UIComponentBase.attributesThatAreSet";
     private static final String OPTIMIZED_PACKAGE = "jakarta.faces.component.";
 
-    static void handleAttribute(UIComponent component, String name, Object value) {
+    public static void handleAttribute(UIComponent component, String name, Object value) {
         final Map<String, Object> attributes = component.getAttributes();
 
         @SuppressWarnings("unchecked")
