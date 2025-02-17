@@ -106,11 +106,8 @@ public class TagAttributeImpl extends TagAttribute {
         if (literal) {
             return Boolean.parseBoolean(value);
         } else {
-            Boolean bool = (Boolean) this.getObject(ctx, Boolean.class);
-            if (bool == null) {
-                bool = false;
-            }
-            return bool;
+            Boolean value = this.getObject(ctx, Boolean.class);
+            return Boolean.TRUE.equals(value);
         }
     }
 
@@ -128,7 +125,7 @@ public class TagAttributeImpl extends TagAttribute {
         if (literal) {
             return Integer.parseInt(value);
         } else {
-            return ((Number) this.getObject(ctx, Integer.class)).intValue();
+            return this.getObject(ctx, Integer.class);
         }
     }
 
@@ -164,7 +161,7 @@ public class TagAttributeImpl extends TagAttribute {
      * @return a MethodExpression instance
      */
     @Override
-    public MethodExpression getMethodExpression(FaceletContext ctx, Class type, Class[] paramTypes) {
+    public MethodExpression getMethodExpression(FaceletContext ctx, Class<?> type, Class<?>[] paramTypes) {
 
         MethodExpression result;
 
@@ -258,7 +255,7 @@ public class TagAttributeImpl extends TagAttribute {
         if (literal) {
             return value;
         } else {
-            return (String) this.getObject(ctx, String.class);
+            return this.getObject(ctx, String.class);
         }
     }
 
@@ -274,10 +271,11 @@ public class TagAttributeImpl extends TagAttribute {
      * @return Object value of this attribute
      */
     @Override
-    public Object getObject(FaceletContext ctx, Class type) {
+    @SuppressWarnings("unchecked")
+    public <T> T getObject(FaceletContext ctx, Class<T> type) {
         if (literal) {
             if (String.class.equals(type)) {
-                return value;
+                return (T) value;
             } else {
                 try {
                     return ctx.getExpressionFactory().coerceToType(value, type);
@@ -286,7 +284,7 @@ public class TagAttributeImpl extends TagAttribute {
                 }
             }
         } else {
-            ValueExpression ve = this.getValueExpression(ctx, type);
+            ValueExpression ve = getValueExpression(ctx, type);
             try {
                 return ve.getValue(ctx);
             } catch (Exception e) {
@@ -305,7 +303,7 @@ public class TagAttributeImpl extends TagAttribute {
      * @return ValueExpression instance
      */
     @Override
-    public ValueExpression getValueExpression(FaceletContext ctx, Class type) {
+    public ValueExpression getValueExpression(FaceletContext ctx, Class<?> type) {
         return getValueExpression(ctx, value, type);
     }
 
@@ -334,7 +332,7 @@ public class TagAttributeImpl extends TagAttribute {
 
     // --------------------------------------------------------- Private Methods
 
-    public ValueExpression getValueExpression(FaceletContext ctx, String expr, Class type) {
+    public ValueExpression getValueExpression(FaceletContext ctx, String expr, Class<?> type) {
         try {
             ExpressionFactory f = ctx.getExpressionFactory();
             ValueExpression delegate = f.createValueExpression(ctx, expr, type);
@@ -359,7 +357,7 @@ public class TagAttributeImpl extends TagAttribute {
 
         private static final long serialVersionUID = -8983924930720420664L;
 
-        private ValueExpression lookupExpression;
+        private final ValueExpression lookupExpression;
 
         public AttributeLookupMethodExpression(ValueExpression lookupExpression) {
 
@@ -370,6 +368,7 @@ public class TagAttributeImpl extends TagAttribute {
 
         @SuppressWarnings({ "UnusedDeclaration" })
         public AttributeLookupMethodExpression() {
+            lookupExpression = null;
         } // for serialization
 
         @Override
@@ -378,8 +377,8 @@ public class TagAttributeImpl extends TagAttribute {
 
             final Object result = lookupExpression.getValue(elContext);
 
-            if (result instanceof MethodExpression) {
-                return ((MethodExpression) result).getMethodInfo(elContext);
+            if (result instanceof MethodExpression methodExpression) {
+                return methodExpression.getMethodInfo(elContext);
             }
 
             return null;
@@ -411,10 +410,11 @@ public class TagAttributeImpl extends TagAttribute {
         @Override
         public boolean equals(Object object) {
 
-            boolean result = false;
-            if (object instanceof AttributeLookupMethodExpression) {
-                AttributeLookupMethodExpression expression = (AttributeLookupMethodExpression) object;
+            final boolean result;
+            if (object instanceof AttributeLookupMethodExpression expression) {
                 result = lookupExpression.getExpressionString().equals(expression.lookupExpression.getExpressionString());
+            } else {
+                result = false;
             }
             return result;
 
