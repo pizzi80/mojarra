@@ -118,14 +118,14 @@ class PropertyHandlerManager {
     private static final class NamePropertyHandler extends StringFeatureDescriptorPropertyHandler {
 
         @Override
-        public void apply(FaceletContext ctx, String propName, FeatureDescriptor target, TagAttribute attribute) {
+        public void apply(FaceletContext context, String propName, FeatureDescriptor target, TagAttribute attribute) {
 
-            ValueExpression ve = attribute.getValueExpression(ctx, getEvalType());
-            String v = ve.getValue(ctx);
-            if (v != null) {
-                target.setShortDescription(ve.getValue(ctx));
+            ValueExpression ve = attribute.getValueExpression(context, getEvalType());
+            String value = ve.getValue(context);
+
+            if (value != null) {
+                target.setShortDescription(value);
             }
-
         }
     }
 
@@ -135,9 +135,9 @@ class PropertyHandlerManager {
         public void apply(FaceletContext ctx, String propName, FeatureDescriptor target, TagAttribute attribute) {
 
             ValueExpression ve = attribute.getValueExpression(ctx, getEvalType());
-            String v = ve.getValue(ctx);
-            if (v != null) {
-                target.setShortDescription(ve.getValue(ctx));
+            String value = ve.getValue(ctx);
+            if (value != null) {
+                target.setShortDescription(value);
             }
 
         }
