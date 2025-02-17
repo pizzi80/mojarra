@@ -181,7 +181,6 @@ public class CdiExtension implements Extension {
 
         afterBeanDiscovery.addBean(new ApplicationProducer());
         afterBeanDiscovery.addBean(new ApplicationMapProducer(beanManager));
-        afterBeanDiscovery.addBean(new CompositeComponentProducer(beanManager));
         afterBeanDiscovery.addBean(new ComponentProducer(beanManager));
         afterBeanDiscovery.addBean(new FlashProducer(beanManager));
         afterBeanDiscovery.addBean(new FlowMapProducer(beanManager));
