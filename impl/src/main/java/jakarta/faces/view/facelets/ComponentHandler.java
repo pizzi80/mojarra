@@ -156,7 +156,7 @@ import jakarta.faces.component.UIComponent;
 public class ComponentHandler extends DelegatingMetaTagHandler {
 
     private TagHandlerDelegate helper = null;
-    private ComponentConfig componentConfig = null;
+    private final ComponentConfig componentConfig;
 
     /**
      * <p class="changed_added_2_0">
