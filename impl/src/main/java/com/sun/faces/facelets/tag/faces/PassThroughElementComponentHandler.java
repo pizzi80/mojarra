@@ -53,11 +53,13 @@ public class PassThroughElementComponentHandler extends ComponentHandler {
 
     @Override
     public UIComponent createComponent(FaceletContext ctx) {
-        UIComponent result = null;
+        final UIComponent result;
+
         try {
             Class<?> clazz = Util.loadClass("com.sun.faces.component.PassthroughElement", this);
             result = (UIComponent) clazz.getDeclaredConstructor().newInstance();
-        } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException cnfe) {
+        }
+        catch (IllegalArgumentException | ReflectiveOperationException | SecurityException cnfe) {
             throw new FacesException(cnfe);
         }
 
@@ -68,11 +70,9 @@ public class PassThroughElementComponentHandler extends ComponentHandler {
     public void onComponentCreated(FaceletContext ctx, UIComponent c, UIComponent parent) {
         if (parent.getParent() == null) {
             Map<String, Object> passThroughAttrs = c.getPassThroughAttributes(true);
-            Object attrValue;
-            attrValue = elementName.isLiteral() ? elementName.getValue(ctx) : elementName.getValueExpression(ctx, Object.class);
+            Object attrValue = elementName.isLiteral() ? elementName.getValue(ctx) : elementName.getValueExpression(ctx, Object.class);
             passThroughAttrs.put(Renderer.PASSTHROUGH_RENDERER_LOCALNAME_KEY, attrValue);
         }
-
     }
 
 }
