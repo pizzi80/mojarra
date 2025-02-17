@@ -352,6 +352,8 @@ public class PassthroughElement extends jakarta.faces.component.UIPanel implemen
         getStateHelper().put(PropertyKeys.styleClass, styleClass);
     }
 
+    private static final String DEFAULT_EVENT = "click";
+
     private static final List<String> EVENT_NAMES = List.of(
             "click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
 
@@ -362,7 +364,7 @@ public class PassthroughElement extends jakarta.faces.component.UIPanel implemen
 
     @Override
     public String getDefaultEventName() {
-        return "click";
+        return DEFAULT_EVENT;
     }
 
 }
