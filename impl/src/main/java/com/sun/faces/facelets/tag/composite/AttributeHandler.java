@@ -51,7 +51,7 @@ public class AttributeHandler extends TagHandlerImpl {
 
     private static final PropertyHandlerManager ATTRIBUTE_MANAGER = PropertyHandlerManager.getInstance(COMPOSITE_ATTRIBUTE_ATTRIBUTES);
 
-    private TagAttribute name;
+    private final TagAttribute name;
 
     public AttributeHandler(TagConfig config) {
         super(config);
@@ -119,7 +119,7 @@ public class AttributeHandler extends TagHandlerImpl {
                 defaultHandler.apply(ctx, "default", propertyDescriptor, defaultTagAttribute);
             } catch (IllegalArgumentException ex) {
                 // If the type (according to the type-attribute) can not be
-                // found, the DefaultPropertyHandler will wrapp the
+                // found, the DefaultPropertyHandler will wrap the
                 // ClassNotFoundException into an IllegalArgumentException,
                 // which is unwrapped into a TagException here.
                 throw new TagException(tag, "'type' could not be resolved: " + ex.getCause(), ex.getCause());
