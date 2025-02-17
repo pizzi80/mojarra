@@ -34,11 +34,11 @@ public class RenderFacetHandler extends ComponentHandler {
     // Attributes
 
     // This attribute is required.
-    TagAttribute name;
+    private final TagAttribute name;
 
     // This attribute is not required. If not defined, then assume the facet
     // isn't necessary.
-    TagAttribute required;
+    private final TagAttribute required;
 
     // ------------------------------------------------------------ Constructors
 
