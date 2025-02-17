@@ -335,7 +335,7 @@ public class HtmlUtils {
     public static boolean isAllowedXmlCharacter(int ch) {
 
         // See https://www.w3.org/TR/xml/#charsets Character Range
-        boolean isAllowedXmlChar = ch < 0x20 ? isPrintableControlChar(ch, true) : ch <= 0xD7FF || ch >= 0xE000 && ch <= 0xFFFD;
+        boolean isAllowedXmlChar = ch < 0x20 ? isPrintableControlChar(ch, true) : ch <= 0xD7FF || ch >= 0xE000 && ch <= 0xFFFD || ch >= 0x10000 && ch <= 0x10FFFF;
 
         // if it's not an allowed char check if it's an emoji
         if ( !isAllowedXmlChar ) {
@@ -443,13 +443,13 @@ public class HtmlUtils {
 
     /**
      * Writes a string into URL-encoded format out to a Writer.
-     * 
+     * <p>
      * All characters before the start of the query string will be encoded using UTF-8.
-     * 
+     * <p>
      * Characters after the start of the query string will be encoded using a client-defined encoding. You'll need to use
      * the encoding that the server will expect. (HTML forms will generate query strings using the character encoding that
      * the HTML itself was generated in.)
-     * 
+     * <p>
      * All characters will be encoded as needed for URLs, with the exception of the percent symbol ("%"). Because this is
      * the character itself used for escaping, attempting to escape this character would cause this code to double-escape
      * some strings. It also may be necessary to pre-escape some characters. In particular, a question mark ("?") is
@@ -511,13 +511,13 @@ public class HtmlUtils {
 
     /**
      * Writes a string into URL-encoded format out to a Writer.
-     * 
+     * <p>
      * All characters before the start of the query string will be encoded using UTF-8.
-     * 
+     * <p>
      * Characters after the start of the query string will be encoded using a client-defined encoding. You'll need to use
      * the encoding that the server will expect. (HTML forms will generate query strings using the character encoding that
      * the HTML itself was generated in.)
-     * 
+     * <p>
      * All characters will be encoded as needed for URLs, with the exception of the percent symbol ("%"). Because this is
      * the character itself used for escaping, attempting to escape this character would cause this code to double-escape
      * some strings. It also may be necessary to pre-escape some characters. In particular, a question mark ("?") is
@@ -532,7 +532,7 @@ public class HtmlUtils {
      * @param textBuff char[] containing the content to write
      * @param queryEncoding the character set encoding for after the first question mark
      */
-    public static void writeURL(Writer out, char[] textBuff, int start, int len, String queryEncoding) throws IOException, UnsupportedEncodingException {
+    public static void writeURL(Writer out, char[] textBuff, int start, int len, String queryEncoding) throws IOException {
 
         int end = start + len;
         for (int i = start; i < end; i++) {

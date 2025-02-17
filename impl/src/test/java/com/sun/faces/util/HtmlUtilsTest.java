@@ -45,5 +45,18 @@ class HtmlUtilsTest {
 
         assertFalse(isAllowedXmlCharacter(0xFFFE));
         assertFalse(isAllowedXmlCharacter(0xFFFF));
+        assertTrue(isAllowedXmlCharacter(0x1D11E));
+        assertTrue(isAllowedXmlCharacter(0x1D11E));
+
+        // rocket emoji (🚀)
+        for (char c : "\uD83D\uDE80".toCharArray()) {
+            assertTrue(isAllowedXmlCharacter(c));
+        }
+
+        // polar bear emoji (🐻‍❄️)
+        for (char c : "\uD83D\uDC3B\u200D\u2744\uFE0F".toCharArray()) {
+            assertTrue(isAllowedXmlCharacter(c));
+        }
+
     }
 }
