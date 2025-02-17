@@ -178,9 +178,9 @@ public abstract class AbstractTagLibrary implements TagLibrary {
 
     private static class HandlerFactory implements TagHandlerFactory {
 
-        private final static Class[] CONSTRUCTOR_SIG = new Class[] { TagConfig.class };
+        private final static Class<?>[] CONSTRUCTOR_SIG = new Class[] { TagConfig.class };
 
-        protected final Class<?> handlerType;
+        private final Class<?> handlerType;
 
         public HandlerFactory(Class<?> handlerType) {
             this.handlerType = handlerType;
@@ -207,11 +207,9 @@ public abstract class AbstractTagLibrary implements TagLibrary {
 
     protected static class ComponentConfigWrapper implements ComponentConfig {
 
-        protected final TagConfig parent;
-
-        protected final String componentType;
-
-        protected final String rendererType;
+        private final TagConfig parent;
+        private final String componentType;
+        private final String rendererType;
 
         public ComponentConfigWrapper(TagConfig parent, String componentType, String rendererType) {
             this.parent = parent;
@@ -246,7 +244,7 @@ public abstract class AbstractTagLibrary implements TagLibrary {
     }
 
     private static class UserTagFactory implements TagHandlerFactory {
-        protected final URL location;
+        private final URL location;
 
         public UserTagFactory(URL location) {
             this.location = location;
@@ -259,7 +257,8 @@ public abstract class AbstractTagLibrary implements TagLibrary {
     }
 
     private static class CompositeComponentTagFactory implements TagHandlerFactory {
-        protected final String resourceId;
+
+        private final String resourceId;
 
         public CompositeComponentTagFactory(String resourceId) {
             this.resourceId = resourceId;
@@ -269,11 +268,11 @@ public abstract class AbstractTagLibrary implements TagLibrary {
         public TagHandler createHandler(TagConfig cfg) throws FacesException, ELException {
             ComponentConfig componentConfig = new ComponentConfigWrapper(cfg, "jakarta.faces.NamingContainer", "jakarta.faces.Composite");
             ResourceHandler resourceHandler = FacesContext.getCurrentInstance().getApplication().getResourceHandler();
-            TagHandler result = null;
+            final TagHandler result;
             // Use the naming convention to extract the library name and
             // component name from the resourceId.
             Resource resource = resourceHandler.createResourceFromId(resourceId);
-            if (null != resource) {
+            if (resource != null) {
                 result = new CompositeComponentTagHandler(resource, componentConfig);
             } else {
                 Location loc = new Location(resourceId, 0, 0);
@@ -286,9 +285,8 @@ public abstract class AbstractTagLibrary implements TagLibrary {
 
     private static class ComponentHandlerFactory implements TagHandlerFactory {
 
-        protected final String componentType;
-
-        protected final String renderType;
+        private final String componentType;
+        private final String renderType;
 
         public ComponentHandlerFactory(String componentType, String renderType) {
             this.componentType = componentType;
@@ -297,24 +295,21 @@ public abstract class AbstractTagLibrary implements TagLibrary {
 
         @Override
         public TagHandler createHandler(TagConfig cfg) throws FacesException, ELException {
-            ComponentConfig ccfg = new ComponentConfigWrapper(cfg, componentType, renderType);
-            return new ComponentHandler(ccfg);
+            ComponentConfig config = new ComponentConfigWrapper(cfg, componentType, renderType);
+            return new ComponentHandler(config);
         }
     }
 
     private static class UserComponentHandlerFactory implements TagHandlerFactory {
 
-        private final static Class[] CONS_SIG = new Class[] { ComponentConfig.class };
+        private static final Class<?>[] CONS_SIG = new Class[] { ComponentConfig.class };
 
-        protected final String componentType;
+        private final String componentType;
+        private final String renderType;
+        private final Class<?> type;
+        private final Constructor<?> constructor;
 
-        protected final String renderType;
-
-        protected final Class type;
-
-        protected final Constructor<?> constructor;
-
-        public UserComponentHandlerFactory(String componentType, String renderType, Class type) {
+        public UserComponentHandlerFactory(String componentType, String renderType, Class<?> type) {
             this.componentType = componentType;
             this.renderType = renderType;
             this.type = type;
@@ -328,8 +323,8 @@ public abstract class AbstractTagLibrary implements TagLibrary {
         @Override
         public TagHandler createHandler(TagConfig cfg) throws FacesException, ELException {
             try {
-                ComponentConfig ccfg = new ComponentConfigWrapper(cfg, componentType, renderType);
-                return (TagHandler) constructor.newInstance(ccfg);
+                ComponentConfig config = new ComponentConfigWrapper(cfg, componentType, renderType);
+                return (TagHandler) constructor.newInstance(config);
             } catch (InvocationTargetException e) {
                 throw new FaceletException(e.getCause().getMessage(), e.getCause().getCause());
             } catch (InstantiationException | IllegalAccessException | IllegalArgumentException e) {
@@ -340,7 +335,7 @@ public abstract class AbstractTagLibrary implements TagLibrary {
 
     private static class ValidatorHandlerFactory implements TagHandlerFactory {
 
-        protected final String validatorId;
+        private final String validatorId;
 
         public ValidatorHandlerFactory(String validatorId) {
             this.validatorId = validatorId;
@@ -354,7 +349,7 @@ public abstract class AbstractTagLibrary implements TagLibrary {
 
     private static class ConverterHandlerFactory implements TagHandlerFactory {
 
-        protected final String converterId;
+        private final String converterId;
 
         public ConverterHandlerFactory(String converterId) {
             this.converterId = converterId;
@@ -386,15 +381,14 @@ public abstract class AbstractTagLibrary implements TagLibrary {
     }
 
     private static class UserConverterHandlerFactory implements TagHandlerFactory {
-        private final static Class[] CONS_SIG = new Class[] { ConverterConfig.class };
 
-        protected final String converterId;
+        private static final Class<?>[] CONS_SIG = new Class[] { ConverterConfig.class };
 
-        protected final Class type;
+        private final String converterId;
+        private final Class<?> type;
+        private final Constructor<?> constructor;
 
-        protected final Constructor<?> constructor;
-
-        public UserConverterHandlerFactory(String converterId, Class type) {
+        public UserConverterHandlerFactory(String converterId, Class<?> type) {
             this.converterId = converterId;
             this.type = type;
             try {
@@ -407,8 +401,8 @@ public abstract class AbstractTagLibrary implements TagLibrary {
         @Override
         public TagHandler createHandler(TagConfig cfg) throws FacesException, ELException {
             try {
-                ConverterConfig ccfg = new ConverterConfigWrapper(cfg, converterId);
-                return (TagHandler) constructor.newInstance(ccfg);
+                ConverterConfig config = new ConverterConfigWrapper(cfg, converterId);
+                return (TagHandler) constructor.newInstance(config);
             } catch (InvocationTargetException e) {
                 throw new FaceletException(e.getCause().getMessage(), e.getCause().getCause());
             } catch (InstantiationException | IllegalAccessException | IllegalArgumentException e) {
@@ -418,15 +412,14 @@ public abstract class AbstractTagLibrary implements TagLibrary {
     }
 
     private static class UserValidatorHandlerFactory implements TagHandlerFactory {
-        private final static Class[] CONS_SIG = new Class[] { ValidatorConfig.class };
 
-        protected final String validatorId;
+        private static final Class<?>[] CONS_SIG = new Class[] { ValidatorConfig.class };
 
-        protected final Class type;
+        private final String validatorId;
+        private final Class<?> type;
+        private final Constructor<?> constructor;
 
-        protected final Constructor<?> constructor;
-
-        public UserValidatorHandlerFactory(String validatorId, Class type) {
+        public UserValidatorHandlerFactory(String validatorId, Class<?> type) {
             this.validatorId = validatorId;
             this.type = type;
             try {
@@ -439,8 +432,8 @@ public abstract class AbstractTagLibrary implements TagLibrary {
         @Override
         public TagHandler createHandler(TagConfig cfg) throws FacesException, ELException {
             try {
-                ValidatorConfig ccfg = new ValidatorConfigWrapper(cfg, validatorId);
-                return (TagHandler) constructor.newInstance(ccfg);
+                ValidatorConfig config = new ValidatorConfigWrapper(cfg, validatorId);
+                return (TagHandler) constructor.newInstance(config);
             } catch (InvocationTargetException e) {
                 throw new FaceletException(e.getCause().getMessage(), e.getCause().getCause());
             } catch (InstantiationException | IllegalAccessException | IllegalArgumentException e) {
@@ -450,19 +443,18 @@ public abstract class AbstractTagLibrary implements TagLibrary {
     }
 
     private static class UserBehaviorHandlerFactory implements TagHandlerFactory {
-        private final static Class[] CONS_SIG = new Class[] { BehaviorConfig.class };
 
-        protected final String behaviorId;
+        private static final Class<?>[] CONS_SIG = new Class[] { BehaviorConfig.class };
 
-        protected final Class type;
+        private final String behaviorId;
+        private final Class<?> type;
+        private final Constructor<?> constructor;
 
-        protected final Constructor<?> constructor;
-
-        public UserBehaviorHandlerFactory(String behaviorId, Class type) {
+        public UserBehaviorHandlerFactory(String behaviorId, Class<?> type) {
             this.behaviorId = behaviorId;
             this.type = type;
             try {
-                constructor = this.type.getConstructor(CONS_SIG);
+                constructor = type.getConstructor(CONS_SIG);
             } catch (NoSuchMethodException | SecurityException e) {
                 throw new FaceletException("Must have a Constructor that takes in a BehaviorConfig", e);
             }
@@ -471,8 +463,8 @@ public abstract class AbstractTagLibrary implements TagLibrary {
         @Override
         public TagHandler createHandler(TagConfig cfg) throws FacesException, ELException {
             try {
-                BehaviorConfig ccfg = new BehaviorConfigWrapper(cfg, behaviorId);
-                return (TagHandler) constructor.newInstance(ccfg);
+                BehaviorConfig config = new BehaviorConfigWrapper(cfg, behaviorId);
+                return (TagHandler) constructor.newInstance(config);
             } catch (InvocationTargetException e) {
                 throw new FaceletException(e.getCause().getMessage(), e.getCause().getCause());
             } catch (InstantiationException | IllegalAccessException | IllegalArgumentException e) {
@@ -482,9 +474,7 @@ public abstract class AbstractTagLibrary implements TagLibrary {
     }
 
     private final Map<String, TagHandlerFactory> factories;
-
     private final String namespace;
-
     private final Map<String, Method> functions;
 
     public AbstractTagLibrary(String namespace) {
@@ -581,7 +571,7 @@ public abstract class AbstractTagLibrary implements TagLibrary {
         factories.put(name, new BehaviorHandlerFactory(behaviorId));
     }
 
-    protected final void addBehavior(String name, String behaviorId, Class type) {
+    protected final void addBehavior(String name, String behaviorId, Class<?> type) {
         factories.put(name, new UserBehaviorHandlerFactory(behaviorId, type));
     }
 
