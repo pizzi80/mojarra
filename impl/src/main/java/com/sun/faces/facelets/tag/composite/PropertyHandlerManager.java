@@ -16,10 +16,12 @@
 
 package com.sun.faces.facelets.tag.composite;
 
+import static java.util.Map.entry;
+
 import java.beans.FeatureDescriptor;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.sun.faces.facelets.el.TagValueExpression;
 import com.sun.faces.util.Util;
@@ -32,63 +34,51 @@ import jakarta.faces.view.facelets.TagAttribute;
 
 class PropertyHandlerManager {
 
-    private static final Map<String, PropertyHandler> ALL_HANDLERS = new HashMap<>(12, 1.0f);
-    static {
-        ALL_HANDLERS.put("targets", new StringValueExpressionPropertyHandler());
-        ALL_HANDLERS.put("targetAttributeName", new StringValueExpressionPropertyHandler());
-        ALL_HANDLERS.put("method-signature", new StringValueExpressionPropertyHandler());
-        ALL_HANDLERS.put("type", new StringValueExpressionPropertyHandler());
-        ALL_HANDLERS.put("default", new DefaultPropertyHandler());
-        ALL_HANDLERS.put("displayName", new DisplayNamePropertyHandler());
-        ALL_HANDLERS.put("shortDescription", new ShortDescriptionPropertyHandler());
-        ALL_HANDLERS.put("expert", new ExpertPropertyHandler());
-        ALL_HANDLERS.put("hidden", new HiddenPropertyHandler());
-        ALL_HANDLERS.put("preferred", new PreferredPropertyHandler());
-        ALL_HANDLERS.put("required", new BooleanValueExpressionPropertyHandler());
-        ALL_HANDLERS.put("name", new NamePropertyHandler());
-        ALL_HANDLERS.put("componentType", new ComponentTypePropertyHandler());
-    }
+    private static final Map<String, PropertyHandler> ALL_HANDLERS = Map.ofEntries(
+        entry("targets", new StringValueExpressionPropertyHandler()),
+        entry("targetAttributeName", new StringValueExpressionPropertyHandler()),
+        entry("method-signature", new StringValueExpressionPropertyHandler()),
+        entry("type", new StringValueExpressionPropertyHandler()),
+        entry("default", new DefaultPropertyHandler()),
+        entry("displayName", new DisplayNamePropertyHandler()),
+        entry("shortDescription", new ShortDescriptionPropertyHandler()),
+        entry("expert", new ExpertPropertyHandler()),
+        entry("hidden", new HiddenPropertyHandler()),
+        entry("preferred", new PreferredPropertyHandler()),
+        entry("required", new BooleanValueExpressionPropertyHandler()),
+        entry("name", new NamePropertyHandler()),
+        entry("componentType", new ComponentTypePropertyHandler())
+    );
 
-    private static final String[] DEV_ONLY_ATTRIBUTES = { "displayName", "shortDescription", "export", "hidden", "preferred" };
-    static {
-        Arrays.sort(DEV_ONLY_ATTRIBUTES);
-    }
+    private static final Set<String> DEV_ONLY_ATTRIBUTES = Set.of( "displayName", "shortDescription", "export", "hidden", "preferred" );
 
-    private Map<String, PropertyHandler> managedHandlers;
-    private PropertyHandler genericHandler = new ObjectValueExpressionPropertyHandler();
+    private final Map<String, PropertyHandler> managedHandlers;
+    private final PropertyHandler genericHandler = new ObjectValueExpressionPropertyHandler();
 
     // -------------------------------------------------------- Constructors
 
     private PropertyHandlerManager(Map<String, PropertyHandler> managedHandlers) {
-
         this.managedHandlers = managedHandlers;
-
     }
 
     // ------------------------------------------------- Package Private Methods
 
     static PropertyHandlerManager getInstance(String[] attributes) {
-
-        Map<String, PropertyHandler> handlers = new HashMap<>(attributes.length, 1.0f);
+        Map<String, PropertyHandler> handlers = new HashMap<>(Util.calculateMapCapacity(attributes.length));
         for (String attribute : attributes) {
             handlers.put(attribute, ALL_HANDLERS.get(attribute));
         }
-
         return new PropertyHandlerManager(handlers);
-
     }
 
     PropertyHandler getHandler(FaceletContext ctx, String name) {
 
-        if (!ctx.getFacesContext().isProjectStage(ProjectStage.Development)) {
-            if (Arrays.binarySearch(DEV_ONLY_ATTRIBUTES, name) >= 0) {
-                return null;
-            }
+        if (ctx.getFacesContext().isProjectStage(ProjectStage.Production) && DEV_ONLY_ATTRIBUTES.contains(name)) {
+            return null;
         }
 
         PropertyHandler h = managedHandlers.get(name);
         return h != null ? h : genericHandler;
-
     }
 
     // ---------------------------------------------------------- Nested Classes
@@ -131,9 +121,9 @@ class PropertyHandlerManager {
         public void apply(FaceletContext ctx, String propName, FeatureDescriptor target, TagAttribute attribute) {
 
             ValueExpression ve = attribute.getValueExpression(ctx, getEvalType());
-            String v = (String) ve.getValue(ctx);
+            String v = ve.getValue(ctx);
             if (v != null) {
-                target.setShortDescription((String) ve.getValue(ctx));
+                target.setShortDescription(ve.getValue(ctx));
             }
 
         }
@@ -145,9 +135,9 @@ class PropertyHandlerManager {
         public void apply(FaceletContext ctx, String propName, FeatureDescriptor target, TagAttribute attribute) {
 
             ValueExpression ve = attribute.getValueExpression(ctx, getEvalType());
-            String v = (String) ve.getValue(ctx);
+            String v = ve.getValue(ctx);
             if (v != null) {
-                target.setShortDescription((String) ve.getValue(ctx));
+                target.setShortDescription(ve.getValue(ctx));
             }
 
         }
@@ -224,7 +214,7 @@ class PropertyHandlerManager {
         public void apply(FaceletContext ctx, String propName, FeatureDescriptor target, TagAttribute attribute) {
 
             ValueExpression ve = attribute.getValueExpression(ctx, getEvalType());
-            target.setPreferred((Boolean) ve.getValue(ctx));
+            target.setPreferred(ve.getValue(ctx));
 
         }
 
@@ -236,7 +226,7 @@ class PropertyHandlerManager {
         public void apply(FaceletContext ctx, String propName, FeatureDescriptor target, TagAttribute attribute) {
 
             ValueExpression ve = attribute.getValueExpression(ctx, getEvalType());
-            target.setHidden((Boolean) ve.getValue(ctx));
+            target.setHidden(ve.getValue(ctx));
 
         }
 
@@ -248,7 +238,7 @@ class PropertyHandlerManager {
         public void apply(FaceletContext ctx, String propName, FeatureDescriptor target, TagAttribute attribute) {
 
             ValueExpression ve = attribute.getValueExpression(ctx, getEvalType());
-            target.setExpert((Boolean) ve.getValue(ctx));
+            target.setExpert(ve.getValue(ctx));
 
         }
 
@@ -260,7 +250,7 @@ class PropertyHandlerManager {
         public void apply(FaceletContext ctx, String propName, FeatureDescriptor target, TagAttribute attribute) {
 
             ValueExpression ve = attribute.getValueExpression(ctx, getEvalType());
-            target.setDisplayName((String) ve.getValue(ctx));
+            target.setDisplayName(ve.getValue(ctx));
         }
 
     } // END DisplayNamePropertyHandler
