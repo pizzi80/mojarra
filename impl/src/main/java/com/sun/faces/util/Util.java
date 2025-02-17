@@ -828,7 +828,7 @@ public class Util {
      * Execute the passed task and return the computed result atomically using the passed lock.
      * @param lock The {@link Lock} to be used for atomic execution
      * @param task The {@link Supplier} to be executed atomically
-     * @return The result of the passed task.      
+     * @return The result of the passed task.
      */
     public static <R> R execAtomic(Lock lock, Supplier<R> task) {
         lock.lock();
@@ -1764,7 +1764,7 @@ public class Util {
         }
 
         // 4. If still none found then get previously known request encoding from session.
-        //    See also ViewHandler#initView().
+        //    See also ViewHandler#initView(). and FaceletViewHandlingStrategy#createResponseWriter().
         if (encoding == null && context.getExternalContext().getSession(false) != null) {
 
             encoding = (String) context.getExternalContext().getSessionMap().get(CHARACTER_ENCODING_KEY);
