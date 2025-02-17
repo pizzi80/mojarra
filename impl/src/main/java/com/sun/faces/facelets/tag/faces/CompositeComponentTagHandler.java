@@ -82,8 +82,8 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
     public static final String LOCATION_KEY = "CompositeComponentTagHandler.location";
 
     private static final Logger LOGGER = FacesLogger.TAGLIB.getLogger();
-    private Resource ccResource;
-    private TagAttribute binding;
+    private final Resource ccResource;
+    private final TagAttribute binding;
 
     // ------------------------------------------------------------ Constructors
 
@@ -105,7 +105,7 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
         // expose a method to do so with Resource.
         if (binding != null) {
             ValueExpression ve = binding.getValueExpression(ctx, UIComponent.class);
-            cc = (UIComponent) ve.getValue(ctx);
+            cc = ve.getValue(ctx);
             if (cc != null && !UIComponent.isCompositeComponent(cc)) {
                 if (LOGGER.isLoggable(Level.SEVERE)) {
                     LOGGER.log(Level.SEVERE, "faces.compcomp.binding.eval.non.compcomp", binding.toString());
@@ -170,7 +170,7 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
 
     @Override
     public void setCompositeComponent(FacesContext context, UIComponent cc) {
-        Map contextMap = context.getAttributes();
+        Map<Object, Object> contextMap = context.getAttributes();
         String key = ccInstanceVariableStandinKey + tagId;
         if (!contextMap.containsKey(key)) {
             contextMap.put(key, cc);
@@ -179,7 +179,7 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
 
     @Override
     public UIComponent getCompositeComponent(FacesContext context) {
-        Map contextMap = context.getAttributes();
+        Map<Object, Object> contextMap = context.getAttributes();
         String key = ccInstanceVariableStandinKey + tagId;
         UIComponent result = (UIComponent) contextMap.get(key);
 
@@ -341,15 +341,13 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
      */
     private static final class CompositeComponentMetaRuleset extends MetaRulesetImpl {
 
-        private BeanInfo compBeanInfo;
-        private Class<?> type;
+        private final BeanInfo compBeanInfo;
+        private final Class<?> type;
 
         public CompositeComponentMetaRuleset(Tag tag, Class<?> type, BeanInfo compBeanInfo) {
-
             super(tag, type);
             this.compBeanInfo = compBeanInfo;
             this.type = type;
-
         }
 
         @Override
@@ -372,15 +370,13 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
          */
         private static final class CompositeMetadataTarget extends MetadataTargetImpl {
 
-            private BeanInfo compBeanInfo;
+            private final BeanInfo compBeanInfo;
 
-            // ---------------------------------------------------- Construcrors
+            // ---------------------------------------------------- Constructors
 
             public CompositeMetadataTarget(Class<?> type, BeanInfo compBeanInfo) throws IntrospectionException {
-
                 super(type);
                 this.compBeanInfo = compBeanInfo;
-
             }
 
             // --------------------------------- Methods from MetadataTargetImpl
@@ -393,7 +389,7 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
                     Object obj = compDescriptor.getValue("type");
                     if (null != obj && !(obj instanceof Class)) {
                         ValueExpression typeVE = (ValueExpression) obj;
-                        String className = (String) typeVE.getValue(FacesContext.getCurrentInstance().getELContext());
+                        String className = typeVE.getValue(FacesContext.getCurrentInstance().getELContext());
                         if (className != null) {
                             className = prefix(className);
                             try {
@@ -417,26 +413,20 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
             // ------------------------------------------------- Private Methods
 
             private PropertyDescriptor findDescriptor(String name) {
-
                 for (PropertyDescriptor pd : compBeanInfo.getPropertyDescriptors()) {
-
                     if (pd.getName().equals(name)) {
                         return pd;
                     }
-
                 }
                 return null;
-
             }
 
             private String prefix(String className) {
-
                 if (className.indexOf('.') == -1 && Character.isUpperCase(className.charAt(0))) {
                     return "java.lang." + className;
                 } else {
                     return className;
                 }
-
             }
         }
 
@@ -478,33 +468,29 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
          */
         private static final class LiteralAttributeMetadata extends Metadata {
 
-            private String name;
-            private Class<?> type;
-            private TagAttribute attribute;
+            private final String name;
+            private final Class<?> type;
+            private final TagAttribute attribute;
 
             // ---------------------------------------------------- Constructors
 
             public LiteralAttributeMetadata(String name, Class<?> type, TagAttribute attribute) {
-
                 this.name = name;
                 this.type = type;
                 this.attribute = attribute;
-
             }
 
             // ------------------------------------------- Methods from Metadata
 
             @Override
             public void applyMetadata(FaceletContext ctx, Object instance) {
-
                 UIComponent c = (UIComponent) instance;
                 Object value = attribute.getObject(ctx, type);
-                // don't set the attributes value in the components attributemap
+                // don't set the attributes value in the components attribute map
                 // if it is null, as this will throw a NullPointerException.
                 if (value != null) {
                     c.getAttributes().put(name, value);
                 }
-
             }
 
         } // END LiteralAttributeMetadata
@@ -516,9 +502,9 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
          */
         private static final class CompositeExpressionMetadata extends Metadata {
 
-            private String name;
-            private Class<?> type;
-            private TagAttribute attr;
+            private final String name;
+            private final Class<?> type;
+            private final TagAttribute attr;
 
             // ---------------------------------------------------- Constructors
 
@@ -526,7 +512,6 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
                 this.name = name;
                 this.type = type;
                 this.attr = attr;
-
             }
 
             // ------------------------------------------- Methods from Metadata
