@@ -16,9 +16,7 @@
 
 package com.sun.faces.facelets.tag.faces;
 
-import static com.sun.faces.util.Util.unmodifiableSet;
-
-import java.util.Set;
+import java.util.List;
 
 import com.sun.faces.facelets.tag.AbstractTagLibrary;
 
@@ -27,7 +25,7 @@ public final class PassThroughAttributeLibrary extends AbstractTagLibrary {
     private final static String JcpNamespace = "http://xmlns.jcp.org/jsf/passthrough";
     private final static String JakartaNamespace = "jakarta.faces.passthrough";
 
-    public final static Set<String> NAMESPACES = unmodifiableSet(JakartaNamespace, JcpNamespace);
+    public final static List<String> NAMESPACES = List.of(JakartaNamespace, JcpNamespace);
     public final static String DEFAULT_NAMESPACE = JakartaNamespace;
 
     public PassThroughAttributeLibrary(String namespace) {
