@@ -39,12 +39,11 @@ public class DeclareFacetHandler extends TagHandlerImpl {
 
     private static final PropertyHandlerManager ATTRIBUTE_MANAGER = PropertyHandlerManager.getInstance(ATTRIBUTES);
 
-    private TagAttribute name = null;
+    private final TagAttribute name;
 
     public DeclareFacetHandler(TagConfig config) {
         super(config);
         name = getRequiredAttribute("name");
-
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -61,7 +60,7 @@ public class DeclareFacetHandler extends TagHandlerImpl {
 
         // Get the value of required the name propertyDescriptor
         ValueExpression ve = name.getValueExpression(ctx, String.class);
-        String strValue = (String) ve.getValue(ctx);
+        String strValue = ve.getValue(ctx);
         BeanDescriptor componentBeanDescriptor = componentBeanInfo.getBeanDescriptor();
 
         Map<String, PropertyDescriptor> facetDescriptors = (Map<String, PropertyDescriptor>) componentBeanDescriptor.getValue(UIComponent.FACETS_KEY);
