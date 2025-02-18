@@ -1,7 +1,9 @@
-package jakarta.faces.context;
+package com.sun.faces.context;
 
 import java.io.IOException;
 import java.io.OutputStream;
+
+import jakarta.faces.context.ResponseStream;
 
 public class ResponseStreamWrapper extends ResponseStream {
 

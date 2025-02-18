@@ -42,7 +42,7 @@ import com.sun.faces.util.Util;
 
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseStream;
-import jakarta.faces.context.ResponseStreamWrapper;
+import com.sun.faces.context.ResponseStreamWrapper;
 import jakarta.faces.context.ResponseWriter;
 import jakarta.faces.render.ClientBehaviorRenderer;
 import jakarta.faces.render.RenderKit;

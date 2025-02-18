@@ -31,7 +31,7 @@ import jakarta.faces.component.UIOutput;
 import jakarta.faces.component.UIPanel;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseStream;
-import jakarta.faces.context.ResponseStreamWrapper;
+import com.sun.faces.context.ResponseStreamWrapper;
 import jakarta.faces.context.ResponseWriter;
 import jakarta.faces.render.RenderKit;
 import jakarta.faces.render.Renderer;
