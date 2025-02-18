@@ -49,11 +49,17 @@ import com.sun.faces.push.WebsocketChannelManager;
 import com.sun.faces.push.WebsocketSessionManager;
 import com.sun.faces.push.WebsocketUserManager;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 /**
  * The CDI extension.
  */
 public class CdiExtension implements Extension {
+
+    /**
+     * Stores the logger.
+     */
+    private static final Logger LOGGER = FacesLogger.APPLICATION_VIEW.getLogger();
 
     /**
      * Array of Mojarra impl specific CDI managed bean classes to add to CDI.
@@ -77,11 +83,6 @@ public class CdiExtension implements Extension {
      * Map of {@code @ManagedProperty} target types
      */
     private final Set<Type> managedPropertyTargetTypes = new HashSet<>();
-
-    /**
-     * Stores the logger.
-     */
-    private static final Logger LOGGER = FacesLogger.APPLICATION_VIEW.getLogger();
 
     // As per CDI spec this is the invocation order:
     //  1. BeforeBeanDiscovery
@@ -234,7 +235,7 @@ public class CdiExtension implements Extension {
         // component, we can find the most specific DataModel that can wrap Z by iterating through the sorted
         // collection from beginning to end and stopping this iteration at the first match.
 
-        List<Class<?>> sortedForDataModelClasses = new ArrayList<>();
+        List<Class<?>> sortedForDataModelClasses = new ArrayList<>(forClassToDataModelClass.size());
         for (Class<?> clazz : forClassToDataModelClass.keySet()) {
             int highestSuper = -1;
             boolean added = false;
@@ -259,7 +260,7 @@ public class CdiExtension implements Extension {
         // Use the sorting computed above to order the Map on this. Note that a linked hash map is used
         // to preserve this ordering.
 
-        Map<Class<?>, Class<? extends DataModel<?>>> linkedForClassToDataModelClass = new LinkedHashMap<>();
+        Map<Class<?>, Class<? extends DataModel<?>>> linkedForClassToDataModelClass = new LinkedHashMap<>(Util.calculateMapCapacity(sortedForDataModelClasses.size()));
         for (Class<?> sortedClass : sortedForDataModelClasses) {
             linkedForClassToDataModelClass.put(sortedClass, forClassToDataModelClass.get(sortedClass));
         }
