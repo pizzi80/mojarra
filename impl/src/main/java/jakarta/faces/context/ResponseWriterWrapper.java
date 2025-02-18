@@ -39,15 +39,7 @@ import jakarta.faces.component.UIComponent;
  */
 public abstract class ResponseWriterWrapper extends ResponseWriter implements FacesWrapper<ResponseWriter> {
 
-    private ResponseWriter wrapped;
-
-    /**
-     * @deprecated Use the other constructor taking the implementation being wrapped.
-     */
-    @Deprecated
-    public ResponseWriterWrapper() {
-
-    }
+    private final ResponseWriter wrapped;
 
     /**
      * <p class="changed_added_2_3">
