@@ -45,7 +45,7 @@ public abstract class NavigationCaseWrapper extends NavigationCase implements Fa
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public NavigationCaseWrapper() {
         this(null);
     }

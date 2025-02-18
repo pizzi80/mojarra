@@ -56,6 +56,7 @@ final class ServletContextFacesContextFactory extends FacesContextFactory {
 
     @SuppressWarnings("unchecked")
     ServletContextFacesContextFactory() {
+        super(null);
         try {
             Field instanceField = FacesContext.class.getDeclaredField("instance");
             instanceField.setAccessible(true);

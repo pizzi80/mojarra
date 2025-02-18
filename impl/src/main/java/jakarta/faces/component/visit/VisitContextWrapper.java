@@ -39,14 +39,14 @@ import jakarta.faces.context.FacesContext;
  */
 public abstract class VisitContextWrapper extends VisitContext implements FacesWrapper<VisitContext> {
 
-    private VisitContext wrapped;
+    private final VisitContext wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public VisitContextWrapper() {
-
+        wrapped = null;
     }
 
     /**

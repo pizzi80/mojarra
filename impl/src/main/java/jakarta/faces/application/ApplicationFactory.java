@@ -42,14 +42,14 @@ import jakarta.faces.FacesWrapper;
 
 public abstract class ApplicationFactory implements FacesWrapper<ApplicationFactory> {
 
-    private ApplicationFactory wrapped;
+    private final ApplicationFactory wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public ApplicationFactory() {
-
+        wrapped = null;
     }
 
     /**

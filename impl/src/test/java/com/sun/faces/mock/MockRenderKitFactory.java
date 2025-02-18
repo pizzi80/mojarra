@@ -33,9 +33,11 @@ public class MockRenderKitFactory extends RenderKitFactory {
     private final ConcurrentMap<String,RenderKit> renderKits = new ConcurrentHashMap<>();
 
     public MockRenderKitFactory() {
+        super(null);
     }
 
     public MockRenderKitFactory(RenderKitFactory oldImpl) {
+        super(null);
         System.setProperty(FactoryFinder.RENDER_KIT_FACTORY, this.getClass().getName());
     }
 
@@ -43,11 +45,11 @@ public class MockRenderKitFactory extends RenderKitFactory {
     public void addRenderKit(String renderKitId, RenderKit renderKit) {
         notNullArgs(renderKitId, renderKit);
 
-        // putIfAbsent returns the value present in the Map before put
-        RenderKit currentValue = renderKits.putIfAbsent(renderKitId, renderKit);
+        // putIfAbsent returns the previous value in the Map
+        RenderKit registered = renderKits.putIfAbsent(renderKitId, renderKit);
 
         // if there was a value -> error
-        if (currentValue != null) {
+        if (registered != null) {
             throw new IllegalArgumentException(renderKitId);
         }
     }

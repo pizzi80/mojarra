@@ -40,14 +40,14 @@ import jakarta.faces.flow.Flow;
  */
 public abstract class ConfigurableNavigationHandlerWrapper extends ConfigurableNavigationHandler implements FacesWrapper<ConfigurableNavigationHandler> {
 
-    private ConfigurableNavigationHandler wrapped;
+    private final ConfigurableNavigationHandler wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public ConfigurableNavigationHandlerWrapper() {
-
+        wrapped = null;
     }
 
     /**

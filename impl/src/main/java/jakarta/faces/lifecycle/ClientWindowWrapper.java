@@ -35,14 +35,14 @@ import jakarta.faces.context.FacesContext;
  */
 public abstract class ClientWindowWrapper extends ClientWindow implements FacesWrapper<ClientWindow> {
 
-    private ClientWindow wrapped;
+    private final ClientWindow wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public ClientWindowWrapper() {
-
+        wrapped = null;
     }
 
     /**

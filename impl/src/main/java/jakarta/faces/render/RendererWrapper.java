@@ -40,14 +40,14 @@ import jakarta.faces.convert.ConverterException;
 
 public abstract class RendererWrapper extends Renderer implements FacesWrapper<Renderer> {
 
-    private Renderer wrapped;
+    private final Renderer wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public RendererWrapper() {
-
+        wrapped = null;
     }
 
     /**

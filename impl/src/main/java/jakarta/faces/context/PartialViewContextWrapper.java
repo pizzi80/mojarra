@@ -39,14 +39,14 @@ import jakarta.faces.event.PhaseId;
  */
 public abstract class PartialViewContextWrapper extends PartialViewContext implements FacesWrapper<PartialViewContext> {
 
-    private PartialViewContext wrapped;
+    private final PartialViewContext wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public PartialViewContextWrapper() {
-
+        wrapped = null;
     }
 
     /**

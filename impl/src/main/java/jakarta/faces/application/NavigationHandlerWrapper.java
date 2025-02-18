@@ -36,14 +36,14 @@ import jakarta.faces.context.FacesContext;
  */
 public abstract class NavigationHandlerWrapper extends NavigationHandler implements FacesWrapper<NavigationHandler> {
 
-    private NavigationHandler wrapped;
+    private final NavigationHandler wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public NavigationHandlerWrapper() {
-
+        wrapped = null;
     }
 
     /**

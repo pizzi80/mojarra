@@ -44,14 +44,14 @@ import jakarta.faces.context.ResponseWriter;
  */
 public abstract class RenderKitWrapper extends RenderKit implements FacesWrapper<RenderKit> {
 
-    private RenderKit wrapped;
+    private final RenderKit wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public RenderKitWrapper() {
-
+        wrapped = null;
     }
 
     /**

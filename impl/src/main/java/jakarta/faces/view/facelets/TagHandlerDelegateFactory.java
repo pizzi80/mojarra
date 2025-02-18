@@ -33,14 +33,14 @@ import jakarta.faces.FacesWrapper;
  */
 public abstract class TagHandlerDelegateFactory implements FacesWrapper<TagHandlerDelegateFactory> {
 
-    private TagHandlerDelegateFactory wrapped;
+    private final TagHandlerDelegateFactory wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public TagHandlerDelegateFactory() {
-
+        wrapped = null;
     }
 
     /**

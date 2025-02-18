@@ -49,7 +49,7 @@ public class CdiRenderKitFactory extends RenderKitFactory {
     /**
      * Constructor.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public CdiRenderKitFactory() {
         beanManager = CDI.current().getBeanManager();
     }

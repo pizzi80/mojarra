@@ -45,7 +45,7 @@ import jakarta.faces.view.ViewDeclarationLanguage;
  */
 public abstract class ViewHandlerWrapper extends ViewHandler implements FacesWrapper<ViewHandler> {
 
-    private ViewHandler wrapped;
+    private final ViewHandler wrapped;
 
     /**
      * <p class="changed_added_2_3">
@@ -381,9 +381,9 @@ public abstract class ViewHandlerWrapper extends ViewHandler implements FacesWra
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public ViewHandlerWrapper() {
-
+        wrapped = null;
     }
 
 }

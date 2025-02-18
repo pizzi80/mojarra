@@ -47,14 +47,14 @@ import jakarta.faces.render.RenderKit;
  */
 public abstract class FacesContextWrapper extends FacesContext implements FacesWrapper<FacesContext> {
 
-    private FacesContext wrapped;
+    private final FacesContext wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public FacesContextWrapper() {
-
+        wrapped = null;
     }
 
     /**
