@@ -33,6 +33,7 @@ import java.util.function.Supplier;
 
 import jakarta.el.ValueExpression;
 import jakarta.faces.component.UIComponent.PropertyKeys;
+import jakarta.faces.component.html.HtmlComponentUtils;
 import jakarta.faces.context.FacesContext;
 
 /**
@@ -41,7 +42,7 @@ import jakarta.faces.context.FacesContext;
  * This can be used as a base-class for all state-holder implementations in components, converters and validators and
  * other implementations of the StateHolder interface.
  */
-@SuppressWarnings({ "unchecked" })
+@SuppressWarnings("unchecked")
 class ComponentStateHelper implements StateHelper, TransientStateHelper {
 
     private final UIComponent component;
@@ -142,18 +143,10 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
 
     private void initMap(Serializable key) {
         if (component.initialStateMarked()) {
-            Map<String, Object> dMap = (Map<String, Object>) deltaMap.get(key);
-            if (dMap == null) {
-                dMap = new HashMap<>(5);
-                deltaMap.put(key, dMap);
-            }
+            deltaMap.computeIfAbsent(key, $->new HashMap<>(5));
         }
 
-        Map<String, Object> map = (Map<String, Object>) get(key);
-        if (map == null) {
-            map = new HashMap<>(8);
-            defaultMap.put(key, map);
-        }
+        defaultMap.computeIfAbsent(key, $->new HashMap<>(8));
     }
 
     /**
@@ -187,7 +180,6 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
             if (valueExpression != null) {
                 retVal = valueExpression.getValue(component.getFacesContext().getELContext());
             }
-
         }
 
         return coalesce(retVal, defaultValue);
@@ -224,11 +216,18 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
         initList(key);
 
         if (component.initialStateMarked()) {
-            ((List<Object>) deltaMap.get(key)).add(value);
+            getDeltaList(key).add(value);
         }
 
-        List<Object> items = (List<Object>) get(key);
-        items.add(value);
+        getList(key).add(value);
+    }
+
+    private List<Object> getList(Serializable key) {
+        return (List<Object>)defaultMap.get(key);
+    }
+
+    private List<Object> getDeltaList(Serializable key) {
+        return (List<Object>)deltaMap.get(key);
     }
 
     private void initList(Serializable key) {
@@ -345,25 +344,7 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
      * generated HTML components setter methods.
      */
     private void handleAttribute(String name, Object value) {
-        List<String> setAttributes = (List<String>) component.getAttributes().get("jakarta.faces.component.UIComponentBase.attributesThatAreSet");
-        if (setAttributes == null) {
-            String className = getClass().getName();
-            if (className.startsWith("jakarta.faces.component.")) {
-                setAttributes = new ArrayList<>(6);
-                component.getAttributes().put("jakarta.faces.component.UIComponentBase.attributesThatAreSet", setAttributes);
-            }
-        }
-
-        if (setAttributes != null) {
-            if (value == null) {
-                ValueExpression valueExpression = component.getValueExpression(name);
-                if (valueExpression == null) {
-                    setAttributes.remove(name);
-                }
-            } else if (!setAttributes.contains(name)) {
-                setAttributes.add(name);
-            }
-        }
+        HtmlComponentUtils.handleAttribute(component, name, value);
     }
 
     /**
