@@ -36,18 +36,15 @@ public class ExternalContextFactoryImpl extends ExternalContextFactory {
     // ---------------------------------------- Methods from ExternalContextFactory
 
     @Override
-    public ExternalContext getExternalContext(Object servletContext, Object request, Object response)
-
-            throws FacesException {
-
+    public ExternalContext getExternalContext(Object servletContext, Object request, Object response) throws FacesException {
         Util.notNull("servletContext", servletContext);
         Util.notNull("request", request);
         Util.notNull("response", response);
 
         ExternalContext extContext = new ExternalContextImpl((ServletContext) servletContext, (ServletRequest) request, (ServletResponse) response);
 
-        if (request instanceof ServletRequest) {
-            ((ServletRequest) request).setAttribute(DEFAULT_EXTERNAL_CONTEXT_KEY, extContext);
+        if (request instanceof ServletRequest servletRequest) {
+            servletRequest.setAttribute(DEFAULT_EXTERNAL_CONTEXT_KEY, extContext);
         }
 
         return extContext;

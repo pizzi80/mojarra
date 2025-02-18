@@ -53,14 +53,14 @@ import jakarta.faces.FacesWrapper;
  */
 public abstract class FlashFactory implements FacesWrapper<FlashFactory> {
 
-    private FlashFactory wrapped;
+    private final FlashFactory wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public FlashFactory() {
-
+        wrapped = null;
     }
 
     /**

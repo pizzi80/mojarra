@@ -46,14 +46,14 @@ import jakarta.faces.context.FacesContext;
  */
 public abstract class ViewDeclarationLanguageWrapper extends ViewDeclarationLanguage implements FacesWrapper<ViewDeclarationLanguage> {
 
-    private ViewDeclarationLanguage wrapped;
+    private final ViewDeclarationLanguage wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public ViewDeclarationLanguageWrapper() {
-
+        wrapped = null;
     }
 
     /**

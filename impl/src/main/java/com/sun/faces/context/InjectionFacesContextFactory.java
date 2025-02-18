@@ -113,11 +113,10 @@ public class InjectionFacesContextFactory extends FacesContextFactory {
         }
         if (defaultExternalContext != null) {
             ExternalContext defaultExtContext = null;
-            if (request instanceof ServletRequest) {
-                ServletRequest reqObj = (ServletRequest) request;
-                defaultExtContext = (ExternalContext) reqObj.getAttribute(ExternalContextFactoryImpl.DEFAULT_EXTERNAL_CONTEXT_KEY);
+            if (request instanceof ServletRequest servletRequest) {
+                defaultExtContext = (ExternalContext) servletRequest.getAttribute(ExternalContextFactoryImpl.DEFAULT_EXTERNAL_CONTEXT_KEY);
                 if (defaultExtContext != null) {
-                    reqObj.removeAttribute(ExternalContextFactoryImpl.DEFAULT_EXTERNAL_CONTEXT_KEY);
+                    servletRequest.removeAttribute(ExternalContextFactoryImpl.DEFAULT_EXTERNAL_CONTEXT_KEY);
                 }
             }
             if (defaultExtContext != null) {

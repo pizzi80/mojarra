@@ -46,14 +46,14 @@ import jakarta.faces.lifecycle.Lifecycle;
  */
 public abstract class FacesContextFactory implements FacesWrapper<FacesContextFactory> {
 
-    private FacesContextFactory wrapped;
+    private final FacesContextFactory wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public FacesContextFactory() {
-
+        wrapped = null;
     }
 
     /**

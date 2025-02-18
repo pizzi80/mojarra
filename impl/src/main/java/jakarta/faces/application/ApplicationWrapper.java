@@ -57,14 +57,14 @@ import jakarta.faces.validator.Validator;
  */
 public abstract class ApplicationWrapper extends Application implements FacesWrapper<Application> {
 
-    private Application wrapped;
+    private final Application wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public ApplicationWrapper() {
-
+        wrapped = null;
     }
 
     /**

@@ -40,7 +40,7 @@ import jakarta.faces.context.FacesContext;
  */
 public abstract class ResourceWrapper extends Resource implements FacesWrapper<Resource> {
 
-    private Resource wrapped;
+    private final Resource wrapped;
 
     /**
      * <p class="changed_added_2_3">
@@ -187,9 +187,9 @@ public abstract class ResourceWrapper extends Resource implements FacesWrapper<R
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public ResourceWrapper() {
-
+        this.wrapped = null;
     }
 
 }

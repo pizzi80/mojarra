@@ -1982,8 +1982,7 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
 
     // --------------------------------------------------------- Package Private
 
-    static final class ComponentSystemEventListenerAdapter
-            implements ComponentSystemEventListener, SystemEventListener, StateHolder, FacesWrapper<ComponentSystemEventListener> {
+    static final class ComponentSystemEventListenerAdapter implements ComponentSystemEventListener, SystemEventListener, StateHolder, FacesWrapper<ComponentSystemEventListener> {
 
         ComponentSystemEventListener wrapped;
         Class<?> instanceClass;

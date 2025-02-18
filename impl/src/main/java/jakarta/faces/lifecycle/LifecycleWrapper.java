@@ -38,14 +38,14 @@ import jakarta.faces.event.PhaseListener;
 
 public abstract class LifecycleWrapper extends Lifecycle implements FacesWrapper<Lifecycle> {
 
-    private Lifecycle wrapped;
+    private final Lifecycle wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public LifecycleWrapper() {
-
+        wrapped = null;
     }
 
     /**

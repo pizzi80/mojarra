@@ -32,14 +32,14 @@ import jakarta.faces.FacesWrapper;
  */
 public abstract class FaceletCacheFactory implements FacesWrapper<FaceletCacheFactory> {
 
-    private FaceletCacheFactory wrapped;
+    private final FaceletCacheFactory wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public FaceletCacheFactory() {
-
+        wrapped = null;
     }
 
     /**

@@ -39,14 +39,14 @@ import jakarta.faces.context.FacesContext;
  */
 public abstract class ResourceHandlerWrapper extends ResourceHandler implements FacesWrapper<ResourceHandler> {
 
-    private ResourceHandler wrapped;
+    private final ResourceHandler wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public ResourceHandlerWrapper() {
-
+        wrapped = null;
     }
 
     /**

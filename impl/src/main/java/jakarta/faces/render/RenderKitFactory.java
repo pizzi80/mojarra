@@ -52,7 +52,7 @@ public abstract class RenderKitFactory implements FacesWrapper<RenderKitFactory>
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated
+    @Deprecated(forRemoval=true)
     public RenderKitFactory() {
         wrapped = null;
     }
