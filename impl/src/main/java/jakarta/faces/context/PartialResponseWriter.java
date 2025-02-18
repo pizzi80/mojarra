@@ -17,7 +17,6 @@
 package jakarta.faces.context;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import com.sun.faces.RIConstants;
@@ -45,7 +44,7 @@ public class PartialResponseWriter extends ResponseWriterWrapper {
     //
     private boolean inInsertBefore = false;
 
-    // True when we need to close afer insert tag
+    // True when we need to close after insert tag
     //
     private boolean inInsertAfter = false;
 
