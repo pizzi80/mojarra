@@ -54,7 +54,7 @@ public abstract class ResponseWriter extends Writer {
 
     /**
      * <p>
-     * Flush any ouput buffered by the output method to the underlying Writer or OutputStream. This method will not flush
+     * Flush any output buffered by the output method to the underlying Writer or OutputStream. This method will not flush
      * the underlying Writer or OutputStream; it simply clears any values buffered by this {@link ResponseWriter}.
      * </p>
      */
