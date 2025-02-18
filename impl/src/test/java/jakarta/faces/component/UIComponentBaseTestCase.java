@@ -30,11 +30,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.sun.faces.renderkit.RenderKitUtils;
 
 import jakarta.faces.FacesException;
 import jakarta.faces.context.FacesContext;
@@ -46,6 +43,10 @@ import jakarta.faces.event.PostConstructViewMapEvent;
 import jakarta.faces.event.PreRenderComponentEvent;
 import jakarta.faces.event.SystemEvent;
 import jakarta.faces.event.SystemEventListener;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * <p>
@@ -369,14 +370,14 @@ public class UIComponentBaseTestCase extends UIComponentTestCase {
         c.getAttributes().put("attr1", "value1");
         c.markInitialState();
         c.getAttributes().put("attr2", "value2");
-        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get("jakarta.faces.component.UIComponentBase.attributesThatAreSet"));
+        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get(RenderKitUtils.ATTRIBUTES_THAT_ARE_SET_KEY));
 
         Object state = c.saveState(facesContext);
         c = new ComponentTestImpl();
         c.pushComponentToEL(facesContext, c);
         c.restoreState(facesContext, state);
         c.popComponentFromEL(facesContext);
-        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get("jakarta.faces.component.UIComponentBase.attributesThatAreSet"));
+        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get(RenderKitUtils.ATTRIBUTES_THAT_ARE_SET_KEY));
     }
 
     @Test
