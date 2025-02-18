@@ -19,7 +19,7 @@ package com.sun.faces.renderkit;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.sun.faces.util.MessageUtils;
+import com.sun.faces.util.Util;
 
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.render.RenderKit;
@@ -27,24 +27,8 @@ import jakarta.faces.render.RenderKitFactory;
 
 public class RenderKitFactoryImpl extends RenderKitFactory {
 
-//
-// Protected Constants
-//
-    protected String renderKitId;
-    protected String className;
-    protected ConcurrentHashMap<String, RenderKit> renderKits;
+    private final ConcurrentHashMap<String, RenderKit> renderKits;
 
-//
-// Class Variables
-//
-
-// Attribute Instance Variables
-
-// Relationship Instance Variables
-
-//
-// Constructors and Initializers
-//
     /**
      * Constructor registers default Render kit.
      */
@@ -56,27 +40,16 @@ public class RenderKitFactoryImpl extends RenderKitFactory {
 
     @Override
     public void addRenderKit(String renderKitId, RenderKit renderKit) {
-
-        if (renderKitId == null) {
-            String message = MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "renderKitId");
-            throw new NullPointerException(message);
-        }
-        if (renderKit == null) {
-            String message = MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "renderKit");
-            throw new NullPointerException(message);
-        }
+        Util.notNull("renderKitId", renderKitId);
+        Util.notNull("renderKit", renderKit);
 
         renderKits.put(renderKitId, renderKit);
-
     }
 
     @Override
     public RenderKit getRenderKit(FacesContext context, String renderKitId) {
+        Util.notNull("renderKitId", renderKitId);
 
-        if (renderKitId == null) {
-            String message = MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "renderKitId");
-            throw new NullPointerException(message);
-        }
         // PENDING (rogerk) do something with FacesContext ...
         //
         // If an instance already exists, return it.
