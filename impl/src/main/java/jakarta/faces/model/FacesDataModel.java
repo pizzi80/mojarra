@@ -205,7 +205,7 @@ public @interface FacesDataModel {
      *
      * @since 4.0
      */
-    public static final class Literal extends AnnotationLiteral<FacesDataModel> implements FacesDataModel {
+    final class Literal extends AnnotationLiteral<FacesDataModel> implements FacesDataModel {
 
         private static final long serialVersionUID = 1L;
 
