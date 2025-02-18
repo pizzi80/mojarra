@@ -47,14 +47,14 @@ import jakarta.faces.context.FacesContext;
 
 public abstract class RenderKitFactory implements FacesWrapper<RenderKitFactory> {
 
-    private RenderKitFactory wrapped;
+    private final RenderKitFactory wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
     @Deprecated
     public RenderKitFactory() {
-
+        wrapped = null;
     }
 
     /**
