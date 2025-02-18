@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
  * <p>
  * A unit test to make sure all classes implementing {@link FacesWrapper} are
  * actually wrapping all public and protected methods of the wrapped class. This
- * should help to keep the wrapper classes in synch with the wrapped classes.
+ * should help to keep the wrapper classes in sync with the wrapped classes.
  * </p>
  */
 public class FacesWrapperTestCase {
