@@ -44,7 +44,7 @@ public class CdiRenderKitFactory extends RenderKitFactory {
     /**
      * Stores the BeanManager.
      */
-    public final BeanManager beanManager;
+    private final BeanManager beanManager;
 
     /**
      * Constructor.
@@ -61,18 +61,6 @@ public class CdiRenderKitFactory extends RenderKitFactory {
      */
     public CdiRenderKitFactory(RenderKitFactory wrapped) {
         super(wrapped);
-//        try {
-//            InitialContext initialContext = new InitialContext();
-//            beanManager = (BeanManager) initialContext.lookup("java:comp/BeanManager");
-//        } catch (NamingException ne) {
-//        }
-//        if (beanManager == null) {
-//            try {
-//                InitialContext initialContext = new InitialContext();
-//                beanManager = (BeanManager) initialContext.lookup("java:comp/env/BeanManager");
-//            } catch (NamingException ne) {
-//            }
-//        }
         beanManager = CDI.current().getBeanManager();
     }
 
