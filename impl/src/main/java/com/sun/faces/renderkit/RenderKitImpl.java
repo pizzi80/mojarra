@@ -23,7 +23,6 @@ import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParamet
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.PreferXHTMLContentType;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.DisableUnicodeEscaping;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Collections;
@@ -43,6 +42,7 @@ import com.sun.faces.util.Util;
 
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseStream;
+import jakarta.faces.context.ResponseStreamWrapper;
 import jakarta.faces.context.ResponseWriter;
 import jakarta.faces.render.ClientBehaviorRenderer;
 import jakarta.faces.render.RenderKit;
@@ -286,34 +286,8 @@ public class RenderKitImpl extends RenderKit {
     }
 
     @Override
-    public ResponseStream createResponseStream(OutputStream out) {
-        final OutputStream output = out;
-        return new ResponseStream() {
-            @Override
-            public void write(int b) throws IOException {
-                output.write(b);
-            }
-
-            @Override
-            public void write(byte[] b) throws IOException {
-                output.write(b);
-            }
-
-            @Override
-            public void write(byte[] b, int off, int len) throws IOException {
-                output.write(b, off, len);
-            }
-
-            @Override
-            public void flush() throws IOException {
-                output.flush();
-            }
-
-            @Override
-            public void close() throws IOException {
-                output.close();
-            }
-        };
+    public ResponseStream createResponseStream(final OutputStream out) {
+        return new ResponseStreamWrapper(out);
     }
 
     /**
