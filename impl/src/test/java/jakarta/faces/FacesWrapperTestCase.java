@@ -52,7 +52,7 @@ public class FacesWrapperTestCase {
     public void setUp() throws Exception {
         if (wrapperClasses == null) {
             loadWrapperClasses();
-            methodsToIgnore = new ArrayList<Method>();
+            methodsToIgnore = new ArrayList<>();
             methodsToIgnore.add(Object.class.getMethod("toString", new Class[0]));
         }
     }
@@ -73,12 +73,11 @@ public class FacesWrapperTestCase {
     @Test
     public void testWrapperClassesImplementFacesWrapper() {
         assertNotNull(noWrapperClasses);
-        if (noWrapperClasses.size() > 0) {
+        if (!noWrapperClasses.isEmpty()) {
             System.out.println("Wrapper classes not implementing jakarta.faces.FacesWrapper:");
             System.out.println(noWrapperClasses.toString());
         }
-        assertTrue(noWrapperClasses
-                .isEmpty());
+        assertTrue(noWrapperClasses.isEmpty());
     }
 
     /**
@@ -102,7 +101,7 @@ public class FacesWrapperTestCase {
                 if (isMethodContained(m, methodsToIgnore)) {
                     continue;
                 }
-                assertTrue(isMethodContained(m, wrapperMethods), msg + m.toString());
+                assertTrue(isMethodContained(m, wrapperMethods), msg + m);
             }
         }
     }
@@ -136,7 +135,7 @@ public class FacesWrapperTestCase {
      * @return list of found methods.
      */
     private List<Method> getPublicAndProtectedMethods(Class<?> wrapper) {
-        List<Method> mList = new ArrayList<Method>();
+        List<Method> mList = new ArrayList<>();
         if (Object.class == wrapper) {
             return mList;
         }
@@ -199,8 +198,7 @@ public class FacesWrapperTestCase {
      * @param f the File to analyse.
      * @throws Exception ClassLoader exceptions.
      */
-    private void addWrapperClassToWrapperClassesList(ClassLoader cl, String pkg, File f)
-            throws Exception {
+    private void addWrapperClassToWrapperClassesList(ClassLoader cl, String pkg, File f) throws Exception {
         String name = f.getName();
         if (!name.endsWith(".class")) {
             return;
