@@ -136,7 +136,7 @@ public class RenderKitUtils {
      *
      * Hopefully Faces X will remove the need for this.
      */
-    private static final String OPTIMIZED_PACKAGE = "jakarta.faces.component.";
+    public static final String OPTIMIZED_PACKAGE = "jakarta.faces.component.";
 
     /**
      * IMPLEMENTATION NOTE: This must be kept in sync with the Key in UIComponentBase$AttributesMap and
@@ -144,7 +144,7 @@ public class RenderKitUtils {
      *
      * Hopefully Faces X will remove the need for this.
      */
-    private static final String ATTRIBUTES_THAT_ARE_SET_KEY = UIComponentBase.class.getName() + ".attributesThatAreSet";
+    public static final String ATTRIBUTES_THAT_ARE_SET_KEY = UIComponentBase.class.getName() + ".attributesThatAreSet";
 
     /**
      * UIViewRoot attribute key of a boolean value which remembers whether the view will be rendered with a HTML5 doctype.
