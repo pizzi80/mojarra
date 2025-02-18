@@ -24,8 +24,6 @@ import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.sun.faces.util.Util;
-
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIData;
 import jakarta.faces.component.UIInput;
@@ -33,6 +31,7 @@ import jakarta.faces.component.UIOutput;
 import jakarta.faces.component.UIPanel;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseStream;
+import jakarta.faces.context.ResponseStreamWrapper;
 import jakarta.faces.context.ResponseWriter;
 import jakarta.faces.render.RenderKit;
 import jakarta.faces.render.Renderer;
@@ -72,34 +71,8 @@ public class MockRenderKit extends RenderKit {
     }
 
     @Override
-    public ResponseStream createResponseStream(OutputStream out) {
-        final OutputStream os = out;
-        return new ResponseStream() {
-            @Override
-            public void close() throws IOException {
-                os.close();
-            }
-
-            @Override
-            public void flush() throws IOException {
-                os.flush();
-            }
-
-            @Override
-            public void write(byte[] b) throws IOException {
-                os.write(b);
-            }
-
-            @Override
-            public void write(byte[] b, int off, int len) throws IOException {
-                os.write(b, off, len);
-            }
-
-            @Override
-            public void write(int b) throws IOException {
-                os.write(b);
-            }
-        };
+    public ResponseStream createResponseStream(final OutputStream out) {
+        return new ResponseStreamWrapper(out);
     }
 
     @Override
