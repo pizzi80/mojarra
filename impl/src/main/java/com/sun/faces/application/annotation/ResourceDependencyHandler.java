@@ -23,6 +23,7 @@ import java.util.Set;
 
 import com.sun.faces.el.ELUtils;
 import com.sun.faces.util.RequestStateManager;
+import com.sun.faces.util.Util;
 
 import jakarta.el.ValueExpression;
 import jakarta.faces.application.Application;
@@ -41,15 +42,14 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
     // ------------------------------------------------------------ Constructors
 
     public ResourceDependencyHandler(ResourceDependency[] dependencies) {
-
         this.dependencies = dependencies;
         Map<Object, Object> attrs = FacesContext.getCurrentInstance().getAttributes();
-        expressionsMap = new HashMap<>(dependencies.length, 1.0f);
+        expressionsMap = new HashMap<>(Util.calculateMapCapacity(dependencies.length));
         for (ResourceDependency dep : dependencies) {
             Expressions exprs = new Expressions();
             exprs.name = dep.name();
             String lib = dep.library();
-            if (lib.length() > 0) {
+            if (!lib.isEmpty()) {
                 // Take special action to resolve the "this" library name
                 if ("this".equals(lib)) {
                     String thisLibrary = (String) attrs.get(com.sun.faces.application.ApplicationImpl.THIS_LIBRARY);
@@ -60,27 +60,24 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
                 exprs.library = lib;
             }
             String tgt = dep.target();
-            if (tgt.length() > 0) {
+            if (!tgt.isEmpty()) {
                 exprs.target = tgt;
             }
             expressionsMap.put(dep, exprs);
         }
-
     }
 
     // ----------------------------------- Methods from RuntimeAnnotationHandler
 
-    @SuppressWarnings({ "UnusedDeclaration" })
     @Override
     public void apply(FacesContext ctx, Object... params) {
 
         for (ResourceDependency dep : dependencies) {
             if (!hasBeenProcessed(ctx, dep)) {
                 pushResourceToRoot(ctx, createComponentResource(ctx, dep));
-                markProcssed(ctx, dep);
+                markProcessed(ctx, dep);
             }
         }
-
     }
 
     // --------------------------------------------------------- Private Methods
@@ -94,7 +91,6 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
     private void pushResourceToRoot(FacesContext ctx, UIComponent c) {
 
         ctx.getViewRoot().addComponentResource(ctx, c, (String) c.getAttributes().get("target"));
-
     }
 
     /**
@@ -104,12 +100,10 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
      * @param dep the {@link ResourceDependency} in question
      * @return <code>true</code> if the {@link ResourceDependency} has been processed, otherwise <code>false</code>
      */
-    @SuppressWarnings({ "unchecked" })
     private boolean hasBeenProcessed(FacesContext ctx, ResourceDependency dep) {
 
-        Set<ResourceDependency> dependencies = (Set<ResourceDependency>) RequestStateManager.get(ctx, RequestStateManager.PROCESSED_RESOURCE_DEPENDENCIES);
+        Set<ResourceDependency> dependencies = RequestStateManager.get(ctx, RequestStateManager.PROCESSED_RESOURCE_DEPENDENCIES);
         return dependencies != null && dependencies.contains(dep);
-
     }
 
     /**
@@ -135,7 +129,6 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
             attrs.put("target", exprs.getTarget(ctx));
         }
         return c;
-
     }
 
     /**
@@ -144,16 +137,14 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
      * @param ctx the {@link FacesContext} for the current request
      * @param dep the {@link ResourceDependency}
      */
-    @SuppressWarnings({ "unchecked" })
-    private void markProcssed(FacesContext ctx, ResourceDependency dep) {
+    private void markProcessed(FacesContext ctx, ResourceDependency dep) {
 
-        Set<ResourceDependency> dependencies = (Set<ResourceDependency>) RequestStateManager.get(ctx, RequestStateManager.PROCESSED_RESOURCE_DEPENDENCIES);
+        Set<ResourceDependency> dependencies = RequestStateManager.get(ctx, RequestStateManager.PROCESSED_RESOURCE_DEPENDENCIES);
         if (dependencies == null) {
             dependencies = new HashSet<>(6);
             RequestStateManager.set(ctx, RequestStateManager.PROCESSED_RESOURCE_DEPENDENCIES, dependencies);
         }
         dependencies.add(dep);
-
     }
 
     // ----------------------------------------------------------- Inner Classes
@@ -174,7 +165,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
             if (nameExpression == null) {
                 nameExpression = ELUtils.createValueExpression(name, String.class);
             }
-            return (String) nameExpression.getValue(ctx.getELContext());
+            return nameExpression.getValue(ctx.getELContext());
         }
 
         String getLibrary(FacesContext ctx) {
@@ -182,7 +173,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
                 if (libraryExpression == null) {
                     libraryExpression = ELUtils.createValueExpression(library, String.class);
                 }
-                return (String) libraryExpression.getValue(ctx.getELContext());
+                return libraryExpression.getValue(ctx.getELContext());
             }
             return null;
         }
@@ -192,7 +183,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
                 if (targetExpression == null) {
                     targetExpression = ELUtils.createValueExpression(target, String.class);
                 }
-                return (String) targetExpression.getValue(ctx.getELContext());
+                return targetExpression.getValue(ctx.getELContext());
             }
             return null;
         }
