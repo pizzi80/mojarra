@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.application.NavigationHandlerImpl;
 import com.sun.faces.flow.FlowHandlerImpl;
 import com.sun.faces.renderkit.Attribute;
@@ -95,11 +96,11 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
      * @param context the {@link FacesContext} for the current request
      * @param component the target {@link UIComponent}
      *
-     * @return the NavigationCase represeting the outcome target
+     * @return the NavigationCase representing the outcome target
      */
     protected NavigationCase getNavigationCase(FacesContext context, UIComponent component) {
         NavigationHandler navHandler = context.getApplication().getNavigationHandler();
-        if (!(navHandler instanceof ConfigurableNavigationHandler)) {
+        if (!(navHandler instanceof ConfigurableNavigationHandler configurableNavigationHandler)) {
             if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING, "faces.outcome.target.invalid.navigationhandler.type", component.getId());
             }
@@ -114,13 +115,13 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
             // return new NavigationCase(viewId, null, null, null, viewId, false, false);
         }
         String toFlowDocumentId = (String) component.getAttributes().get(ActionListener.TO_FLOW_DOCUMENT_ID_ATTR_NAME);
-        NavigationCase navCase = null;
         NavigationHandlerImpl.setResetFlowHandlerStateIfUnset(context, false);
+        final NavigationCase navCase;
         try {
             if (null == toFlowDocumentId) {
-                navCase = ((ConfigurableNavigationHandler) navHandler).getNavigationCase(context, null, outcome);
+                navCase = configurableNavigationHandler.getNavigationCase(context, null, outcome);
             } else {
-                navCase = ((ConfigurableNavigationHandler) navHandler).getNavigationCase(context, null, outcome, toFlowDocumentId);
+                navCase = configurableNavigationHandler.getNavigationCase(context, null, outcome, toFlowDocumentId);
             }
         } finally {
             NavigationHandlerImpl.unsetResetFlowHandlerState(context);
@@ -153,7 +154,7 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
         String toViewId = navCase.getToViewId(context);
         Map<String, List<String>> params = getParamOverrides(component);
         addNavigationParams(navCase, params);
-        String result = null;
+        final String result;
         boolean didDisableClientWindowRendering = false;
         ClientWindow cw = null;
 
@@ -192,7 +193,7 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
                 if (!existingParams.containsKey(navParamName)) {
                     if (entry.getValue().size() == 1) {
                         String value = entry.getValue().get(0);
-                        String sanitized = null != value && 2 < value.length() ? value.trim() : "";
+                        String sanitized = null != value && 2 < value.length() ? value.trim() : RIConstants.NO_VALUE;
                         if (sanitized.contains("#{") || sanitized.contains("${")) {
                             FacesContext fc = FacesContext.getCurrentInstance();
                             value = fc.getApplication().evaluateExpressionGet(fc, value, String.class);
@@ -218,8 +219,7 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
 
                 FacesContext context = FacesContext.getCurrentInstance();
                 FlowHandler fh = context.getApplication().getFlowHandler();
-                if (fh instanceof FlowHandlerImpl) {
-                    FlowHandlerImpl fhi = (FlowHandlerImpl) fh;
+                if (fh instanceof FlowHandlerImpl fhi) {
                     List<String> flowReturnDepthValues = new ArrayList<>();
                     flowReturnDepthValues.add(Integer.toString(fhi.getAndClearReturnModeDepth(context)));
                     existingParams.put(FlowHandlerImpl.FLOW_RETURN_DEPTH_PARAM_NAME, flowReturnDepthValues);
@@ -245,9 +245,11 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
         for (Param candidate : declaredParams) {
             // QUESTION shouldn't the trimming of name should be done elsewhere?
             // null value is allowed as a way to suppress page parameter
-            if (candidate.name != null && !candidate.name.isBlank() ) {
+            if (candidate.name != null) {
                 candidate.name = candidate.name.trim();
-                params.computeIfAbsent(candidate.name, k -> new ArrayList<>()).add(candidate.value);
+                if ( !candidate.name.isEmpty() ) {
+                    params.computeIfAbsent(candidate.name, k -> new ArrayList<>()).add(candidate.value);
+                }
             }
         }
 
