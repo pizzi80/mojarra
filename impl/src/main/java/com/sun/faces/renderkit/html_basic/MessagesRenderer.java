@@ -21,6 +21,7 @@ package com.sun.faces.renderkit.html_basic;
 import java.io.IOException;
 import java.util.Iterator;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.renderkit.Attribute;
 import com.sun.faces.renderkit.AttributeManager;
 import com.sun.faces.renderkit.RenderKitUtils;
@@ -74,12 +75,12 @@ public class MessagesRenderer extends HtmlBasicRenderer {
             // and the author explicitly only wants global messages
             if (messages.isGlobalOnly()) {
                 // make it so only global messages get displayed.
-                clientId = "";
+                clientId = RIConstants.NO_VALUE;
             }
         }
 
         // "for" attribute optional for Messages
-        Iterator messageIter = getMessageIter(context, clientId, component);
+        Iterator<FacesMessage> messageIter = getMessageIter(context, clientId, component);
 
         assert messageIter != null;
 
@@ -124,7 +125,7 @@ public class MessagesRenderer extends HtmlBasicRenderer {
         RenderKitUtils.renderPassThruAttributes(context, writer, component, ATTRIBUTES);
 
         while (messageIter.hasNext()) {
-            FacesMessage curMessage = (FacesMessage) messageIter.next();
+            FacesMessage curMessage = messageIter.next();
             if (curMessage.isRendered() && !messages.isRedisplay()) {
                 continue;
             }
@@ -135,7 +136,7 @@ public class MessagesRenderer extends HtmlBasicRenderer {
 
             // make sure we have a non-null value for summary and
             // detail.
-            String summary = null != (summary = curMessage.getSummary()) ? summary : "";
+            String summary = null != (summary = curMessage.getSummary()) ? summary : RIConstants.NO_VALUE;
             // Default to summary if we have no detail
             String detail = null != (detail = curMessage.getDetail()) ? detail : summary;
 
@@ -153,7 +154,7 @@ public class MessagesRenderer extends HtmlBasicRenderer {
                 severityStyleClass = (String) component.getAttributes().get("fatalClass");
             }
 
-            // Done intializing local variables. Move on to rendering.
+            // Done initializing local variables. Move on to rendering.
 
             if (wroteTable) {
                 writer.startElement("tr", component);
@@ -174,13 +175,13 @@ public class MessagesRenderer extends HtmlBasicRenderer {
             }
 
             Object val = component.getAttributes().get("tooltip");
-            boolean isTooltip = val != null && Boolean.valueOf(val.toString());
+            boolean isTooltip = val != null && Boolean.parseBoolean(val.toString());
 
             boolean wroteTooltip = false;
             if (isTooltip) {
                 writer.startElement("span", component);
                 String title = (String) component.getAttributes().get("title");
-                if (title == null || title.length() == 0) {
+                if (title == null || title.isEmpty()) {
                     writer.writeAttribute("title", detail, "title");
                 }
                 writer.flush();
