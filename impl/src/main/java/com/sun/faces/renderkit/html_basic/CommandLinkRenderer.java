@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.renderkit.Attribute;
 import com.sun.faces.renderkit.AttributeManager;
 import com.sun.faces.renderkit.RenderKitUtils;
@@ -162,7 +163,7 @@ public class CommandLinkRenderer extends LinkRenderer {
         if (target != null) {
             target = target.trim();
         } else {
-            target = "";
+            target = RIConstants.NO_VALUE;
         }
 
         Collection<ClientBehaviorContext.Parameter> params = getBehaviorParameters(command);
