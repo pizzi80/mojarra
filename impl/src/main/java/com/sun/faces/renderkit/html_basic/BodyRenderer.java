@@ -17,7 +17,6 @@
 package com.sun.faces.renderkit.html_basic;
 
 import java.io.IOException;
-import java.util.ListIterator;
 
 import com.sun.faces.renderkit.Attribute;
 import com.sun.faces.renderkit.AttributeManager;
@@ -58,7 +57,7 @@ public class BodyRenderer extends HtmlBasicRenderer {
             writeIdAttributeIfNecessary(context, writer, component);
         }
         String styleClass = (String) component.getAttributes().get("styleClass");
-        if (styleClass != null && styleClass.length() != 0) {
+        if (styleClass != null && !styleClass.isEmpty()) {
             writer.writeAttribute("class", styleClass, "styleClass");
         }
         RenderKitUtils.renderPassThruAttributes(context, writer, component, BODY_ATTRIBUTES);
@@ -73,9 +72,7 @@ public class BodyRenderer extends HtmlBasicRenderer {
     public void encodeEnd(FacesContext context, UIComponent component) throws IOException {
         ResponseWriter writer = context.getResponseWriter();
         UIViewRoot viewRoot = context.getViewRoot();
-        ListIterator iter = viewRoot.getComponentResources(context, "body").listIterator();
-        while (iter.hasNext()) {
-            UIComponent resource = (UIComponent) iter.next();
+        for (UIComponent resource : viewRoot.getComponentResources(context, "body")) {
             resource.encodeAll(context);
         }
         RenderKitUtils.renderUnhandledMessages(context);
