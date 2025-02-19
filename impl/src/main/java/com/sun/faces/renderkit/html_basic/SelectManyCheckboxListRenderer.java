@@ -300,7 +300,7 @@ public class SelectManyCheckboxListRenderer extends MenuRenderer {
             style = optionInfo.getUnselectedClass();
         }
         if (style != null) {
-            if (labelClass.length() > 0) {
+            if (!labelClass.isEmpty()) {
                 labelClass.append(' ');
             }
             labelClass.append(style);
