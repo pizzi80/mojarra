@@ -34,7 +34,7 @@ import com.sun.faces.RIConstants;
 /**
  * Utility class for HTML. Kudos to Adam Winer (Oracle) for much of this code.
  */
-public class HtmlUtils {
+public final class HtmlUtils {
     private HtmlUtils() {}
 
     private final static Set<String> UTF_CHARSET = Set.of("UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "UTF-32", "UTF-32BE", "UTF-32LE",
@@ -262,7 +262,7 @@ public class HtmlUtils {
                 if (ch >= 0x3f) {
                     if (ch == 's') {
                         // If putting scripts in attribute values
-                        // has been disabled (the defualt), look for
+                        // has been disabled (the default), look for
                         // script: in the attribute value.
                         // ensure the attribute value is long enough
                         // to accomodate "script:"
