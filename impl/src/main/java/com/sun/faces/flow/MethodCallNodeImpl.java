@@ -57,7 +57,7 @@ public class MethodCallNodeImpl extends MethodCallNode implements Serializable {
 
         ExpressionFactory ef = context.getApplication().getExpressionFactory();
         Class<?>[] paramTypes = new Class[0];
-        if (0 < parameters.size()) {
+        if (!parameters.isEmpty()) {
             paramTypes = new Class[parameters.size()];
             int i = 0;
             for (Parameter cur : parameters) {
@@ -89,7 +89,7 @@ public class MethodCallNodeImpl extends MethodCallNode implements Serializable {
 
     private ValueExpression outcome;
 
-    private List<Parameter> _parameters;
+    private final List<Parameter> _parameters;
     private List<Parameter> parameters;
 
     @Override
