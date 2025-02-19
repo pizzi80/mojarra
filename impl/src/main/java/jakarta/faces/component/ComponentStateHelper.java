@@ -331,7 +331,9 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
                 defaultMap.remove(serializable);
                 deltaMap.remove(serializable);
 
-                values.forEach(o -> add(serializable, o));
+                for (Object v : values) {
+                    add(serializable, v);
+                }
             } else {
                 put(serializable, value);
                 handleAttribute(serializable.toString(), value);
