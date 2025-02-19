@@ -25,6 +25,7 @@ import static java.util.logging.Level.FINE;
 import java.io.IOException;
 import java.net.URLEncoder;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.renderkit.Attribute;
 import com.sun.faces.renderkit.AttributeManager;
 import com.sun.faces.renderkit.RenderKitUtils;
@@ -121,8 +122,8 @@ public class OutputLinkRenderer extends LinkRenderer {
     protected String getFragment(UIComponent component) {
 
         String fragment = (String) component.getAttributes().get("fragment");
-        fragment = fragment != null ? fragment.trim() : "";
-        if (fragment.length() > 0) {
+        fragment = fragment != null ? fragment.trim() : RIConstants.NO_VALUE;
+        if (!fragment.isEmpty()) {
             fragment = "#" + fragment;
         }
         return fragment;
@@ -161,8 +162,8 @@ public class OutputLinkRenderer extends LinkRenderer {
             writer.writeAttribute("name", writtenId, "name");
         }
         // render an empty value for href if it is not specified
-        if (null == hrefVal || 0 == hrefVal.length()) {
-            hrefVal = "";
+        if (null == hrefVal || hrefVal.isEmpty()) {
+            hrefVal = RIConstants.NO_VALUE;
         }
 
         // Write Anchor attributes
@@ -174,12 +175,12 @@ public class OutputLinkRenderer extends LinkRenderer {
 
         for (Param param : paramList) {
             String pn = param.name;
-            if (pn != null && pn.length() != 0) {
+            if (pn != null && !pn.isEmpty()) {
                 String pv = param.value;
                 sb.append(paramWritten ? '&' : '?');
                 sb.append(URLEncoder.encode(pn, UTF_8));
                 sb.append('=');
-                if (pv != null && pv.length() != 0) {
+                if (pv != null && !pv.isEmpty()) {
                     sb.append(URLEncoder.encode(pv, UTF_8));
                 }
                 paramWritten = true;
@@ -191,7 +192,7 @@ public class OutputLinkRenderer extends LinkRenderer {
         RenderKitUtils.renderXHTMLStyleBooleanAttributes(writer, component);
 
         String target = (String) component.getAttributes().get("target");
-        if (target != null && target.trim().length() != 0) {
+        if (target != null && !target.isBlank()) {
             writer.writeAttribute("target", target, "target");
         }
 
