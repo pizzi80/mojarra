@@ -38,7 +38,7 @@ public class OutcomeTargetLinkRenderer extends OutcomeTargetRenderer {
     private static final String NO_NAV_CASE = OutcomeTargetLinkRenderer.class.getName() + "_NO_NAV_CASE";
 
     // Attributes that are to excluded from rendering for this renderer.
-    private static final List<String> EXCLUDED_ATTRIBUTES = Arrays.asList("disabled");
+    private static final List<String> EXCLUDED_ATTRIBUTES = List.of("disabled");
 
     // --------------------------------------------------- Methods from Renderer
 
@@ -148,7 +148,7 @@ public class OutcomeTargetLinkRenderer extends OutcomeTargetRenderer {
 
         // this is common to both link and button target renderers
         String styleClass = (String) component.getAttributes().get("styleClass");
-        if (styleClass != null && styleClass.length() > 0) {
+        if (styleClass != null && !styleClass.isEmpty()) {
             writer.writeAttribute("class", styleClass, "styleClass");
         }
 
@@ -156,12 +156,12 @@ public class OutcomeTargetLinkRenderer extends OutcomeTargetRenderer {
         // they all share the same base properties file which marks them as non
         // pass-through
         String target = (String) component.getAttributes().get("target");
-        if (target != null && target.length() > 0) {
+        if (target != null && !target.isEmpty()) {
             writer.writeAttribute("target", target, "target");
         }
 
         String onclick = (String) component.getAttributes().get("onclick");
-        if (onclick != null && onclick.length() > 0) {
+        if (onclick != null && !onclick.isEmpty()) {
             writer.writeAttribute("onclick", onclick, "onclick");
         }
     }
