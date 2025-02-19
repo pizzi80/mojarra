@@ -78,7 +78,7 @@ public abstract class LinkRenderer extends HtmlBasicRenderer {
             label = v.toString();
         }
 
-        if (label != null && label.length() != 0) {
+        if (label != null && !label.isEmpty()) {
             if (logger.isLoggable(Level.FINE)) {
                 logger.fine("Value to be rendered " + label);
             }
