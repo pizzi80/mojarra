@@ -20,6 +20,7 @@ package com.sun.faces.renderkit.html_basic;
 
 import java.io.IOException;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.renderkit.Attribute;
 import com.sun.faces.renderkit.AttributeManager;
 import com.sun.faces.renderkit.RenderKitUtils;
@@ -55,7 +56,7 @@ public class SecretRenderer extends HtmlBasicInputRenderer {
 
         String redisplay = String.valueOf(component.getAttributes().get("redisplay"));
         if (redisplay == null || !redisplay.equals("true")) {
-            currentValue = "";
+            currentValue = RIConstants.NO_VALUE;
         }
 
         writer.startElement("input", component);
