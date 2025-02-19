@@ -16,6 +16,8 @@
 
 package com.sun.faces.facelets.tag.jstl.fn;
 
+import static com.sun.faces.RIConstants.NO_VALUE;
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,37 +39,37 @@ public final class JstlFunction {
 
     public static boolean contains(String name, String searchString) {
         if (name == null) {
-            name = "";
+            name = NO_VALUE;
         }
         if (searchString == null) {
-            searchString = "";
+            searchString = NO_VALUE;
         }
         return name.contains(searchString);
     }
 
     public static boolean containsIgnoreCase(String name, String searchString) {
         if (name == null) {
-            name = "";
+            name = NO_VALUE;
         }
         if (searchString == null) {
-            searchString = "";
+            searchString = NO_VALUE;
         }
         return name.toLowerCase().contains(searchString.toLowerCase());
     }
 
     public static boolean endsWith(String name, String searchString) {
         if (name == null) {
-            name = "";
+            name = NO_VALUE;
         }
         if (searchString == null) {
-            searchString = "";
+            searchString = NO_VALUE;
         }
         return name.endsWith(searchString);
     }
 
     public static String escapeXml(String value) {
-        if (value == null || value.length() == 0) {
-            value = "";
+        if (value == null || value.isEmpty()) {
+            value = NO_VALUE;
         }
         StringBuilder b = new StringBuilder(value.length());
         for (int i = 0, len = value.length(); i < len; i++) {
@@ -91,20 +93,20 @@ public final class JstlFunction {
 
     public static int indexOf(String name, String searchString) {
         if (name == null) {
-            name = "";
+            name = NO_VALUE;
         }
         if (searchString == null) {
-            searchString = "";
+            searchString = NO_VALUE;
         }
         return name.indexOf(searchString);
     }
 
     public static String join(String[] a, String delim) {
         if (a == null || a.length == 0) {
-            return "";
+            return NO_VALUE;
         }
         boolean skipDelim = false;
-        if (delim == null || delim.length() == 0) {
+        if (delim == null || delim.isEmpty()) {
             skipDelim = true;
         }
         StringBuilder sb = new StringBuilder();
@@ -156,19 +158,19 @@ public final class JstlFunction {
 
     public static String replace(String value, String before, String after) {
         if (value == null) {
-            value = "";
+            value = NO_VALUE;
         }
         if (before == null) {
-            before = "";
+            before = NO_VALUE;
         }
-        if (before.length() == 0) {
+        if (before.isEmpty()) {
             return value;
         }
-        if (value.length() == 0) {
-            return "";
+        if (value.isEmpty()) {
+            return NO_VALUE;
         }
         if (after == null) {
-            after = "";
+            after = NO_VALUE;
         }
 
         return value.replaceAll(before, after);
@@ -176,15 +178,15 @@ public final class JstlFunction {
 
     public static String[] split(String value, String d) {
         if (value == null) {
-            value = "";
+            value = NO_VALUE;
         }
-        if (value.length() == 0) {
-            return new String[] { "" };
+        if (value.isEmpty()) {
+            return new String[] { NO_VALUE };
         }
         if (d == null) {
-            d = "";
+            d = NO_VALUE;
         }
-        if (d.length() == 0) {
+        if (d.isEmpty()) {
             return new String[] { value };
         }
 
@@ -198,20 +200,20 @@ public final class JstlFunction {
 
     public static boolean startsWith(String value, String p) {
         if (value == null) {
-            value = "";
+            value = NO_VALUE;
         }
         if (p == null) {
-            p = "";
+            p = NO_VALUE;
         }
         return value.startsWith(p);
     }
 
     public static String substring(String v, int s, int e) {
         if (v == null) {
-            v = "";
+            v = NO_VALUE;
         }
         if (s >= v.length()) {
-            return "";
+            return NO_VALUE;
         }
         if (s < 0) {
             s = 0;
@@ -220,62 +222,62 @@ public final class JstlFunction {
             e = v.length();
         }
         if (e < s) {
-            return "";
+            return NO_VALUE;
         }
         return v.substring(s, e);
     }
 
     public static String substringAfter(String v, String p) {
         if (v == null) {
-            v = "";
+            v = NO_VALUE;
         }
-        if (v.length() == 0) {
-            return "";
+        if (v.isEmpty()) {
+            return NO_VALUE;
         }
         if (p == null) {
-            p = "";
+            p = NO_VALUE;
         }
         int i = v.indexOf(p);
         if (i == -1) {
-            return "";
+            return NO_VALUE;
         }
         return v.substring(i + p.length());
     }
 
     public static String substringBefore(String v, String s) {
         if (v == null) {
-            v = "";
+            v = NO_VALUE;
         }
-        if (v.length() == 0) {
-            return "";
+        if (v.isEmpty()) {
+            return NO_VALUE;
         }
         if (s == null) {
-            s = "";
+            s = NO_VALUE;
         }
         int i = v.indexOf(s);
         if (i == -1) {
-            return "";
+            return NO_VALUE;
         }
         return v.substring(0, i);
     }
 
     public static String toLowerCase(String v) {
-        if (v == null || v.length() == 0) {
-            return "";
+        if (v == null || v.isEmpty()) {
+            return NO_VALUE;
         }
         return v.toLowerCase();
     }
 
     public static String toUpperCase(String v) {
-        if (v == null || v.length() == 0) {
-            return "";
+        if (v == null || v.isEmpty()) {
+            return NO_VALUE;
         }
         return v.toUpperCase();
     }
 
     public static String trim(String v) {
-        if (v == null || v.length() == 0) {
-            return "";
+        if (v == null || v.isEmpty()) {
+            return NO_VALUE;
         }
         return v.trim();
     }
