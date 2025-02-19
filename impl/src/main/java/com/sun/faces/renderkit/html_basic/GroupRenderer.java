@@ -119,7 +119,7 @@ public class GroupRenderer extends HtmlBasicRenderer {
      *
      * @return <code>true</code> if we need to render a div or span element around this group.
      */
-    private boolean divOrSpan(UIComponent component) {
+    private static boolean divOrSpan(UIComponent component) {
 
         return shouldWriteIdAttribute(component) || component.getAttributes().get("style") != null || component.getAttributes().get("styleClass") != null;
 
