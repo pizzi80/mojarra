@@ -480,7 +480,6 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
         return false;
     }
 
-    @SuppressWarnings("unchecked")
     protected Object getCurrentSelectedValues(UIComponent component) {
 
         if (component instanceof UISelectMany select) {
@@ -488,14 +487,16 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
             if (value == null) {
                 return null;
             }
-            if (value instanceof Collection) {
-                return ((Collection<Object>) value).toArray();
-            } else if (value.getClass().isArray()) {
-                if (getLength(value) == 0) {
-                    return null;
+            if (value instanceof Collection collection) {
+                return collection.toArray();
+            } else {
+                if (value.getClass().isArray()) {
+                    if (getLength(value) == 0) {
+                        return null;
+                    }
+                } else {
+                    logger.warning("The UISelectMany value should be an array or a collection type, the actual type is " + value.getClass().getName());
                 }
-            } else if (!value.getClass().isArray()) {
-                logger.warning("The UISelectMany value should be an array or a collection type, the actual type is " + value.getClass().getName());
             }
 
             return value;
@@ -721,7 +722,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
      *
      * @return a new <code>Collection</code> instance or null if the instance cannot be created
      */
-    protected Collection<Object> createCollection(Collection<Object> collection, Class<? extends Collection<Object>> fallBackType) {
+    protected static Collection<Object> createCollection(Collection<Object> collection, Class<? extends Collection<Object>> fallBackType) {
 
         Class<?> lookupClass = fallBackType;
         if (collection != null) {
@@ -753,7 +754,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
      * @return the result of invoking <code>clone()</code> or <code>null</code> if the value could not be cloned or does not
      * implement the {@link Cloneable} interface
      */
-    protected Collection<Object> cloneValue(Object value) {
+    protected static Collection<Object> cloneValue(Object value) {
 
         if (value instanceof Cloneable) {
 
@@ -792,7 +793,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
      * @param initialSize the initial size of the <code>Collection</code>
      * @return a <code>Collection</code> instance that best matches <code>type</code>
      */
-    protected Collection<Object> bestGuess(Class<? extends Collection<Object>> type, int initialSize) {
+    protected static Collection<Object> bestGuess(Class<? extends Collection<Object>> type, int initialSize) {
 
         if (SortedSet.class.isAssignableFrom(type)) {
             return new TreeSet<>();
@@ -917,7 +918,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
         return disabledSelectItemValues;
     }
 
-    private boolean isNoValueOrNull(String newValue, UIComponent component) {
+    private static boolean isNoValueOrNull(String newValue, UIComponent component) {
         if (NO_VALUE.equals(newValue)) {
             return true;
         }
