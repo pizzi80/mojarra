@@ -290,7 +290,7 @@ public class FacesFlowDefinitionConfigProcessor extends AbstractConfigProcessor 
 
         if (null != nameList && 1 == nameList.getLength()) {
             nameStr = nameList.item(0).getNodeValue().trim();
-            if (0 < nameStr.length()) {
+            if (!nameStr.isEmpty()) {
                 ApplicationAssociate associate = ApplicationAssociate.getInstance(context.getExternalContext());
                 try {
                     associate.relateUrlToDefiningDocumentInJar(definingDocumentURI.toURL(), nameStr);
