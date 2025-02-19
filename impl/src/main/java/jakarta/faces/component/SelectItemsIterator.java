@@ -26,6 +26,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import com.sun.faces.RIConstants;
+
 import jakarta.el.ValueExpression;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.model.SelectItem;
@@ -155,8 +157,7 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
      */
     private void initializeItems(Object kid) {
 
-        if (kid instanceof UISelectItem) {
-            UISelectItem ui = (UISelectItem) kid;
+        if (kid instanceof UISelectItem ui) {
             SelectItem item = (SelectItem) ui.getValue();
             if (item == null) {
                 item = new SelectItem(ui.getItemValue(), ui.getItemLabel(), ui.getItemDescription(), ui.isItemDisabled(), ui.isItemEscaped(),
@@ -164,8 +165,7 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
             }
             updateSingeItemIterator(item);
             items = singleItemIterator;
-        } else if (kid instanceof UISelectItems) {
-            UISelectItems ui = (UISelectItems) kid;
+        } else if (kid instanceof UISelectItems ui) {
             Object value = ui.getValue();
             if (value != null) {
                 if (value instanceof SelectItem) {
@@ -301,7 +301,7 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
             Object key = entry.getKey();
             Object value = entry.getValue();
             item.setLabel(key != null ? key.toString() : value.toString());
-            item.setValue(value != null ? value : "");
+            item.setValue(value != null ? value : RIConstants.NO_VALUE);
             return item;
 
         }
@@ -448,9 +448,9 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
                     setValue(itemValueResult != null ? itemValueResult : value);
                     setLabel(itemLabelResult != null ? itemLabelResult.toString() : value.toString());
                     setDescription(itemDescriptionResult != null ? itemDescriptionResult.toString() : null);
-                    setEscape(itemEscapedResult != null ? Boolean.valueOf(itemEscapedResult.toString()) : true);
-                    setDisabled(itemDisabledResult != null ? Boolean.valueOf(itemDisabledResult.toString()) : false);
-                    setNoSelectionOption(noSelectionOptionResult != null ? Boolean.valueOf(noSelectionOptionResult.toString()) : false);
+                    setEscape(itemEscapedResult != null ? Boolean.parseBoolean(itemEscapedResult.toString()) : true);
+                    setDisabled(itemDisabledResult != null ? Boolean.parseBoolean(itemDisabledResult.toString()) : false);
+                    setNoSelectionOption(noSelectionOptionResult != null ? Boolean.parseBoolean(noSelectionOptionResult.toString()) : false);
                 } finally {
                     if (var != null) {
                         if (oldVarValue != null) {
@@ -482,7 +482,7 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
     } // END GenericObjectSelectItemIterator
 
     /**
-     * Handles arrays of <code>SelectItem</code>s, generic Objects, or combintations of both.
+     * Handles arrays of <code>SelectItem</code>s, generic Objects, or combinations of both.
      *
      * A single <code>GenericObjectSelectItem</code> will be leverage for any non-<code>SelectItem</code> objects
      * encountered.
