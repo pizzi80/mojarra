@@ -126,7 +126,7 @@ public class RegexValidator implements Validator, PartialStateHolder {
 
         Locale locale = context.getViewRoot().getLocale();
 
-        if (regex == null || regex.length() == 0) {
+        if (regex == null || regex.isEmpty()) {
             fmsg = MessageFactory.getMessage(locale, PATTERN_NOT_SET_MESSAGE_ID, (Object) null);
             throw new ValidatorException(fmsg);
         }
@@ -154,7 +154,7 @@ public class RegexValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (!initialStateMarked()) {
-            Object values[] = new Object[1];
+            Object[] values = new Object[1];
             values[0] = regex;
 
             return values;
@@ -170,7 +170,7 @@ public class RegexValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (state != null) {
-            Object values[] = (Object[]) state;
+            Object[] values = (Object[]) state;
             regex = (String) values[0];
         }
 
