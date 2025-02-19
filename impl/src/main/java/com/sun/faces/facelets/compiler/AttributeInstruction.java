@@ -45,7 +45,7 @@ final class AttributeInstruction implements Instruction {
         try {
             ELContext elContext = context.getELContext();
             String val = txt.toString(elContext);
-            if (val != null && val.length() != 0) {
+            if (val != null && !val.isEmpty()) {
                 out.writeAttribute(attr, val, null);
             }
         } catch (ELException e) {
