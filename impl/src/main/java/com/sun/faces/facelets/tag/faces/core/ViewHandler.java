@@ -135,7 +135,7 @@ public final class ViewHandler extends TagHandlerImpl {
             }
 
             if (transientFlag != null) {
-                Boolean b = Boolean.valueOf(transientFlag.getValue(ctx));
+                boolean b = Boolean.parseBoolean(transientFlag.getValue(ctx));
                 root.setTransient(b);
             }
 
@@ -144,7 +144,7 @@ public final class ViewHandler extends TagHandlerImpl {
             // At this point in the lifecycle we should have a non-null/empty
             // view id. The partial state saving check below requires this.
             assert null != viewId;
-            assert 0 < viewId.length();
+            assert !viewId.isEmpty();
 
         }
 
