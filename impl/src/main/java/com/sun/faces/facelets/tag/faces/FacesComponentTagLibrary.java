@@ -75,7 +75,7 @@ public class FacesComponentTagLibrary extends LazyTagLibrary {
             FacesComponent curFacesComponent = cur.getAnnotation();
             tagName = curFacesComponent.tagName();
             // if the current entry has an explicitly declared tagName...
-            if (null != tagName && 0 < tagName.length()) {
+            if (null != tagName && !tagName.isEmpty()) {
                 // compare it to the argument tagName
                 if (localName.equals(tagName)) {
                     result = cur;
@@ -102,7 +102,7 @@ public class FacesComponentTagLibrary extends LazyTagLibrary {
             FacesComponentUsage facesComponentUsage = findFacesComponentUsageForLocalName(ns, localName);
             String componentType = facesComponentUsage.getAnnotation().value();
 
-            if (null == componentType || 0 == componentType.length()) {
+            if (null == componentType || componentType.isEmpty()) {
                 componentType = facesComponentUsage.getTarget().getSimpleName();
                 componentType = Character.toLowerCase(componentType.charAt(0)) + componentType.substring(1);
             }
@@ -117,10 +117,10 @@ public class FacesComponentTagLibrary extends LazyTagLibrary {
 
     @Override
     public boolean tagLibraryForNSExists(String ns) {
-        boolean result = false;
+
         List<FacesComponentUsage> componentsForNamespace = appAss.getComponentsForNamespace(ns);
 
-        result = !componentsForNamespace.isEmpty();
+        boolean result = !componentsForNamespace.isEmpty();
 
         return result;
     }
