@@ -37,7 +37,7 @@ import jakarta.faces.context.FacesContext;
  * </p>
  */
 
-public class MessageFactory {
+public final class MessageFactory {
 
     private static final String MOJARRA_RESOURCE_BASENAME = "com.sun.faces.resources.Messages";
 
@@ -219,7 +219,7 @@ public class MessageFactory {
     public static Object getLabel(FacesContext context, UIComponent component) {
 
         Object o = component.getAttributes().get("label");
-        if (o == null || o instanceof String && ((String) o).length() == 0) {
+        if (o == null || o instanceof String && ((String) o).isEmpty()) {
             o = component.getValueExpression("label");
         }
         // Use the "clientId" if there was no label specified.
