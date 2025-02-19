@@ -314,7 +314,7 @@ public abstract class BaseTableRenderer extends HtmlBasicRenderer {
             if (columnStyleCounter < columnClasses.length && columnStyleCounter <= columnCount) {
                 style = columnClasses[columnStyleCounter++];
             }
-            return style != null && style.length() > 0 ? style : null;
+            return style != null && !style.isEmpty() ? style : null;
 
         }
 
