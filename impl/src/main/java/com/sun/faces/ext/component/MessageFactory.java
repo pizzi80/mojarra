@@ -21,6 +21,8 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
+import com.sun.faces.RIConstants;
+
 import jakarta.el.ValueExpression;
 import jakarta.faces.FactoryFinder;
 import jakarta.faces.application.Application;
@@ -36,7 +38,7 @@ import jakarta.faces.context.FacesContext;
  * </p>
  */
 
-public class MessageFactory {
+public final class MessageFactory {
 
     private static final String MOJARRA_RESOURCE_BASENAME = "com.sun.faces.resources.Messages";
 
@@ -50,7 +52,7 @@ public class MessageFactory {
      *
      * @param context - the <code>FacesContext</code> for the current request
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
@@ -87,7 +89,7 @@ public class MessageFactory {
      *
      * @param locale - the target <code>Locale</code>
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
@@ -164,7 +166,7 @@ public class MessageFactory {
     public static Object getLabel(FacesContext context, UIComponent component) {
 
         Object o = component.getAttributes().get("label");
-        if (o == null || o instanceof String && ((String) o).length() == 0) {
+        if (o == null || o instanceof String string && string.isEmpty()) {
             o = component.getValueExpression("label");
         }
         // Use the "clientId" if there was no label specified.
@@ -179,8 +181,8 @@ public class MessageFactory {
         if (context != null) {
             return FacesContext.getCurrentInstance().getApplication();
         }
-        ApplicationFactory afactory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
-        return afactory.getApplication();
+        ApplicationFactory factory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
+        return factory.getApplication();
     }
 
     private static ClassLoader getCurrentLoader(Class fallbackClass) {
@@ -199,10 +201,13 @@ public class MessageFactory {
      * the expression to be evaluated when that property is available.
      */
     static class BindingFacesMessage extends FacesMessage {
-        /**
-         *
-         */
+
         private static final long serialVersionUID = 7020392746585505562L;
+
+        private final Locale locale;
+        private final Object[] parameters;
+        private Object[] resolvedParameters;
+
         BindingFacesMessage(Locale locale, String messageFormat, String detailMessageFormat,
                 // array of parameters, both Strings and ValueBindings
                 Object[] parameters) {
@@ -242,7 +247,7 @@ public class MessageFactory {
                     }
                     // to avoid 'null' appearing in message
                     if (o == null) {
-                        o = "";
+                        o = RIConstants.NO_VALUE;
                     }
                     resolvedParameters[i] = o;
                 }
@@ -250,13 +255,12 @@ public class MessageFactory {
         }
 
         private String getFormattedString(String msgtext, Object[] params) {
-            String localizedStr = null;
-
             if (params == null || msgtext == null) {
                 return msgtext;
             }
             StringBuilder b = new StringBuilder(100);
             MessageFormat mf = new MessageFormat(msgtext);
+            String localizedStr = null;
             if (locale != null) {
                 mf.setLocale(locale);
                 b.append(mf.format(params));
@@ -265,9 +269,6 @@ public class MessageFactory {
             return localizedStr;
         }
 
-        private Locale locale;
-        private Object[] parameters;
-        private Object[] resolvedParameters;
     }
 
 } // end of class MessageFactory
