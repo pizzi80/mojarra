@@ -319,7 +319,7 @@ public class TableRenderer extends BaseTableRenderer {
             boolean isRowHeader = false;
             Object rowHeaderValue = column.getAttributes().get("rowHeader");
             if (null != rowHeaderValue) {
-                isRowHeader = Boolean.valueOf(rowHeaderValue.toString());
+                isRowHeader = Boolean.parseBoolean(rowHeaderValue.toString());
             }
             if (isRowHeader) {
                 writer.startElement("th", column);
