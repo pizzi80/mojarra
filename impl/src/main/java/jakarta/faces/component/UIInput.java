@@ -22,6 +22,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.sun.faces.RIConstants;
+
 import jakarta.el.ELException;
 import jakarta.el.ValueExpression;
 import jakarta.faces.FacesException;
@@ -254,7 +256,7 @@ public class UIInput extends UIOutput implements EditableValueHolder {
     @Override
     public Object getSubmittedValue() {
         if (submittedValue == null && !isValid() && considerEmptyStringNull(FacesContext.getCurrentInstance())) { // JAVASERVERFACES_SPEC_PUBLIC-671
-            return "";
+            return RIConstants.NO_VALUE;
         } else {
             return submittedValue;
         }
@@ -806,7 +808,7 @@ public class UIInput extends UIOutput implements EditableValueHolder {
         // call setSubmittedValue(null)
         if ((considerEmptyStringNull(context)
              && submittedValue instanceof String
-             && ((String) submittedValue).length() == 0)) {
+             && ((String) submittedValue).isEmpty())) {
             setSubmittedValue(null);
             submittedValue = null;
         }
