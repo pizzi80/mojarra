@@ -16,8 +16,6 @@
 
 package com.sun.faces.util;
 
-import jakarta.faces.model.SelectItem;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableMap;
 
@@ -29,11 +27,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import jakarta.faces.model.SelectItem;
+
 /**
  * @author asmirnov@exadel.com
  *
  */
-public class CollectionsUtils {
+public final class CollectionsUtils {
 
     private CollectionsUtils() {
         // this class contains static methods only.
@@ -62,7 +62,7 @@ public class CollectionsUtils {
         private static final long serialVersionUID = 7233295794116070299L;
 
         public ConstMap() {
-            super(50, 1.0F);
+            super(Util.calculateMapCapacity(50));
         }
 
         public ConstMap<T, V> add(T key, V value) {
