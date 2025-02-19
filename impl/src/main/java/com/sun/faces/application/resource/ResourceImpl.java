@@ -295,7 +295,7 @@ public class ResourceImpl extends Resource implements Externalizable {
             version += resourceInfo.getVersion().toString();
         }
 
-        if (version.length() > 0) {
+        if (!version.isEmpty()) {
             uri += (queryStarted ? "&v=" : "?v=") + version;
             queryStarted = true;
         }
