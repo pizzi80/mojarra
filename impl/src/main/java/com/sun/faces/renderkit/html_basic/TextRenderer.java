@@ -19,8 +19,6 @@
 package com.sun.faces.renderkit.html_basic;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import com.sun.faces.config.WebConfiguration;
@@ -48,21 +46,16 @@ public class TextRenderer extends HtmlBasicInputRenderer {
     private static final Attribute[] INPUTFILE_ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.INPUTFILE);
     private static final Attribute[] OUTPUT_ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.OUTPUTTEXT);
 
-    private static final Map<String, String> RECOMMENDED_COMPONENTS_BY_DISCOMMENDED_TYPES = mapRecommendedComponentsByDiscommendedTypes();
-
-    private static Map<String, String> mapRecommendedComponentsByDiscommendedTypes() {
-        Map<String, String> map = new HashMap<>(9);
-        map.put("hidden", "<h:inputHidden>");
-        map.put("password", "<h:inputSecret>");
-        map.put("checkbox", "<h:selectBooleanCheckbox> or <h:selectManyCheckbox>");
-        map.put("radio", "<h:selectOneRadio>");
-        map.put("file", "<h:inputFile>");
-        map.put("submit", "<h:commandButton>");
-        map.put("image", "<h:commandButton type=\"image\">");
-        map.put("reset", "<h:commandButton type=\"reset\">");
-        map.put("button", "<h:commandButton type=\"button\"> or <h:button>");
-        return Collections.unmodifiableMap(map);
-    }
+    private static final Map<String, String> RECOMMENDED_COMPONENTS_BY_DISCOMMENDED_TYPES = Map.of(
+            "hidden", "<h:inputHidden>",
+            "password", "<h:inputSecret>",
+            "checkbox", "<h:selectBooleanCheckbox> or <h:selectManyCheckbox>",
+            "radio", "<h:selectOneRadio>",
+            "file", "<h:inputFile>",
+            "submit", "<h:commandButton>",
+            "image", "<h:commandButton type=\"image\">",
+            "reset", "<h:commandButton type=\"reset\">",
+            "button", "<h:commandButton type=\"button\"> or <h:button>");
 
     // ---------------------------------------------------------- Public Methods
 
@@ -154,7 +147,7 @@ public class TextRenderer extends HtmlBasicInputRenderer {
             }
             if (currentValue != null) {
                 Object val = component.getAttributes().get("escape");
-                if (val != null && Boolean.valueOf(val.toString())) {
+                if (val != null && Boolean.parseBoolean(val.toString())) {
                     writer.writeText(currentValue, component, "value");
                 } else {
                     writer.write(currentValue);
