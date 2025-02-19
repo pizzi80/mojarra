@@ -170,7 +170,7 @@ public class ScopedAttributeELResolver extends ELResolver {
         UIViewRoot root = facesContext.getViewRoot();
         if (root != null) {
             Map<String, Object> viewMap = root.getViewMap(false);
-            if (viewMap != null && viewMap.size() != 0) {
+            if (viewMap != null && !viewMap.isEmpty()) {
                 attrs = viewMap.entrySet();
                 for (Entry<String, Object> entry : attrs) {
                     String attrName = entry.getKey();
