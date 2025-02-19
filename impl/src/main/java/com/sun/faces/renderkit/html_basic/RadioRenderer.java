@@ -56,7 +56,7 @@ import jakarta.faces.event.PostAddToViewEvent;
 import jakarta.faces.model.SelectItem;
 
 /**
- * <B>ReadoRenderer</B> is a class that renders the current value of <code>UISelectOne</code> or <code>UISelectMany</code>
+ * <B>RadioRenderer</B> is a class that renders the current value of <code>UISelectOne</code> or <code>UISelectMany</code>
  * component as a list of radio buttons
  */
 @ListenerFor(systemEventClass = PostAddToViewEvent.class)
