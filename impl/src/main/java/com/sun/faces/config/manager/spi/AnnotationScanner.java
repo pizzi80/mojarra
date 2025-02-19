@@ -196,8 +196,8 @@ public abstract class AnnotationScanner extends AnnotationProvider {
     protected Map<Class<? extends Annotation>, Set<Class<?>>> processClassList(Set<String> classList) {
 
         Map<Class<? extends Annotation>, Set<Class<?>>> annotatedClasses = null;
-        if (classList.size() > 0) {
-            annotatedClasses = new HashMap<>(6, 1.0f);
+        if (!classList.isEmpty()) {
+            annotatedClasses = new HashMap<>(Util.calculateMapCapacity(6));
             for (String className : classList) {
                 try {
                     Class<?> clazz = Util.loadClass(className, this);
