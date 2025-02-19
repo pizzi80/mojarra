@@ -66,7 +66,7 @@ class UrlBuilder {
     // ------------------------------------------------------------ Constructors
 
     public UrlBuilder(String url, String encoding) {
-        if (url == null || url.trim().length() == 0) {
+        if (url == null || url.trim().isEmpty()) {
             throw new IllegalArgumentException("Url cannot be empty");
         }
         this.url = new StringBuilder(url.length() * 2);
@@ -93,7 +93,7 @@ class UrlBuilder {
     public UrlBuilder addParameters(Map<String, List<String>> params) {
         if (params != null && !params.isEmpty()) {
             for (Map.Entry<String, List<String>> entry : params.entrySet()) {
-                if (entry.getKey() == null || entry.getKey().trim().length() == 0) {
+                if (entry.getKey() == null || entry.getKey().trim().isEmpty()) {
                     throw new IllegalArgumentException("Parameter name cannot be empty");
                 }
                 List<String> values = entry.getValue();
@@ -106,7 +106,7 @@ class UrlBuilder {
     }
 
     public UrlBuilder setPath(String path) {
-        if (path == null || path.trim().length() == 0) {
+        if (path == null || path.trim().isEmpty()) {
             throw new IllegalArgumentException("Path cannot be empty");
         }
         this.path = path;
@@ -167,7 +167,7 @@ class UrlBuilder {
         for (String pair : pairs) {
             String[] nameAndValue = Util.split(appMap, pair, PARAMETER_NAME_VALUE_SEPARATOR);
             // ignore malformed pair
-            if (nameAndValue.length != 2 || nameAndValue[0].trim().length() == 0) {
+            if (nameAndValue.length != 2 || nameAndValue[0].trim().isEmpty()) {
                 continue;
             }
 
