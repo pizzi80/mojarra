@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Supplier;
 
 import jakarta.el.ValueExpression;
@@ -144,10 +143,18 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
 
     private void initMap(Serializable key) {
         if (component.initialStateMarked()) {
-            deltaMap.computeIfAbsent(key, $->new HashMap<>(5));
+            Map<String, Object> dMap = (Map<String, Object>) deltaMap.get(key);
+            if (dMap == null) {
+                dMap = new HashMap<>(5);
+                deltaMap.put(key, dMap);
+            }
         }
 
-        defaultMap.computeIfAbsent(key, $->new HashMap<>(8));
+        Map<String, Object> map = (Map<String, Object>) get(key);
+        if (map == null) {
+            map = new HashMap<>(8);
+            defaultMap.put(key, map);
+        }
     }
 
     /**
@@ -217,25 +224,25 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
         initList(key);
 
         if (component.initialStateMarked()) {
-            getDeltaList(key).add(value);
+            ((List<Object>) deltaMap.get(key)).add(value);
         }
 
-        getList(key).add(value);
-    }
-
-    private List<Object> getList(Serializable key) {
-        return (List<Object>)defaultMap.get(key);
-    }
-
-    private List<Object> getDeltaList(Serializable key) {
-        return (List<Object>)deltaMap.get(key);
+        List<Object> items = (List<Object>) get(key);
+        items.add(value);
     }
 
     private void initList(Serializable key) {
-        final List<Object> list = (List<Object>) defaultMap.computeIfAbsent(key, $->new ArrayList<>(4));
+        List<Object> items = (List<Object>)get(key);
+        if (items == null) {
+            items = new ArrayList<>(4);
+            defaultMap.put(key, items);
+        }
 
         if (component.initialStateMarked()) {
-            deltaMap.computeIfAbsent(key, $ -> new ArrayList<>(list));
+            List<Object> deltaMapItems = (List<Object>) deltaMap.get(key);
+            if (deltaMapItems == null) {
+                deltaMap.put(key, new ArrayList<>(items));
+            }
         }
     }
 
@@ -329,7 +336,9 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
                 defaultMap.remove(serializable);
                 deltaMap.remove(serializable);
 
-                values.forEach(o -> add(serializable, o));
+                for (Object v : values) {
+                    add(serializable, v);
+                }
             } else {
                 put(serializable, value);
                 handleAttribute(serializable.toString(), value);
