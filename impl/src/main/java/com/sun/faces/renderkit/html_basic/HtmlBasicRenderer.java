@@ -243,7 +243,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
      * @param context FacesContext for the current request
      * @param component the component to recursively encode
      *
-     * @throws IOException if an error occurrs during the encode process
+     * @throws IOException if an error occurs during the encode process
      */
     protected void encodeRecursive(FacesContext context, UIComponent component) throws IOException {
 
@@ -468,7 +468,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
     private static final Set<SearchExpressionHint> EXPRESSION_HINTS = EnumSet.of(SearchExpressionHint.IGNORE_NO_RESULT,
             SearchExpressionHint.RESOLVE_SINGLE_COMPONENT);
 
-    protected Iterator<FacesMessage> getMessageIter(FacesContext context, String forComponent, UIComponent component) {
+    protected static Iterator<FacesMessage> getMessageIter(FacesContext context, String forComponent, UIComponent component) {
         // no "for" expression - return all messages
         if (forComponent == null) {
             return context.getMessages();
@@ -496,7 +496,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
      *
      * @return an array of parameters
      */
-    protected Param[] getParamList(UIComponent command) {
+    protected static Param[] getParamList(UIComponent command) {
 
         if (command.getChildCount() > 0) {
             ArrayList<Param> parameterList = new ArrayList<>();
@@ -525,7 +525,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
      *
      * @return a collection of ClientBehaviorContext.Parameter instances.
      */
-    protected Collection<ClientBehaviorContext.Parameter> getBehaviorParameters(UIComponent command) {
+    protected static Collection<ClientBehaviorContext.Parameter> getBehaviorParameters(UIComponent command) {
 
         List<ClientBehaviorContext.Parameter> params = null;
         int childCount = command.getChildCount();
@@ -573,7 +573,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
      *
      * @return true if this renderer should render an id attribute.
      */
-    protected boolean shouldWriteIdAttribute(UIComponent component) {
+    protected static boolean shouldWriteIdAttribute(UIComponent component) {
 
         // By default we only write the id attribute if:
         //
@@ -583,12 +583,12 @@ public abstract class HtmlBasicRenderer extends Renderer {
         // We assume that if client behaviors are present, they
         // may need access to the id (AjaxBehavior certainly does).
 
-        String id;
-        return null != (id = component.getId()) && (!id.startsWith(UIViewRoot.UNIQUE_ID_PREFIX)
-                || component instanceof ClientBehaviorHolder && !((ClientBehaviorHolder) component).getClientBehaviors().isEmpty());
+        final String id = component.getId();
+        return id != null && (!id.startsWith(UIViewRoot.UNIQUE_ID_PREFIX)
+                || component instanceof ClientBehaviorHolder clientBehaviorHolder && !clientBehaviorHolder.getClientBehaviors().isEmpty());
     }
 
-    protected String writeIdAttributeIfNecessary(FacesContext context, ResponseWriter writer, UIComponent component) {
+    protected static String writeIdAttributeIfNecessary(FacesContext context, ResponseWriter writer, UIComponent component) {
 
         String id = null;
         if (shouldWriteIdAttribute(component)) {
@@ -604,12 +604,12 @@ public abstract class HtmlBasicRenderer extends Renderer {
         return id;
     }
 
-    protected void rendererParamsNotNull(FacesContext context, UIComponent component) {
+    protected static void rendererParamsNotNull(FacesContext context, UIComponent component) {
         notNull("context", context);
         notNull("component", component);
     }
 
-    protected boolean shouldEncode(UIComponent component) {
+    protected static boolean shouldEncode(UIComponent component) {
 
         // Suppress rendering if "rendered" property on the component is false.
         if (!component.isRendered()) {
@@ -622,7 +622,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
         return true;
     }
 
-    protected boolean shouldDecode(UIComponent component) {
+    protected static boolean shouldDecode(UIComponent component) {
 
         if (componentIsDisabledOrReadonly(component)) {
             if (logger.isLoggable(FINE)) {
@@ -634,7 +634,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
         return true;
     }
 
-    protected boolean shouldEncodeChildren(UIComponent component) {
+    protected static boolean shouldEncodeChildren(UIComponent component) {
 
         // Suppress rendering if "rendered" property on the component is false.
         if (!component.isRendered()) {
@@ -667,11 +667,11 @@ public abstract class HtmlBasicRenderer extends Renderer {
      */
     protected static Map<String, List<ClientBehavior>> getPassThruBehaviors(UIComponent component, String domEventName, String componentEventName) {
 
-        if (!(component instanceof ClientBehaviorHolder)) {
+        if (!(component instanceof ClientBehaviorHolder clientBehaviorHolder)) {
             return null;
         }
 
-        Map<String, List<ClientBehavior>> behaviors = ((ClientBehaviorHolder) component).getClientBehaviors();
+        Map<String, List<ClientBehavior>> behaviors = clientBehaviorHolder.getClientBehaviors();
 
         int size = behaviors.size();
 
@@ -745,10 +745,8 @@ public abstract class HtmlBasicRenderer extends Renderer {
         // -------------------------------------------------------- Constructors
 
         public Param(String name, String value) {
-
             this.name = name;
             this.value = value;
-
         }
 
     }
@@ -759,12 +757,12 @@ public abstract class HtmlBasicRenderer extends Renderer {
      */
     public static class OptionComponentInfo {
 
-        String disabledClass;
-        String enabledClass;
-        String selectedClass;
-        String unselectedClass;
-        boolean disabled;
-        boolean hideNoSelection;
+        final String disabledClass;
+        final String enabledClass;
+        final String selectedClass;
+        final String unselectedClass;
+        final boolean disabled;
+        final boolean hideNoSelection;
 
         public OptionComponentInfo(UIComponent component) {
             Map<String, Object> attributes = component.getAttributes();
