@@ -16,6 +16,7 @@
 
 package com.sun.faces.application;
 
+import static com.sun.faces.RIConstants.NO_VALUE;
 import static com.sun.faces.application.SharedUtils.evaluateExpressions;
 import static com.sun.faces.flow.FlowHandlerImpl.FLOW_RETURN_DEPTH_PARAM_NAME;
 import static com.sun.faces.util.Util.notNull;
@@ -193,7 +194,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
     @Override
     public void handleNavigation(FacesContext context, String fromAction, String outcome) {
-        this.handleNavigation(context, fromAction, outcome, "");
+        this.handleNavigation(context, fromAction, outcome, NO_VALUE);
     }
 
     /*
@@ -202,7 +203,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
      *
      */
     private boolean flowsEqual(Flow flow1, Flow flow2) {
-        boolean result = false;
+        final boolean result;
         if (flow1 == flow2) {
             result = true;
         } else if (flow1 == null || flow2 == null) {
@@ -230,9 +231,9 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
             if (isProcessingBroadcast(context)) {
                 flash.setKeepMessages(true);
                 String viewIdBefore = context.getViewRoot().getViewId();
-                viewIdBefore = null == viewIdBefore ? "" : viewIdBefore;
+                viewIdBefore = null == viewIdBefore ? NO_VALUE : viewIdBefore;
                 String viewIdAfter = caseStruct.navCase.getToViewId(context);
-                viewIdAfter = null == viewIdAfter ? "" : viewIdAfter; // NOPMD
+                viewIdAfter = null == viewIdAfter ? NO_VALUE : viewIdAfter; // NOPMD
                 isUIViewActionBroadcastAndViewdsDiffer = !viewIdBefore.equals(viewIdAfter);
             }
 
@@ -256,8 +257,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                             parameters.put(FLOW_ID_REQUEST_PARAM_NAME, List.of(""));
                             FlowHandler flowHandler = context.getApplication().getFlowHandler();
 
-                            if (flowHandler instanceof FlowHandlerImpl) {
-                                FlowHandlerImpl flowHandlerImpl = (FlowHandlerImpl) flowHandler;
+                            if (flowHandler instanceof FlowHandlerImpl flowHandlerImpl) {
                                 List<String> flowReturnDepthValues = new ArrayList<>();
                                 flowReturnDepthValues.add(Integer.toString(flowHandlerImpl.getAndClearReturnModeDepth(context)));
                                 parameters.put(FLOW_RETURN_DEPTH_PARAM_NAME, flowReturnDepthValues);
@@ -326,8 +326,8 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
     private static final String ROOT_NAVIGATION_MAP_ID = NavigationHandlerImpl.class.getName() + ".NAVIGATION_MAP";
 
     private Map<String, Set<NavigationCase>> getRootNaviMap() {
-        Map<String, Set<NavigationCase>> result = null;
-        NavigationInfo info = null;
+        final Map<String, Set<NavigationCase>> result;
+        final NavigationInfo info;
         if (null == navigationMaps) {
             createNavigationMaps();
             result = navigationMaps.get(ROOT_NAVIGATION_MAP_ID).ruleSet;
@@ -344,7 +344,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
     }
 
     private Map<String, Set<NavigationCase>> getNavigationMap(FacesContext context) {
-        Map<String, Set<NavigationCase>> result = null;
+        final Map<String, Set<NavigationCase>> result;
         NavigationInfo info = null;
         if (null == navigationMaps) {
             createNavigationMaps();
@@ -537,7 +537,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
         // if viewIdToTest is not null, use its value to find
         // a navigation match, otherwise look for a match
-        // based soley on the fromAction and outcome
+        // based solely on the fromAction and outcome
         CaseStruct caseStruct = null;
         Map<String, Set<NavigationCase>> navMap = getNavigationMap(ctx);
 
@@ -611,8 +611,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
             FlowHandler flowHandler = ctx.getApplication().getFlowHandler();
             if (null != flowHandler) {
 
-                Flow currentFlow = null;
-                currentFlow = flowHandler.getCurrentFlow(ctx);
+                final Flow currentFlow = flowHandler.getCurrentFlow(ctx);
                 if (null != currentFlow) {
                     caseStruct = findRootNavigationMapAbandonedFlowMatch(ctx, viewId, fromAction, outcome, toFlowDocumentId);
                 }
@@ -846,12 +845,12 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                 Matcher m = REDIRECT_EQUALS_TRUE.matcher(queryString);
                 if (m.find()) {
                     isRedirect = true;
-                    queryString = queryString.replace(m.group(2), "");
+                    queryString = queryString.replace(m.group(2), NO_VALUE);
                 }
                 m = INCLUDE_VIEW_PARAMS_EQUALS_TRUE.matcher(queryString);
                 if (m.find()) {
                     isIncludeViewParams = true;
-                    queryString = queryString.replace(m.group(2), "");
+                    queryString = queryString.replace(m.group(2), NO_VALUE);
                 }
             }
 
@@ -863,16 +862,16 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                     String[] elements = Util.split(appMap, queryElement, "=", 2);
                     if (elements.length == 2) {
                         String rightHandSide = elements[1];
-                        String sanitized = null != rightHandSide && 2 < rightHandSide.length() ? rightHandSide.trim() : "";
+                        String sanitized = null != rightHandSide && 2 < rightHandSide.length() ? rightHandSide.trim() : NO_VALUE;
                         if (sanitized.contains("#{") || sanitized.contains("${")) {
                             if (LOGGER.isLoggable(Level.INFO)) {
                                 LOGGER.log(Level.INFO, "faces.navigation_invalid_query_string", rightHandSide);
                             }
-                            rightHandSide = "";
+                            rightHandSide = NO_VALUE;
                         }
 
                         if (parameters == null) {
-                            parameters = new LinkedHashMap<>(queryElements.length / 2, 1.0f);
+                            parameters = new LinkedHashMap<>(Util.calculateMapCapacity(queryElements.length / 2));
                         }
 
                         parameters.computeIfAbsent(elements[0], k -> new ArrayList<>(2))
