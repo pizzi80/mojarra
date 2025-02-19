@@ -58,7 +58,7 @@ public abstract class HtmlBasicInputRenderer extends HtmlBasicRenderer {
         Converter converter = null;
 
         // If there is a converter attribute, use it to to ask application
-        // instance for a converter with this identifer.
+        // instance for a converter with this identifier.
         if (component instanceof ValueHolder) {
             converter = ((ValueHolder) component).getConverter();
         }
