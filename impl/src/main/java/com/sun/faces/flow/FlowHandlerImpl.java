@@ -85,7 +85,7 @@ public class FlowHandlerImpl extends FlowHandler {
         Util.notNull("toAdd", toAdd);
 
         String id = toAdd.getId();
-        if (null == id || 0 == id.length()) {
+        if (null == id || id.isEmpty()) {
             throw new IllegalArgumentException("The id of the flow may not be null or zero-length.");
         }
         String definingDocumentId = toAdd.getDefiningDocumentId();
