@@ -164,12 +164,12 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
             }
 
             // remove any facets marked as deleted
-            if (c.getFacets().size() > 0) {
-                Collection col = c.getFacets().values();
+            if (!c.getFacets().isEmpty()) {
+                Collection<UIComponent> col = c.getFacets().values();
                 UIComponent fc;
                 ApplyToken token;
-                for (Iterator itr = col.iterator(); itr.hasNext();) {
-                    fc = (UIComponent) itr.next();
+                for (Iterator<UIComponent> itr = col.iterator(); itr.hasNext();) {
+                    fc = itr.next();
                     if (!fc.isTransient()) {
                         token = (ApplyToken) fc.getTransientStateHelper().getTransient(APPLIED_KEY);
                         if (token != null && token.time < createTime && token.alias.equals(alias)) {
@@ -188,10 +188,10 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
 
     private void markApplied(UIComponent parent) {
         if (refreshPeriodInMillis > 0) {
-            Iterator itr = parent.getFacetsAndChildren();
+            Iterator<UIComponent> itr = parent.getFacetsAndChildren();
             ApplyToken token = new ApplyToken(alias, System.currentTimeMillis() + refreshPeriodInMillis);
             while (itr.hasNext()) {
-                UIComponent c = (UIComponent) itr.next();
+                UIComponent c = itr.next();
                 if (!c.isTransient()) {
                     TransientStateHelper state = c.getTransientStateHelper();
                     if (state.getTransient(APPLIED_KEY) == null) {
@@ -323,7 +323,7 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
 
         public long time;
 
-        @SuppressWarnings({ "UnusedDeclaration" })
+        @SuppressWarnings("UnusedDeclaration")
         public ApplyToken() {
         } // For Serialization
 
