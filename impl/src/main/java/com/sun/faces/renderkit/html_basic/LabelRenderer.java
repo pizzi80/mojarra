@@ -93,14 +93,14 @@ public class LabelRenderer extends HtmlBasicInputRenderer {
             writer.writeAttribute("class", styleClass, "styleClass");
         }
 
-        // render the curentValue as label text if specified.
+        // render the currentValue as label text if specified.
         String value = getCurrentValue(context, component);
         if (logger.isLoggable(Level.FINE)) {
             logger.fine("Value to be rendered " + value);
         }
-        if (value != null && value.length() != 0) {
+        if (value != null && !value.isEmpty()) {
             Object val = component.getAttributes().get("escape");
-            boolean escape = val != null && Boolean.valueOf(val.toString());
+            boolean escape = val != null && Boolean.parseBoolean(val.toString());
 
             if (escape) {
                 writer.writeText(value, component, "value");
