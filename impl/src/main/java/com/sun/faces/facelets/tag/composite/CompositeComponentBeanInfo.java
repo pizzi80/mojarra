@@ -67,7 +67,7 @@ public class CompositeComponentBeanInfo extends SimpleBeanInfo implements BeanIn
     public void writeExternal(ObjectOutput out) throws IOException {
 
         out.writeObject(descriptor.getBeanClass());
-        if (propertyDescriptors != null && propertyDescriptors.size() > 0) {
+        if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
             out.writeObject(propertyDescriptors.size());
             for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
                 out.writeObject(propertyDescriptor.getName());
