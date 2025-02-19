@@ -107,7 +107,7 @@ public abstract class AnnotationScanner extends AnnotationProvider {
         String[] options = webConfig.getOptionValue(AnnotationScanPackages, "\\s+");
         List<String> packages = new ArrayList<>(4);
         for (String option : options) {
-            if (option.length() == 0) {
+            if (option.isEmpty()) {
                 continue;
             }
             if (option.startsWith("jar:")) {
