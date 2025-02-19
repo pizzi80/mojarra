@@ -68,7 +68,7 @@ public final class IncludeHandler extends TagHandlerImpl {
     @Override
     public void apply(FaceletContext ctx, UIComponent parent) throws IOException {
         String path = src.getValue(ctx);
-        if (path == null || path.length() == 0) {
+        if (path == null || path.isEmpty()) {
             return;
         }
         VariableMapper orig = ctx.getVariableMapper();
