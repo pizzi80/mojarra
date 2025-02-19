@@ -597,7 +597,7 @@ public class MultiViewHandler extends ViewHandler {
                 // preferred locale is "en-US", if one of supported
                 // locales is "en-UK", even though its language matches
                 // that of the preferred locale, we must ignore it.
-                if (pref.getLanguage().equals(supportedLocale.getLanguage()) && supportedLocale.getCountry().length() == 0) {
+                if (pref.getLanguage().equals(supportedLocale.getLanguage()) && supportedLocale.getCountry().isEmpty()) {
                     result = supportedLocale;
                 }
             }
@@ -616,7 +616,7 @@ public class MultiViewHandler extends ViewHandler {
                     // preferred locale is "en-US", if one of supported
                     // locales is "en-UK", even though its language matches
                     // that of the preferred locale, we must ignore it.
-                    if (pref.getLanguage().equals(defaultLocale.getLanguage()) && defaultLocale.getCountry().length() == 0) {
+                    if (pref.getLanguage().equals(defaultLocale.getLanguage()) && defaultLocale.getCountry().isEmpty()) {
                         result = defaultLocale;
                     }
                 }
@@ -648,7 +648,7 @@ public class MultiViewHandler extends ViewHandler {
         notNull("context", context);
         notNull("viewId", viewId);
 
-        if (viewId.length() == 0 || viewId.charAt(0) != '/') {
+        if (viewId.isEmpty() || viewId.charAt(0) != '/') {
             LOGGER.log(SEVERE, "faces.illegal_view_id_error", viewId);
             throw new IllegalArgumentException(getExceptionMessageString(ILLEGAL_VIEW_ID_ID, viewId));
         }
