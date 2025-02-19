@@ -5,6 +5,7 @@ import static com.sun.faces.renderkit.RenderKitUtils.OPTIMIZED_PACKAGE;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.el.ValueExpression;
 import jakarta.faces.component.UIComponent;
@@ -14,10 +15,18 @@ public final class HtmlComponentUtils {
 
 
     public static void handleAttribute(UIComponent component, String name, Object value) {
+        final Map<String, Object> attributes = component.getAttributes();
 
         @SuppressWarnings("unchecked")
-        final List<String> setAttributes = (List<String>) component.getAttributes().computeIfAbsent(ATTRIBUTES_THAT_ARE_SET_KEY,
-                $ -> component.getClass().getName().startsWith(OPTIMIZED_PACKAGE) ? new ArrayList<>(6) : null);
+        List<String> setAttributes = (List<String>) attributes.get(ATTRIBUTES_THAT_ARE_SET_KEY);
+
+        if (setAttributes == null) {
+            String className = component.getClass().getName();
+            if (className.startsWith(OPTIMIZED_PACKAGE)) {
+                setAttributes = new ArrayList<>(6);
+                attributes.put(ATTRIBUTES_THAT_ARE_SET_KEY, setAttributes);
+            }
+        }
 
         if (setAttributes != null) {
             if (value == null) {
