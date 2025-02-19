@@ -21,9 +21,7 @@ package com.sun.faces.renderkit.html_basic;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.sun.faces.renderkit.RenderKitUtils;
 
@@ -127,14 +125,13 @@ public class FileRenderer extends TextRenderer {
 
     @Override
     public Object getConvertedValue(FacesContext context, UIComponent component, Object submittedValue) throws ConverterException {
-        if (submittedValue instanceof Part) {
-            Part part = (Part) submittedValue;
+        if (submittedValue instanceof Part part) {
             if (isEmpty(part)) {
                 return null;
             }
         } else if (submittedValue instanceof Collection) {
             Collection<Part> parts = (Collection<Part>) submittedValue;
-            return Collections.unmodifiableList(parts.stream().filter(part -> !isEmpty(part)).collect(Collectors.toList()));
+            return parts.stream().filter(part -> !isEmpty(part)).toList();
         }
         return submittedValue;
     }
