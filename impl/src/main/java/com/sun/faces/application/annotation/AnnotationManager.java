@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 import jakarta.faces.FacesException;
 import jakarta.faces.component.UIComponent;
@@ -160,8 +161,7 @@ public class AnnotationManager {
      */
     public void applyBehaviorAnnotations(FacesContext ctx, Behavior b) {
         applyAnnotations(ctx, b.getClass(), ProcessingTarget.Behavior, b);
-        if (b instanceof ClientBehaviorBase) {
-            ClientBehaviorBase clientBehavior = (ClientBehaviorBase) b;
+        if (b instanceof ClientBehaviorBase clientBehavior) {
             String rendererType = clientBehavior.getRendererType();
             RenderKit renderKit = ctx.getRenderKit();
             if (null != rendererType && null != renderKit) {
@@ -215,7 +215,7 @@ public class AnnotationManager {
     }
 
     /**
-     * Apply annotations relevent to {@link jakarta.faces.render.Renderer} instances.
+     * Apply annotations relevant to {@link jakarta.faces.render.Renderer} instances.
      *
      * @param ctx the {@link jakarta.faces.context.FacesContext} for the current request
      * @param r the <code>Renderer</code> to process
@@ -234,7 +234,7 @@ public class AnnotationManager {
     /**
      * @return a new <code>Map</code> which maps the types of annotations to a specific
      * <code>ConfigAnnotationHandler</code>. Note that each invocation of this method constructs a new <code>Map</code> with
-     * new <code>ConfigAnnotationhandler</code> instances as they are not thread safe.
+     * new <code>ConfigAnnotationHandler</code> instances as they are not thread safe.
      */
     private Map<Class<? extends Annotation>, ConfigAnnotationHandler> getConfigAnnotationHandlers() {
         ConfigAnnotationHandler[] handlers = {
@@ -315,8 +315,7 @@ public class AnnotationManager {
      */
     private static final class ProcessAnnotationsTask implements Callable<Map<Class<? extends Annotation>, RuntimeAnnotationHandler>> {
 
-        @SuppressWarnings({ "unchecked" })
-        private static final Map<Class<? extends Annotation>, RuntimeAnnotationHandler> EMPTY = Collections.EMPTY_MAP;
+        private static final Map<Class<? extends Annotation>, RuntimeAnnotationHandler> EMPTY = Collections.emptyMap();
         private final Class<?> clazz;
         private final Scanner[] scanners;
 
@@ -339,7 +338,7 @@ public class AnnotationManager {
                 RuntimeAnnotationHandler handler = scanner.scan(clazz);
                 if (handler != null) {
                     if (map == null) {
-                        map = new HashMap<>(2, 1.0f);
+                        map = new HashMap<>(Util.calculateMapCapacity(2));
                     }
                     map.put(scanner.getAnnotation(), handler);
                 }
