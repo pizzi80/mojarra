@@ -17,6 +17,7 @@
 package com.sun.faces.facelets.tag.faces;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.application.annotation.FacesComponentUsage;
@@ -31,13 +32,10 @@ import jakarta.faces.view.facelets.TagHandler;
 
 public class FacesComponentTagLibrary extends LazyTagLibrary {
 
-    private ApplicationAssociate appAss;
+    private final ApplicationAssociate appAss;
 
     public FacesComponentTagLibrary(String ns) {
-        super(ns);
-        if (null == ns) {
-            throw new NullPointerException();
-        }
+        super(Objects.requireNonNull(ns));
         appAss = ApplicationAssociate.getCurrentInstance();
     }
 
@@ -61,10 +59,10 @@ public class FacesComponentTagLibrary extends LazyTagLibrary {
     }
 
     private FacesComponentUsage findFacesComponentUsageForLocalName(String ns, String localName) {
-        FacesComponentUsage result = null;
-
         Util.notNull("namespace", ns);
         Util.notNull("tagName", localName);
+
+        FacesComponentUsage result = null;
 
         if (!ns.equals(getNamespace())) {
             return result;
