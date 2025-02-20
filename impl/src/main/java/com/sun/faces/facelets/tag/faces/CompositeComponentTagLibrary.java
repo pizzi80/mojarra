@@ -17,6 +17,7 @@
 package com.sun.faces.facelets.tag.faces;
 
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.EnableMissingResourceLibraryDetection;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,47 +40,32 @@ public class CompositeComponentTagLibrary extends LazyTagLibrary {
 
     private static final Logger LOGGER = FacesLogger.FACELETS_COMPONENT.getLogger();
 
+    private final String ns;
+    private final String compositeLibraryName;
+    private final boolean enableMissingResourceLibraryDetection;
+
     public CompositeComponentTagLibrary(String ns) {
         super(ns);
-        if (null == ns) {
-            throw new NullPointerException();
-        }
-        this.ns = ns;
-        init();
+        this.ns = requireNonNull(ns);
+        this.compositeLibraryName = null;
+        enableMissingResourceLibraryDetection = WebConfiguration.getInstance().isOptionEnabled(EnableMissingResourceLibraryDetection);
     }
 
     public CompositeComponentTagLibrary(String ns, String compositeLibraryName) {
         super(ns);
-        if (null == ns) {
-            throw new NullPointerException();
-        }
-        this.ns = ns;
-        if (null == compositeLibraryName) {
-            throw new NullPointerException();
-        }
-        this.compositeLibraryName = compositeLibraryName;
-        init();
-
+        this.ns = requireNonNull(ns);
+        this.compositeLibraryName = requireNonNull(compositeLibraryName);
+        enableMissingResourceLibraryDetection = WebConfiguration.getInstance().isOptionEnabled(EnableMissingResourceLibraryDetection);
     }
-
-    private void init() {
-        WebConfiguration webconfig = WebConfiguration.getInstance();
-        enableMissingResourceLibraryDetection = webconfig.isOptionEnabled(EnableMissingResourceLibraryDetection);
-    }
-
-    private String ns = null;
-    private String compositeLibraryName;
-    private boolean enableMissingResourceLibraryDetection;
 
     @Override
     public boolean containsTagHandler(String ns, String localName) {
         boolean result = false;
 
-        Resource ccResource = null;
+        final Resource ccResource = getCompositeComponentResource(ns, localName);
 
-        if (null != (ccResource = getCompositeComponentResource(ns, localName))) {
-
-            try (InputStream componentStream = ccResource.getInputStream();) {
+        if (ccResource != null) {
+            try (InputStream componentStream = ccResource.getInputStream()) {
                 result = componentStream != null;
             } catch (IOException ex) {
                 if (LOGGER.isLoggable(Level.SEVERE)) {
@@ -122,8 +108,8 @@ public class CompositeComponentTagLibrary extends LazyTagLibrary {
     public boolean tagLibraryForNSExists(String toTest) {
         boolean result = false;
 
-        String resourceId = null;
-        if (null != (resourceId = getCompositeComponentLibraryName(toTest))) {
+        String resourceId = getCompositeComponentLibraryName(toTest);
+        if (resourceId != null) {
             if (enableMissingResourceLibraryDetection) {
                 result = FacesContext.getCurrentInstance().getApplication().getResourceHandler().libraryExists(resourceId);
             } else {
