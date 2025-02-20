@@ -74,11 +74,11 @@ public final class CoreLibrary extends AbstractTagLibrary {
 
         addTagHandler("passThroughAttributes", PassThroughAttributesHandler.class);
 
-        this.addConverter("convertDateTime", DateTimeConverter.CONVERTER_ID, ConvertDateTimeHandler.class);
+        addConverter("convertDateTime", DateTimeConverter.CONVERTER_ID, ConvertDateTimeHandler.class);
 
-        this.addConverter("convertNumber", NumberConverter.CONVERTER_ID, ConvertNumberHandler.class);
+        addConverter("convertNumber", NumberConverter.CONVERTER_ID, ConvertNumberHandler.class);
 
-        this.addConverter("converter", null, ConvertDelegateHandler.class);
+        addConverter("converter", null, ConvertDelegateHandler.class);
 
         addTagHandler("event", EventHandler.class);
 
@@ -86,52 +86,52 @@ public final class CoreLibrary extends AbstractTagLibrary {
 
         addTagHandler("metadata", MetadataHandler.class);
 
-        this.addComponent("importConstants", UIImportConstants.COMPONENT_TYPE, null);
+        addComponent("importConstants", UIImportConstants.COMPONENT_TYPE, null);
 
         addTagHandler("loadBundle", LoadBundleHandler.class);
 
         addTagHandler("resetValues", ResetValuesHandler.class);
 
-        this.addComponent("viewParam", UIViewParameter.COMPONENT_TYPE, null);
+        addComponent("viewParam", UIViewParameter.COMPONENT_TYPE, null);
 
-        this.addComponent("viewAction", UIViewAction.COMPONENT_TYPE, null);
+        addComponent("viewAction", UIViewAction.COMPONENT_TYPE, null);
 
-        this.addComponent("param", UIParameter.COMPONENT_TYPE, null);
+        addComponent("param", UIParameter.COMPONENT_TYPE, null);
 
         addTagHandler("phaseListener", PhaseListenerHandler.class);
 
-        this.addComponent("selectItem", UISelectItem.COMPONENT_TYPE, null);
+        addComponent("selectItem", UISelectItem.COMPONENT_TYPE, null);
 
-        this.addComponent("selectItems", UISelectItems.COMPONENT_TYPE, null);
+        addComponent("selectItems", UISelectItems.COMPONENT_TYPE, null);
 
-        this.addComponent("selectItemGroup", UISelectItemGroup.COMPONENT_TYPE, null);
+        addComponent("selectItemGroup", UISelectItemGroup.COMPONENT_TYPE, null);
 
-        this.addComponent("selectItemGroups", UISelectItemGroups.COMPONENT_TYPE, null);
+        addComponent("selectItemGroups", UISelectItemGroups.COMPONENT_TYPE, null);
 
         addTagHandler("setPropertyActionListener", SetPropertyActionListenerHandler.class);
 
-        this.addComponent("subview", "jakarta.faces.NamingContainer", null);
+        addComponent("subview", "jakarta.faces.NamingContainer", null);
 
-        this.addValidator("validateBean", BeanValidator.VALIDATOR_ID);
+        addValidator("validateBean", BeanValidator.VALIDATOR_ID);
 
-        this.addValidator("validateLength", LengthValidator.VALIDATOR_ID);
+        addValidator("validateLength", LengthValidator.VALIDATOR_ID);
 
-        this.addValidator("validateLongRange", LongRangeValidator.VALIDATOR_ID);
+        addValidator("validateLongRange", LongRangeValidator.VALIDATOR_ID);
 
-        this.addValidator("validateDoubleRange", DoubleRangeValidator.VALIDATOR_ID);
+        addValidator("validateDoubleRange", DoubleRangeValidator.VALIDATOR_ID);
 
-        this.addValidator("validateRegex", RegexValidator.VALIDATOR_ID);
+        addValidator("validateRegex", RegexValidator.VALIDATOR_ID);
 
-        this.addValidator("validateRequired", RequiredValidator.VALIDATOR_ID);
+        addValidator("validateRequired", RequiredValidator.VALIDATOR_ID);
 
-        this.addComponent("validateWholeBean", UIValidateWholeBean.FAMILY, null);
+        addComponent("validateWholeBean", UIValidateWholeBean.FAMILY, null);
 
-        this.addValidator("validator", null, ValidateDelegateHandler.class);
+        addValidator("validator", null, ValidateDelegateHandler.class);
 
         addTagHandler("valueChangeListener", ValueChangeListenerHandler.class);
 
         addTagHandler("view", ViewHandler.class);
 
-        this.addComponent("websocket", UIWebsocket.COMPONENT_TYPE, WebsocketRenderer.RENDERER_TYPE);
+        addComponent("websocket", UIWebsocket.COMPONENT_TYPE, WebsocketRenderer.RENDERER_TYPE);
     }
 }
