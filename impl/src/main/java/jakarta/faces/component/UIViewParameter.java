@@ -17,7 +17,8 @@
 package jakarta.faces.component;
 
 import java.io.IOException;
-import java.util.Iterator;
+
+import com.sun.faces.RIConstants;
 
 import jakarta.el.ValueExpression;
 import jakarta.faces.FactoryFinder;
@@ -273,13 +274,12 @@ public class UIViewParameter extends UIInput {
      *
      */
     private boolean isRequiredViaNestedRequiredValidator() {
-        boolean result = false;
-        if (null == validators) {
-            return result;
+        if (validators == null) {
+            return false;
         }
-        Iterator<Validator> iter = validators.iterator();
-        while (iter.hasNext()) {
-            if (iter.next() instanceof RequiredValidator) {
+        boolean result = false;
+        for (Validator validator : validators.getAttachedObjects()) {
+            if (validator instanceof RequiredValidator) {
                 // See JAVASERVERFACES-2526. Note that we can assume
                 // that at this point the validator is not disabled,
                 // so the mere existence of the validator implies it is
@@ -292,7 +292,7 @@ public class UIViewParameter extends UIInput {
                     // if they are not submitted. I'm not sure if that's
                     // correct, but let's put this in and see how
                     // the community responds.
-                    setSubmittedValue("");
+                    setSubmittedValue(RIConstants.NO_VALUE);
                 }
                 break;
             }
