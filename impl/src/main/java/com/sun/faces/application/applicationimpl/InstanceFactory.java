@@ -54,6 +54,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -570,14 +571,18 @@ public class InstanceFactory {
         return validatorMap.keySet().iterator();
     }
 
+    private final ReentrantLock lock = new ReentrantLock();
+
     /*
      * @see jakarta.faces.application.Application#addDefaultValidatorId(String)
      */
-    public synchronized void addDefaultValidatorId(String validatorId) {
+    public void addDefaultValidatorId(String validatorId) {
         notNull("validatorId", validatorId);
 
-        defaultValidatorInfo = null;
-        defaultValidatorIds.add(validatorId);
+        Util.execAtomic(lock, () -> {
+            defaultValidatorInfo = null;
+            defaultValidatorIds.add(validatorId);
+        });
     }
 
     /**
@@ -586,16 +591,16 @@ public class InstanceFactory {
     public Map<String, String> getDefaultValidatorInfo() {
 
         if (defaultValidatorInfo == null) {
-            synchronized (this) {
+            Util.execAtomic(lock, () -> {
                 if (defaultValidatorInfo == null) {
-                    defaultValidatorInfo = new LinkedHashMap<>();
+                    defaultValidatorInfo = new LinkedHashMap<>(Util.calculateMapCapacity(defaultValidatorIds.size()));
                     if (!defaultValidatorIds.isEmpty()) {
                         for (String id : defaultValidatorIds) {
                             String validatorClass;
                             Object result = validatorMap.get(id);
-                            if (null != result) {
-                                if (result instanceof Class) {
-                                    validatorClass = ((Class<?>) result).getName();
+                            if (result != null) {
+                                if (result instanceof Class<?> clazz) {
+                                    validatorClass = clazz.getName();
                                 } else {
                                     validatorClass = result.toString();
                                 }
@@ -606,7 +611,7 @@ public class InstanceFactory {
                     }
                 }
                 defaultValidatorInfo = unmodifiableMap(defaultValidatorInfo);
-            }
+            });
         }
 
         return defaultValidatorInfo;
