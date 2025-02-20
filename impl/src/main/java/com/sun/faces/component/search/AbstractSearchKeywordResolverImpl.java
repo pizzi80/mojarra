@@ -23,7 +23,7 @@ import jakarta.faces.component.search.SearchKeywordResolver;
 
 public abstract class AbstractSearchKeywordResolverImpl extends SearchKeywordResolver {
 
-    protected <T> T closest(Class<T> type, UIComponent base) {
+    protected static <T> T closest(Class<T> type, UIComponent base) {
         UIComponent parent = base.getParent();
 
         while (parent != null) {
@@ -37,7 +37,7 @@ public abstract class AbstractSearchKeywordResolverImpl extends SearchKeywordRes
         return null;
     }
 
-    protected boolean isHintSet(SearchExpressionContext searchExpressionContext, SearchExpressionHint hint) {
+    protected static boolean isHintSet(SearchExpressionContext searchExpressionContext, SearchExpressionHint hint) {
         return searchExpressionContext.getExpressionHints().contains(hint);
     }
 }
