@@ -42,6 +42,14 @@ public abstract class ResponseWriterWrapper extends ResponseWriter implements Fa
     private final ResponseWriter wrapped;
 
     /**
+     * @deprecated Use the other constructor taking the implementation being wrapped.
+     */
+    @Deprecated(forRemoval=true)
+    public ResponseWriterWrapper() {
+        wrapped = null;
+    }
+
+    /**
      * <p class="changed_added_2_3">
      * If this response writer has been decorated, the implementation doing the decorating should push the implementation
      * being wrapped to this constructor. The {@link #getWrapped()} will then return the implementation being wrapped.
