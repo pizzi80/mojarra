@@ -16,10 +16,12 @@
 
 package com.sun.faces.facelets.compiler;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
-import java.util.Stack;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.facelets.el.ELText;
 
 import jakarta.el.ELException;
@@ -36,13 +38,13 @@ import jakarta.faces.view.facelets.TagException;
  */
 final class TextUnit extends CompilationUnit {
 
-    private final StringBuffer buffer;
+    private final StringBuilder buffer;
 
-    private final StringBuffer textBuffer;
+    private final StringBuilder textBuffer;
 
     private final List<Instruction> instructionBuffer;
 
-    private final Stack<Tag> tags;
+    private final Deque<Tag> tags;
 
     private final List children;
 
@@ -55,10 +57,10 @@ final class TextUnit extends CompilationUnit {
     public TextUnit(String alias, String id) {
         this.alias = alias;
         this.id = id;
-        buffer = new StringBuffer();
-        textBuffer = new StringBuffer();
+        buffer = new StringBuilder();
+        textBuffer = new StringBuilder();
         instructionBuffer = new ArrayList<>();
-        tags = new Stack<>();
+        tags = new ArrayDeque<>();
         children = new ArrayList<>();
         startTagOpen = false;
     }
@@ -67,7 +69,7 @@ final class TextUnit extends CompilationUnit {
     public FaceletHandler createFaceletHandler() {
         flushBufferToConfig(true);
 
-        if (children.size() == 0) {
+        if (children.isEmpty()) {
             return LEAF;
         }
 
@@ -93,13 +95,13 @@ final class TextUnit extends CompilationUnit {
     }
 
     private void flushTextBuffer(boolean child) {
-        if (textBuffer.length() > 0) {
+        if (!textBuffer.isEmpty()) {
             String s = textBuffer.toString();
 
             if (child) {
                 s = trimRight(s);
             }
-            if (s.length() > 0) {
+            if (!s.isEmpty()) {
                 ELText txt = ELText.parse(s, alias);
                 if (txt != null) {
                     if (txt.isLiteral()) {
@@ -179,14 +181,14 @@ final class TextUnit extends CompilationUnit {
     }
 
     private void finishStartTag() {
-        if (tags.size() > 0 && startTagOpen) {
+        if (!tags.isEmpty() && startTagOpen) {
             buffer.append('>');
             startTagOpen = false;
         }
     }
 
     public void endTag() {
-        Tag tag = (Tag) tags.pop();
+        Tag tag = tags.pop();
 
         addInstruction(new EndElementInstruction(tag.getQName()));
 
@@ -207,7 +209,7 @@ final class TextUnit extends CompilationUnit {
         children.add(unit);
     }
 
-    protected void flushBufferToConfig(boolean child) {
+    private void flushBufferToConfig(boolean child) {
 
 //        // NEW IMPLEMENTATION
 //        if (true) {
@@ -229,8 +231,8 @@ final class TextUnit extends CompilationUnit {
                 }
 
             } catch (ELException e) {
-                if (tags.size() > 0) {
-                    throw new TagException((Tag) tags.peek(), e.getMessage());
+                if (!tags.isEmpty()) {
+                    throw new TagException(tags.peek(), e.getMessage());
                 } else {
                     throw new ELException(alias + ": " + e.getMessage(), e.getCause());
                 }
@@ -274,7 +276,7 @@ final class TextUnit extends CompilationUnit {
     }
 
     public boolean isClosed() {
-        return tags.empty();
+        return tags.isEmpty();
     }
 
     private static String trimRight(String s) {
@@ -286,7 +288,7 @@ final class TextUnit extends CompilationUnit {
                 return s.substring(0,i+1);
             }
         }
-        return "";
+        return RIConstants.NO_VALUE;
     }
 
     @Override
