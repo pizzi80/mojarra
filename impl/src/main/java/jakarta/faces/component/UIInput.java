@@ -720,9 +720,9 @@ public class UIInput extends UIOutput implements EditableValueHolder {
             if (caught != null) {
                 assert message != null;
                 // PENDING(edburns): verify this is in the spec.
-                @SuppressWarnings({ "ThrowableInstanceNeverThrown" })
-                UpdateModelException toQueue = new UpdateModelException(message, caught);
-                ExceptionQueuedEventContext eventContext = new ExceptionQueuedEventContext(context, toQueue, this, PhaseId.UPDATE_MODEL_VALUES);
+                // @SuppressWarnings("ThrowableInstanceNeverThrown")
+                UpdateModelException exception = new UpdateModelException(message, caught);
+                ExceptionQueuedEventContext eventContext = new ExceptionQueuedEventContext(context, exception, this, PhaseId.UPDATE_MODEL_VALUES);
                 context.getApplication().publishEvent(context, ExceptionQueuedEvent.class, eventContext);
 
             }
@@ -1015,8 +1015,8 @@ public class UIInput extends UIOutput implements EditableValueHolder {
 
         // If our value is valid and not empty or empty w/ validate empty fields enabled, call all validators
         if (isValid() && (!isEmpty(newValue) || validateEmptyFields(context))) {
-            if (validators != null) {
-                Validator[] validators = this.validators.asArray(Validator.class);
+            if (validators != null && !this.validators.isEmpty()) {
+                List<Validator> validators = this.validators.getAttachedObjects();
                 for (Validator validator : validators) {
                     try {
                         validator.validate(context, this, newValue);
