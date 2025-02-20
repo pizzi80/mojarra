@@ -1641,6 +1641,9 @@ public class Util {
         }
     }
 
+    /**
+     * @return an unmodifiable {@link LinkedHashSet} initialized with the passed entries
+     */
     @SafeVarargs
     public static <E> Set<E> unmodifiableSet(E... elements) {
         return Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(elements)));
@@ -1657,7 +1660,7 @@ public class Util {
     }
 
     /**
-     * @return an immutable {@link LinkedHashMap} initialized with the passed entries
+     * @return an unmodifiable {@link LinkedHashMap} initialized with the passed entries
      */
     @SafeVarargs
     public static <K,V> Map<K,V> unmodifiableLinkedMap( Map.Entry<K,V>... entries ) {
