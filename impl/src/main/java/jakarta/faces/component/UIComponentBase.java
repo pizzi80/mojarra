@@ -472,8 +472,7 @@ public abstract class UIComponentBase extends UIComponent {
     public void broadcast(FacesEvent event) throws AbortProcessingException {
         requireNonNull(event);
 
-        if (event instanceof BehaviorEvent) {
-            BehaviorEvent behaviorEvent = (BehaviorEvent) event;
+        if (event instanceof BehaviorEvent behaviorEvent) {
             Behavior behavior = behaviorEvent.getBehavior();
             behavior.broadcast(behaviorEvent);
         }
@@ -482,7 +481,7 @@ public abstract class UIComponentBase extends UIComponent {
             return;
         }
 
-        for (FacesListener listener : listeners.asArray(FacesListener.class)) {
+        for (FacesListener listener : listeners.getAttachedObjects()) {
             if (event.isAppropriateListener(listener)) {
                 event.processListener(listener);
             }
@@ -643,29 +642,23 @@ public abstract class UIComponentBase extends UIComponent {
      * @throws NullPointerException {@inheritDoc}
      */
     @Override
-    protected FacesListener[] getFacesListeners(Class clazz) {
+    protected FacesListener[] getFacesListeners(Class<?> clazz) {
         requireNonNull(clazz);
 
         if (!FacesListener.class.isAssignableFrom(clazz)) {
             throw new IllegalArgumentException();
         }
 
-        if (listeners == null) {
-            return (FacesListener[]) Array.newInstance(clazz, 0);
+        if (listeners == null || listeners.isEmpty()) {
+            return (FacesListener[]) Array.newInstance(clazz,0);
         }
 
-        FacesListener[] listeners = this.listeners.asArray(FacesListener.class);
-        if (listeners.length == 0) {
-            return (FacesListener[]) Array.newInstance(clazz, 0);
-        }
-
-        List<FacesListener> results = new ArrayList<>(listeners.length);
-        for (FacesListener listener : listeners) {
-            if (((Class<?>) clazz).isAssignableFrom(listener.getClass())) {
+        List<FacesListener> results = new ArrayList<>(listeners.size());
+        for (FacesListener listener : listeners.getAttachedObjects()) {
+            if (clazz.isAssignableFrom(listener.getClass())) {
                 results.add(listener);
             }
         }
-
         return results.toArray((FacesListener[]) Array.newInstance(clazz, results.size()));
     }
 
