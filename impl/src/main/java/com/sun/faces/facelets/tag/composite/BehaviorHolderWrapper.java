@@ -16,12 +16,9 @@
 
 package com.sun.faces.facelets.tag.composite;
 
-import static java.util.Collections.unmodifiableMap;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +41,8 @@ import jakarta.faces.event.SystemEvent;
 import jakarta.faces.render.Renderer;
 
 public class BehaviorHolderWrapper extends UIComponent implements ClientBehaviorHolder {
+
+    private static final FacesListener[] EMPTY_FACES_LISTENERS_ARRAY = {};
 
     private final UIComponent parent;
     private final String virtualEvent;
@@ -409,7 +408,7 @@ public class BehaviorHolderWrapper extends UIComponent implements ClientBehavior
 
     @Override
     protected FacesListener[] getFacesListeners(Class clazz) {
-        return new FacesListener[0];
+        return EMPTY_FACES_LISTENERS_ARRAY;
     }
 
     @Override
@@ -424,25 +423,19 @@ public class BehaviorHolderWrapper extends UIComponent implements ClientBehavior
 
     @Override
     public void addClientBehavior(String eventName, ClientBehavior behavior) {
-        if (parent instanceof ClientBehaviorHolder) {
-            ClientBehaviorHolder parentHolder = (ClientBehaviorHolder) parent;
+        if (parent instanceof ClientBehaviorHolder parentHolder) {
             if (virtualEvent.equals(eventName)) {
                 parentHolder.addClientBehavior(event, behavior);
             }
         } else {
             throw new FacesException("Unable to attach behavior to non-ClientBehaviorHolder parent:" + parent);
         }
-
     }
 
     @Override
     public Map<String, List<ClientBehavior>> getClientBehaviors() {
-        if (parent instanceof ClientBehaviorHolder) {
-            ClientBehaviorHolder parentHolder = (ClientBehaviorHolder) parent;
-            Map<String, List<ClientBehavior>> behaviors = new HashMap<>(1);
-            behaviors.put(virtualEvent, parentHolder.getClientBehaviors().get(event));
-            
-            return unmodifiableMap(behaviors);
+        if (parent instanceof ClientBehaviorHolder parentHolder) {
+            return Map.of(virtualEvent, parentHolder.getClientBehaviors().get(event));
         } 
         
         throw new FacesException("Unable to get behaviors from non-ClientBehaviorHolder parent:" + parent);
