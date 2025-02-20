@@ -31,7 +31,6 @@ import jakarta.faces.context.ResponseWriter;
 public final class UIText extends UILeaf {
 
     private final ELText txt;
-
     private final String alias;
 
     public UIText(String alias, ELText txt) {
