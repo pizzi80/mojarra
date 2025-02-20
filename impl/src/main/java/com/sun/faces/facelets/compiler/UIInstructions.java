@@ -25,9 +25,8 @@ import jakarta.faces.context.FacesContext;
 
 public final class UIInstructions extends UILeaf {
 
-    transient private final ELText txt;
-
-    transient private final Instruction[] instructions;
+    private final transient ELText txt;
+    private final transient Instruction[] instructions;
 
     public UIInstructions(ELText txt, Instruction[] instructions) {
         this.txt = txt;
@@ -45,7 +44,7 @@ public final class UIInstructions extends UILeaf {
 
     @Override
     public String toString() {
-        return txt != null ? txt.toString() : "UIInstructions[" + Arrays.asList(instructions) + ']';
+        return txt != null ? txt.toString() : "UIInstructions[" + Arrays.toString(instructions) + ']';
     }
 
 }
