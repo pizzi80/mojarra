@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,38 +28,37 @@ import jakarta.servlet.ServletContext;
 
 final class MockApplicationMap implements Map<String, Object> {
 
+    private final ServletContext context;
+
     public MockApplicationMap(ServletContext context) {
         this.context = context;
     }
 
-    private ServletContext context = null;
-
     @Override
     public void clear() {
-        Iterator<String> keys = keySet().iterator();
-        while (keys.hasNext()) {
-            context.removeAttribute(keys.next());
+        for (String string : keySet()) {
+            context.removeAttribute(string);
         }
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return (context.getAttribute(key(key)) != null);
+        return context.getAttribute(key(key)) != null;
     }
 
     @Override
     public boolean containsValue(Object value) {
         if (value == null) {
-            return (false);
+            return false;
         }
         Enumeration<String> keys = context.getAttributeNames();
         while (keys.hasMoreElements()) {
             Object next = context.getAttribute(keys.nextElement());
             if (next == value) {
-                return (true);
+                return true;
             }
         }
-        return (false);
+        return false;
     }
 
     @Override
@@ -75,22 +73,22 @@ final class MockApplicationMap implements Map<String, Object> {
 
     @Override
     public boolean equals(Object o) {
-        return (context.equals(o));
+        return context.equals(o);
     }
 
     @Override
     public Object get(Object key) {
-        return (context.getAttribute(key(key)));
+        return context.getAttribute(key(key));
     }
 
     @Override
     public int hashCode() {
-        return (context.hashCode());
+        return context.hashCode();
     }
 
     @Override
     public boolean isEmpty() {
-        return (size() < 1);
+        return size() < 1;
     }
 
     @Override
@@ -100,25 +98,23 @@ final class MockApplicationMap implements Map<String, Object> {
         while (keys.hasMoreElements()) {
             set.add(keys.nextElement());
         }
-        return (set);
+        return set;
     }
 
     @Override
     public Object put(String key, Object value) {
         if (value == null) {
-            return (remove(key));
+            return remove(key);
         }
         String skey = key(key);
         Object previous = context.getAttribute(skey);
         context.setAttribute(skey, value);
-        return (previous);
+        return previous;
     }
 
     @Override
     public void putAll(Map<? extends String, ? extends Object> map) {
-        Iterator<?> keys = map.keySet().iterator();
-        while (keys.hasNext()) {
-            String key = (String) keys.next();
+        for (String key : map.keySet()) {
             context.setAttribute(key, map.get(key));
         }
     }
@@ -128,7 +124,7 @@ final class MockApplicationMap implements Map<String, Object> {
         String skey = key(key);
         Object previous = context.getAttribute(skey);
         context.removeAttribute(skey);
-        return (previous);
+        return previous;
     }
 
     @Override
@@ -139,7 +135,7 @@ final class MockApplicationMap implements Map<String, Object> {
             keys.nextElement();
             n++;
         }
-        return (n);
+        return n;
     }
 
     @Override
@@ -149,16 +145,16 @@ final class MockApplicationMap implements Map<String, Object> {
         while (keys.hasMoreElements()) {
             list.add(context.getAttribute(keys.nextElement()));
         }
-        return (list);
+        return list;
     }
 
     private String key(Object key) {
         if (key == null) {
             throw new IllegalArgumentException();
         } else if (key instanceof String) {
-            return ((String) key);
+            return (String) key;
         } else {
-            return (key.toString());
+            return key.toString();
         }
     }
 
