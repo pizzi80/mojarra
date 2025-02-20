@@ -470,7 +470,7 @@ final class CompilationManager {
             return tag;
         } else {
             List<TagAttribute> attrList = new ArrayList<>(attr.length);
-            int p = 0;
+            int p;
             for (int i = 0; i < attr.length; i++) {
                 p = 1 << i;
                 if ((p & remove) == p) {
@@ -488,7 +488,7 @@ final class CompilationManager {
      * @param units the compilation units.
      * @return Get the view
      */
-    private CompilationUnit getViewRootUnitFromStack(Stack<CompilationUnit> units) {
+    private static CompilationUnit getViewRootUnitFromStack(Stack<CompilationUnit> units) {
         CompilationUnit result = null;
         for (CompilationUnit compilationUnit : units) {
             if (compilationUnit instanceof TagUnit tagUnit) {
