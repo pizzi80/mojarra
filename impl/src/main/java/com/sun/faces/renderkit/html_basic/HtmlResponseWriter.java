@@ -368,8 +368,7 @@ public class HtmlResponseWriter extends ResponseWriter {
          * If the FastStringWriter is kept because of an error in <script> writing we get it here and write out the result. See
          * issue #3473
          */
-        if (writer instanceof FastStringWriter) {
-            FastStringWriter fastStringWriter = (FastStringWriter) writer;
+        if (writer instanceof FastStringWriter fastStringWriter) {
             String result = fastStringWriter.getBuffer().toString();
             fastStringWriter.reset();
             writer = origWriter;
