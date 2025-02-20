@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -44,8 +45,8 @@ class AttachedObjectListHolder<T> implements PartialStateHolder {
 
         if (!attachedObjects.isEmpty()) {
             for (T attachedObject : attachedObjects) {
-                if (attachedObject instanceof PartialStateHolder) {
-                    ((PartialStateHolder) attachedObject).markInitialState();
+                if (attachedObject instanceof PartialStateHolder partialStateHolder) {
+                    partialStateHolder.markInitialState();
                 }
             }
         }
@@ -63,8 +64,8 @@ class AttachedObjectListHolder<T> implements PartialStateHolder {
 
         if (!attachedObjects.isEmpty()) {
             for (T attachedObject : attachedObjects) {
-                if (attachedObject instanceof PartialStateHolder) {
-                    ((PartialStateHolder) attachedObject).clearInitialState();
+                if (attachedObject instanceof PartialStateHolder partialStateHolder) {
+                    partialStateHolder.clearInitialState();
                 }
             }
         }
@@ -83,8 +84,7 @@ class AttachedObjectListHolder<T> implements PartialStateHolder {
             boolean stateWritten = false;
             for (int i = 0; i < attachedObjects.length; i++) {
                 T attachedObject = this.attachedObjects.get(i);
-                if (attachedObject instanceof StateHolder) {
-                    StateHolder stateHolder = (StateHolder) attachedObject;
+                if (attachedObject instanceof StateHolder stateHolder) {
                     if (!stateHolder.isTransient()) {
                         attachedObjects[i] = stateHolder.saveState(context);
                     }
@@ -130,8 +130,8 @@ class AttachedObjectListHolder<T> implements PartialStateHolder {
             // Assume 1:1 relation between existing attachedObjects and state
             for (int i = 0; i < attachedObjects.length; i++) {
                 T attachedObject = this.attachedObjects.get(i);
-                if (attachedObject instanceof StateHolder) {
-                    ((StateHolder) attachedObject).restoreState(context, attachedObjects[i]);
+                if (attachedObject instanceof StateHolder stateHolder) {
+                    stateHolder.restoreState(context, attachedObjects[i]);
                 }
             }
         }
@@ -158,6 +158,18 @@ class AttachedObjectListHolder<T> implements PartialStateHolder {
     void remove(T attachedObject) {
         clearInitialState();
         attachedObjects.remove(attachedObject);
+    }
+
+    List<T> getAttachedObjects() {
+        return Collections.unmodifiableList(attachedObjects);
+    }
+
+    boolean isEmpty() {
+        return attachedObjects.isEmpty();
+    }
+
+    int size() {
+        return attachedObjects.size();
     }
 
     T[] asArray(Class<T> type) {
