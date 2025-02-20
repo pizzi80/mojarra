@@ -50,49 +50,43 @@ public class FacesContextFactoryImpl extends FacesContextFactory {
 
         exceptionHandlerFactory = (ExceptionHandlerFactory) FactoryFinder.getFactory(FactoryFinder.EXCEPTION_HANDLER_FACTORY);
         externalContextFactory = (ExternalContextFactory) FactoryFinder.getFactory(FactoryFinder.EXTERNAL_CONTEXT_FACTORY);
-
     }
 
     // ---------------------------------------- Methods from FacesContextFactory
 
     @Override
     public FacesContext getFacesContext(Object sc, Object request, Object response, Lifecycle lifecycle) throws FacesException {
-
         Util.notNull("sc", sc);
         Util.notNull("request", request);
         Util.notNull("response", response);
         Util.notNull("lifecycle", lifecycle);
-        ExternalContext extContext;
 
-        FacesContext ctx = new FacesContextImpl(extContext = externalContextFactory.getExternalContext(sc, request, response), lifecycle);
-
+        ExternalContext extContext = externalContextFactory.getExternalContext(sc, request, response);
+        FacesContext ctx = new FacesContextImpl(extContext, lifecycle);
         ctx.setExceptionHandler(exceptionHandlerFactory.getExceptionHandler());
-        WebConfiguration webConfig = WebConfiguration.getInstance(extContext);
 
-        savePerRequestInitParams(ctx, webConfig);
+        savePerRequestInitParams(ctx);
+
         return ctx;
-
     }
 
     /*
      * Copy the value of any init params that must be checked during this request to our FacesContext attribute map.
      */
-    private void savePerRequestInitParams(FacesContext context, WebConfiguration webConfig) {
-        ExternalContext extContext = context.getExternalContext();
-        Map<String, Object> appMap = extContext.getApplicationMap();
-        Map<Object, Object> attrs = context.getAttributes();
-        attrs.put(UIInput.ALWAYS_PERFORM_VALIDATION_WHEN_REQUIRED_IS_TRUE,
-                webConfig.isOptionEnabled(AlwaysPerformValidationWhenRequiredTrue) ? Boolean.TRUE : Boolean.FALSE);
-        attrs.put(PartialStateSaving, webConfig.isOptionEnabled(PartialStateSaving) ? Boolean.TRUE : Boolean.FALSE);
-        attrs.put(ForceAlwaysWriteFlashCookie, webConfig.isOptionEnabled(ForceAlwaysWriteFlashCookie) ? Boolean.TRUE : Boolean.FALSE);
+    private static void savePerRequestInitParams(FacesContext context) {
+        final ExternalContext externalContext = context.getExternalContext();
+        final WebConfiguration webConfig = WebConfiguration.getInstance(externalContext);
+        final Map<Object, Object> attrs = context.getAttributes();
+        attrs.put(UIInput.ALWAYS_PERFORM_VALIDATION_WHEN_REQUIRED_IS_TRUE, webConfig.isOptionEnabled(AlwaysPerformValidationWhenRequiredTrue));
+        attrs.put(PartialStateSaving, webConfig.isOptionEnabled(PartialStateSaving));
+        attrs.put(ForceAlwaysWriteFlashCookie, webConfig.isOptionEnabled(ForceAlwaysWriteFlashCookie));
         // We must use getQualifiedName here because the consumer is in faces-api
         // and thus cannot import the enum.
-        attrs.put(ViewRootPhaseListenerQueuesException.getQualifiedName(),
-                webConfig.isOptionEnabled(ViewRootPhaseListenerQueuesException) ? Boolean.TRUE : Boolean.FALSE);
-        attrs.put(EnableValidateWholeBean.getQualifiedName(), webConfig.isOptionEnabled(EnableValidateWholeBean) ? Boolean.TRUE : Boolean.FALSE);
+        attrs.put(ViewRootPhaseListenerQueuesException.getQualifiedName(), webConfig.isOptionEnabled(ViewRootPhaseListenerQueuesException));
+        attrs.put(EnableValidateWholeBean.getQualifiedName(), webConfig.isOptionEnabled(EnableValidateWholeBean));
 
-        String facesConfigVersion = String.valueOf(appMap.get(RIConstants.FACES_CONFIG_VERSION));
-        attrs.put(RIConstants.FACES_CONFIG_VERSION, facesConfigVersion);
+        final Map<String, Object> appMap = externalContext.getApplicationMap();
+        attrs.put(RIConstants.FACES_CONFIG_VERSION, appMap.get(RIConstants.FACES_CONFIG_VERSION));
     }
 
     // The testcase for this class is TestSerlvetFacesContextFactory.java
