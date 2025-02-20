@@ -215,8 +215,9 @@ public class WebConfiguration {
      * @return the value of the specified boolean parameter
      */
     public boolean isOptionEnabled(BooleanWebContextInitParameter param) {
-        if (booleanContextParameters.get(param) != null) {
-            return booleanContextParameters.get(param);
+        Boolean enabled = booleanContextParameters.get(param);
+        if (enabled != null) {
+            return enabled;
         }
 
         return param.getDefaultValue();
@@ -367,7 +368,9 @@ public class WebConfiguration {
             LifecycleFactory factory = (LifecycleFactory) FactoryFinder.getFactory(FactoryFinder.LIFECYCLE_FACTORY);
             PhaseListener listener = null;
 
-            for (String lifecycleId : toIterable(factory.getLifecycleIds())) {
+            Iterator<String> iterator = factory.getLifecycleIds();
+            while (iterator.hasNext()) {
+                String lifecycleId = iterator.next();
                 Lifecycle lifecycle = factory.getLifecycle(lifecycleId);
                 boolean foundExistingListenerInstance = false;
                 for (PhaseListener curListener : lifecycle.getPhaseListeners()) {
@@ -731,9 +734,9 @@ public class WebConfiguration {
         deferredLoggingActions.add(loggingAction);
     }
 
-    public <T> Iterable<T> toIterable(Iterator<T> iterator) {
-        return () -> iterator;
-    }
+//    public <T> Iterable<T> toIterable(Iterator<T> iterator) {
+//        return () -> iterator;
+//    }
 
     // ------------------------------------------------------------------- Enums
 
