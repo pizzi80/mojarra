@@ -69,20 +69,20 @@ import jakarta.faces.render.RenderKitFactory;
 
 public class FacesContextImpl extends FacesContext {
 
+    // Log instance for this class
+    private static final Logger LOGGER = FacesLogger.CONTEXT.getLogger();
+
     private static final String POST_BACK_MARKER = FacesContextImpl.class.getName() + "_POST_BACK";
 
     // Queried by InjectionFacesContextFactory
     private static final ThreadLocal<FacesContext> DEFAULT_FACES_CONTEXT = new ThreadLocal<>();
-
-    // Log instance for this class
-    private static final Logger LOGGER = FacesLogger.CONTEXT.getLogger();
 
     private boolean released;
 
     // BE SURE TO ADD NEW IVARS TO THE RELEASE METHOD
     private ResponseStream responseStream = null;
     private ResponseWriter responseWriter = null;
-    private ExternalContext externalContext = null;
+    private ExternalContext externalContext;
     private Lifecycle lifecycle;
     private Application application = null;
     private UIViewRoot viewRoot = null;
@@ -106,10 +106,10 @@ public class FacesContextImpl extends FacesContext {
      */
     private Map<String, List<FacesMessage>> componentMessageLists;
 
-    public FacesContextImpl(ExternalContext ec, Lifecycle lifecycle) {
-        notNull("ec", ec);
+    public FacesContextImpl(ExternalContext externalContext, Lifecycle lifecycle) {
+        notNull("externalContext", externalContext);
         notNull("lifecycle", lifecycle);
-        externalContext = ec;
+        this.externalContext = externalContext;
         this.lifecycle = lifecycle;
         setCurrentInstance(this);
         DEFAULT_FACES_CONTEXT.set(this);
