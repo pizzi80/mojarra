@@ -501,8 +501,9 @@ public class ApplicationAssociate {
     }
 
     public List<FacesComponentUsage> getComponentsForNamespace(String namespace) {
-        if (facesComponentsByNamespace != null && facesComponentsByNamespace.containsKey(namespace)) {
-            return facesComponentsByNamespace.get(namespace);
+        final List<FacesComponentUsage> componentUsageList;
+        if (facesComponentsByNamespace != null && (componentUsageList = facesComponentsByNamespace.get(namespace)) != null) {
+            return componentUsageList;
         }
 
         return emptyList();
