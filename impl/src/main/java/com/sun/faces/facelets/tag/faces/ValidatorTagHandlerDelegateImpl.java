@@ -82,14 +82,13 @@ public class ValidatorTagHandlerDelegateImpl extends TagHandlerDelegate implemen
 
     // -------------------------------------- Methods from AttachedObjectHandler
 
-    @SuppressWarnings({ "unchecked" })
     @Override
     public void applyAttachedObject(FacesContext context, UIComponent parent) {
 
         FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
         EditableValueHolder evh = (EditableValueHolder) parent;
         if (owner.isDisabled(ctx)) {
-            Set<String> disabledIds = (Set<String>) RequestStateManager.get(context, RequestStateManager.DISABLED_VALIDATORS);
+            Set<String> disabledIds = RequestStateManager.get(context, RequestStateManager.DISABLED_VALIDATORS);
             if (disabledIds == null) {
                 disabledIds = new HashSet<>(3);
                 RequestStateManager.set(context, RequestStateManager.DISABLED_VALIDATORS, disabledIds);
@@ -102,7 +101,7 @@ public class ValidatorTagHandlerDelegateImpl extends TagHandlerDelegate implemen
         Validator v = null;
         if (owner.getBinding() != null) {
             ve = owner.getBinding().getValueExpression(ctx, Validator.class);
-            v = (Validator) ve.getValue(ctx);
+            v = ve.getValue(ctx);
         }
         if (v == null) {
             v = createValidator(ctx);
@@ -142,7 +141,7 @@ public class ValidatorTagHandlerDelegateImpl extends TagHandlerDelegate implemen
             } else {
                 FacesContext context = FacesContext.getCurrentInstance();
                 FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-                result = (String) attr.getValueExpression(ctx, String.class).getValue(ctx);
+                result = attr.getValueExpression(ctx, String.class).getValue(ctx);
             }
         }
         return result;
