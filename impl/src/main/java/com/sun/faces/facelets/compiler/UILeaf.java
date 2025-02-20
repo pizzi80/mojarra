@@ -18,7 +18,6 @@ package com.sun.faces.facelets.compiler;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,24 +34,8 @@ import jakarta.faces.render.Renderer;
 
 public class UILeaf extends UIComponentBase implements UntargetableComponent {
 
-    private final static Map<String, UIComponent> facets = new HashMap<>(0, 1.0f) {
-
-        private static final long serialVersionUID = 2063657587950149152L;
-
-        @Override
-        public void putAll(Map<? extends String, ? extends UIComponent> map) {
-            // do nothing
-        }
-
-        @Override
-        public UIComponent put(String name, UIComponent value) {
-            return null;
-        }
-    };
-
     private UIComponent parent;
     private boolean returnLocalTransient = true;
-
 
     @Override
     public ValueExpression getValueExpression(String name) {
@@ -111,7 +94,7 @@ public class UILeaf extends UIComponentBase implements UntargetableComponent {
 
     @Override
     public Map<String, UIComponent> getFacets() {
-        return facets;
+        return Collections.emptyMap();
     }
 
     @Override
@@ -126,7 +109,7 @@ public class UILeaf extends UIComponentBase implements UntargetableComponent {
 
     @Override
     public Iterator<UIComponent> getFacetsAndChildren() {
-        return Collections.<UIComponent>emptyList().iterator();
+        return Collections.emptyIterator();
     }
 
     @Override
@@ -165,7 +148,7 @@ public class UILeaf extends UIComponentBase implements UntargetableComponent {
     }
 
     @Override
-    protected FacesListener[] getFacesListeners(Class faces) {
+    protected FacesListener[] getFacesListeners(Class<?> faces) {
         return null;
     }
 
