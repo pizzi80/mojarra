@@ -316,7 +316,7 @@ public class ApplicationAssociate {
                 getFacesServletRegistration(context)
                     .ifPresent(registration ->
                         viewHandler.getViews(context, "/", RETURN_AS_MINIMAL_IMPLICIT_OUTCOME)
-                                   .forEach(view -> registration.addMapping(view)));
+                                   .forEach(registration::addMapping));
             }
 
         }
@@ -421,7 +421,7 @@ public class ApplicationAssociate {
     /**
      * Obtain the PropertyEditorHelper instance for this app.
      *
-     * @return The PropertyEditorHeler instance for this app.
+     * @return The PropertyEditorHelper instance for this app.
      */
     public PropertyEditorHelper getPropertyEditorHelper() {
         return propertyEditorHelper;
