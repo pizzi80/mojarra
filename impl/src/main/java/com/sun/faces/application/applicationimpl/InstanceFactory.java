@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -106,10 +107,10 @@ public class InstanceFactory {
     private static final Map<Class<?>, String> STANDARD_TYPE_TO_CONV_ID_MAP = new HashMap<>(calculateMapCapacity(STANDARD_CONV_ID_TO_TYPE_MAP.size()*2));
     static {
         for (Map.Entry<String, Class<?>[]> entry : STANDARD_CONV_ID_TO_TYPE_MAP.entrySet()) {
-            String key = entry.getKey();
+            String converterId = entry.getKey();
             Class<?>[] types = entry.getValue();
             for (Class<?> clazz : types) {
-                STANDARD_TYPE_TO_CONV_ID_MAP.put(clazz, key);
+                STANDARD_TYPE_TO_CONV_ID_MAP.put(clazz, converterId);
             }
         }
     }
@@ -136,7 +137,7 @@ public class InstanceFactory {
     private final ViewMemberInstanceFactoryMetadataMap validatorMap;
 
     private final Set<String> defaultValidatorIds;
-    private volatile Map<String, String> defaultValidatorInfo;
+    private Map<String, String> defaultValidatorInfo;
 
     private final ApplicationAssociate associate;
 
@@ -561,14 +562,18 @@ public class InstanceFactory {
         return validatorMap.keySet().iterator();
     }
 
+    private final ReentrantLock lock = new ReentrantLock();
+
     /*
      * @see jakarta.faces.application.Application#addDefaultValidatorId(String)
      */
-    public synchronized void addDefaultValidatorId(String validatorId) {
+    public void addDefaultValidatorId(String validatorId) {
         notNull("validatorId", validatorId);
 
-        defaultValidatorInfo = null;
-        defaultValidatorIds.add(validatorId);
+        Util.execAtomic(lock, () -> {
+            defaultValidatorInfo = null;
+            defaultValidatorIds.add(validatorId);
+        });
     }
 
     /**
@@ -577,16 +582,16 @@ public class InstanceFactory {
     public Map<String, String> getDefaultValidatorInfo() {
 
         if (defaultValidatorInfo == null) {
-            synchronized (this) {
+            Util.execAtomic(lock, () -> {
                 if (defaultValidatorInfo == null) {
-                    defaultValidatorInfo = new LinkedHashMap<>();
+                    defaultValidatorInfo = new LinkedHashMap<>(Util.calculateMapCapacity(defaultValidatorIds.size()));
                     if (!defaultValidatorIds.isEmpty()) {
                         for (String id : defaultValidatorIds) {
                             String validatorClass;
                             Object result = validatorMap.get(id);
-                            if (null != result) {
-                                if (result instanceof Class) {
-                                    validatorClass = ((Class<?>) result).getName();
+                            if (result != null) {
+                                if (result instanceof Class<?> clazz) {
+                                    validatorClass = clazz.getName();
                                 } else {
                                     validatorClass = result.toString();
                                 }
@@ -597,7 +602,7 @@ public class InstanceFactory {
                     }
                 }
                 defaultValidatorInfo = unmodifiableMap(defaultValidatorInfo);
-            }
+            });
         }
 
         return defaultValidatorInfo;
