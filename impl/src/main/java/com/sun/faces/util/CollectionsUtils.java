@@ -103,7 +103,7 @@ public final class CollectionsUtils {
         return new UnmodifiableIterator<>(iterator);
     }
 
-    public static class UnmodifiableIterator<T> implements Iterator<T> {
+    private static class UnmodifiableIterator<T> implements Iterator<T> {
 
         private final Iterator<T> iterator;
 
