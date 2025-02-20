@@ -754,6 +754,11 @@ public class Util {
         return null;
     }
 
+    /**
+     * @deprecated use Java 21 {@link List#reversed()}
+     * @return a copy of the passed {@link List} with all the elements in reverse order
+     */
+    @Deprecated(forRemoval = true)
     public static <T> List<T> reverse(List<T> list) {
         int length = list.size();
         List<T> result = new ArrayList<>(length);
