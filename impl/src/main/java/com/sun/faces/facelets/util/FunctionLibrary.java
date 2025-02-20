@@ -61,7 +61,7 @@ public class FunctionLibrary implements TagLibrary {
 
         try {
             Method[] methods = functionsClass.getMethods();
-            functions = new HashMap<>(methods.length, 1.0f);
+            functions = new HashMap<>(Util.calculateMapCapacity(methods.length));
             for (Method method : methods) {
                 if (Modifier.isStatic(method.getModifiers()) && Modifier.isPublic(method.getModifiers())) {
                     functions.put(method.getName(), method);
