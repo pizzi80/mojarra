@@ -39,7 +39,6 @@ class WebServiceRefHandler extends JndiHandler implements RuntimeAnnotationHandl
         this.methodAnnotations = methodAnnotations;
     }
 
-    @SuppressWarnings({ "UnusedDeclaration" })
     @Override
     public void apply(FacesContext ctx, Object... params) {
         Object object = params[0];
@@ -53,11 +52,11 @@ class WebServiceRefHandler extends JndiHandler implements RuntimeAnnotationHandl
     }
 
     private void applyToField(FacesContext facesContext, Field field, WebServiceRef ref, Object instance) {
-        Object value = null;
+        final Object value;
         /*
          * if (ref.lookup() != null && !"".equals(ref.lookup().trim())) { value = lookup(facesContext, ref.lookup()); } else
          */
-        if (ref.name() != null && !"".equals(ref.name().trim())) {
+        if (ref.name() != null && !ref.name().isBlank()) {
             value = lookup(facesContext, JAVA_COMP_ENV + ref.name());
         } else {
             value = lookup(facesContext, field.getName());
@@ -71,7 +70,7 @@ class WebServiceRefHandler extends JndiHandler implements RuntimeAnnotationHandl
             /*
              * if (ref.lookup() != null && !"".equals(ref.lookup().trim())) { value = lookup(facesContext, ref.lookup()); } else
              */
-            if (ref.name() != null && !"".equals(ref.name().trim())) {
+            if (ref.name() != null && !ref.name().isBlank()) {
                 value = lookup(facesContext, JAVA_COMP_ENV + ref.name());
             }
             invokeMethod(facesContext, method, instance, value);
