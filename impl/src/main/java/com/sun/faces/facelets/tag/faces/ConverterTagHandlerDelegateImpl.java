@@ -40,7 +40,7 @@ import jakarta.faces.view.facelets.TagHandlerDelegate;
  */
 public class ConverterTagHandlerDelegateImpl extends TagHandlerDelegate implements AttachedObjectHandler {
 
-    private ConverterHandler owner;
+    private final ConverterHandler owner;
 
     public ConverterTagHandlerDelegateImpl(ConverterHandler owner) {
         this.owner = owner;
@@ -69,7 +69,7 @@ public class ConverterTagHandlerDelegateImpl extends TagHandlerDelegate implemen
     }
 
     @Override
-    public MetaRuleset createMetaRuleset(Class type) {
+    public MetaRuleset createMetaRuleset(Class<?> type) {
         Util.notNull("type", type);
         MetaRuleset m = new MetaRulesetImpl(owner.getTag(), type);
 
@@ -85,9 +85,8 @@ public class ConverterTagHandlerDelegateImpl extends TagHandlerDelegate implemen
             if (attr.isLiteral()) {
                 result = attr.getValue();
             } else {
-                FacesContext context = FacesContext.getCurrentInstance();
-                FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-                result = (String) attr.getValueExpression(ctx, String.class).getValue(ctx);
+                FaceletContext ctx = FaceletContext.getCurrentInstance();
+                result = attr.getValueExpression(ctx, String.class).getValue(ctx);
             }
         }
         return result;
@@ -96,14 +95,14 @@ public class ConverterTagHandlerDelegateImpl extends TagHandlerDelegate implemen
 
     @Override
     public void applyAttachedObject(FacesContext context, UIComponent parent) {
-        FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+        FaceletContext ctx = FaceletContext.getCurrentInstance(context);
         // cast to a ValueHolder
         ValueHolder vh = (ValueHolder) parent;
         ValueExpression ve = null;
         Converter c = null;
         if (owner.getBinding() != null) {
             ve = owner.getBinding().getValueExpression(ctx, Converter.class);
-            c = (Converter) ve.getValue(ctx);
+            c = ve.getValue(ctx);
         }
         if (c == null) {
             c = createConverter(ctx);
