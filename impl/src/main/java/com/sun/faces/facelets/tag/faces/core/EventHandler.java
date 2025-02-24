@@ -18,6 +18,7 @@ package com.sun.faces.facelets.tag.faces.core;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Objects;
 
 import com.sun.faces.application.ApplicationAssociate;
 
@@ -44,8 +45,9 @@ import jakarta.faces.view.facelets.TagHandler;
  * This is the TagHandler for the f:event tag.
  */
 public class EventHandler extends TagHandler {
-    protected final TagAttribute type;
-    protected final TagAttribute listener;
+
+    private final TagAttribute type;
+    private final TagAttribute listener;
 
     public EventHandler(TagConfig config) {
         super(config);
@@ -72,7 +74,7 @@ public class EventHandler extends TagHandler {
     }
 
     protected Class<? extends SystemEvent> getEventClass(FaceletContext ctx) {
-        String eventType = (String) type.getValueExpression(ctx, String.class).getValue(ctx);
+        String eventType = type.getValueExpression(ctx, String.class).getValue(ctx);
         if (eventType == null) {
             throw new FacesException("Attribute 'type' can not be null");
         }
@@ -108,32 +110,17 @@ class DeclarativeSystemEventListener implements ComponentSystemEventListener, Se
             oneArgListener.invoke(elContext, new Object[] { event });
         }
     }
-
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+    public boolean equals(Object object) {
+        if (!(object instanceof DeclarativeSystemEventListener listener)) return false;
 
-        DeclarativeSystemEventListener that = (DeclarativeSystemEventListener) o;
-
-        if (noArgListener != null ? !noArgListener.equals(that.noArgListener) : that.noArgListener != null) {
-            return false;
-        }
-        if (oneArgListener != null ? !oneArgListener.equals(that.oneArgListener) : that.oneArgListener != null) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(oneArgListener, listener.oneArgListener)
+            && Objects.equals(noArgListener, listener.noArgListener);
     }
 
     @Override
     public int hashCode() {
-        int result = oneArgListener != null ? oneArgListener.hashCode() : 0;
-        result = 31 * result + (noArgListener != null ? noArgListener.hashCode() : 0);
-        return result;
+        return Objects.hash(oneArgListener, noArgListener);
     }
+
 }
