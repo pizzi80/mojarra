@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectStreamClass;
-import java.util.HashMap;
-import java.util.Map;
+
+import com.sun.faces.util.Util;
 
 /**
  * An ObjectInputStream that can deserialize objects relative to the current application's class loader. In particular,
@@ -29,21 +29,6 @@ import java.util.Map;
  * application objects).
  */
 public class ApplicationObjectInputStream extends ObjectInputStream {
-
-    // Taken from ObjectInputStream to resolve primitive types
-    private static final Map<String, Class<?>> PRIMITIVE_CLASSES = new HashMap<>(9, 1.0F);
-
-    static {
-        PRIMITIVE_CLASSES.put("boolean", boolean.class);
-        PRIMITIVE_CLASSES.put("byte", byte.class);
-        PRIMITIVE_CLASSES.put("char", char.class);
-        PRIMITIVE_CLASSES.put("short", short.class);
-        PRIMITIVE_CLASSES.put("int", int.class);
-        PRIMITIVE_CLASSES.put("long", long.class);
-        PRIMITIVE_CLASSES.put("float", float.class);
-        PRIMITIVE_CLASSES.put("double", double.class);
-        PRIMITIVE_CLASSES.put("void", void.class);
-    }
 
     public ApplicationObjectInputStream() throws IOException, SecurityException {
         super();
@@ -66,7 +51,7 @@ public class ApplicationObjectInputStream extends ObjectInputStream {
         try {
             return Class.forName(name, true, Thread.currentThread().getContextClassLoader());
         } catch (ClassNotFoundException cnfe) {
-            Class<?> c = PRIMITIVE_CLASSES.get(name);
+            Class<?> c = Util.primitiveTypes.get(name);
             if (c != null) {
                 return c;
             }
