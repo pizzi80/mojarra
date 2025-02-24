@@ -40,7 +40,7 @@ import jakarta.faces.lifecycle.LifecycleFactory;
 
 public class FactoryFinderTestCase {
 
-    public static String FACTORIES[][] = {
+    public static final String[][] FACTORIES = {
         {FactoryFinder.APPLICATION_FACTORY,
             "com.sun.faces.mock.MockApplicationFactory"
         },
@@ -66,8 +66,8 @@ public class FactoryFinderTestCase {
         method.setAccessible(true);
         method.invoke(null, new Object[]{null});
 
-        for (int i = 0, len = FACTORIES.length; i < len; i++) {
-            System.getProperties().remove(FACTORIES[i][0]);
+        for (String[] factory : FACTORIES) {
+            System.getProperties().remove(factory[0]);
         }
     }
 
@@ -75,8 +75,8 @@ public class FactoryFinderTestCase {
     @AfterEach
     public void tearDown() throws Exception {
         FactoryFinder.releaseFactories();
-        for (int i = 0, len = FACTORIES.length; i < len; i++) {
-            System.getProperties().remove(FACTORIES[i][0]);
+        for (String[] factory : FACTORIES) {
+            System.getProperties().remove(factory[0]);
         }
     }
 
