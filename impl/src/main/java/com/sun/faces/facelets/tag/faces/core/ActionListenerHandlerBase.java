@@ -83,20 +83,20 @@ public abstract class ActionListenerHandlerBase extends TagHandlerImpl implement
 
     @Override
     public String getFor() {
-        String result = null;
-        TagAttribute attr = getAttribute("for");
+        final TagAttribute attr = getAttribute("for");
 
-        if (null != attr) {
+        final String result;
+        if (attr != null) {
             if (attr.isLiteral()) {
                 result = attr.getValue();
             } else {
-                FacesContext context = FacesContext.getCurrentInstance();
-                FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-                result = (String) attr.getValueExpression(ctx, String.class).getValue(ctx);
+                FaceletContext ctx = FaceletContext.getCurrentInstance();
+                result = attr.getValueExpression(ctx, String.class).getValue(ctx);
             }
+        } else {
+            result = null;
         }
         return result;
-
     }
 
 }
