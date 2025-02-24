@@ -35,7 +35,7 @@ final class NamespaceHandler extends FunctionMapper implements FaceletHandler {
 
     private final TagLibrary library;
     private final Map<String, String> ns;
-    private FaceletHandler next;
+    private final FaceletHandler next;
 
     public NamespaceHandler(FaceletHandler next, TagLibrary library, Map<String, String> ns) {
         this.library = library;
