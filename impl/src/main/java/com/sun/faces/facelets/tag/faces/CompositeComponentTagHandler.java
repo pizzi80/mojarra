@@ -216,16 +216,16 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
      */
     @Override
     protected MetaRuleset createMetaRuleset(Class type) {
-
         Util.notNull("type", type);
+
         FacesContext context = FacesContext.getCurrentInstance();
         UIComponent cc = getCompositeComponent(context);
         if (null == cc) {
-            FaceletContext faceletContext = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+            FaceletContext faceletContext = FaceletContext.getCurrentInstance(context);
             cc = createComponent(faceletContext);
             setCompositeComponent(context, cc);
-
         }
+
         MetaRuleset m = new CompositeComponentMetaRuleset(getTag(), type, (BeanInfo) cc.getAttributes().get(UIComponent.BEANINFO_KEY));
 
         // ignore standard component attributes
@@ -528,7 +528,7 @@ public class CompositeComponentTagHandler extends ComponentHandler implements Cr
                 Collection<String> attributesWithDeclaredDefaultValues = (Collection<String>) desc.getValue(UIComponent.ATTRS_WITH_DECLARED_DEFAULT_VALUES);
                 if (null != attributesWithDeclaredDefaultValues && attributesWithDeclaredDefaultValues.contains(name) && attrs.containsKey(name)) {
                     // It is necessary to remove the value from the attribute
-                    // map because the ELexpression transparancy doesn't know
+                    // map because the ELexpression transparency doesn't know
                     // about the value's existence.
                     attrs.remove(name);
                 }
