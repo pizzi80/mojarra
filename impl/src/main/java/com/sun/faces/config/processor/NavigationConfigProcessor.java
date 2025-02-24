@@ -38,6 +38,7 @@ import org.w3c.dom.NodeList;
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.config.manager.documents.DocumentInfo;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 import jakarta.faces.application.ConfigurableNavigationHandler;
 import jakarta.faces.application.NavigationCase;
@@ -327,7 +328,7 @@ public class NavigationConfigProcessor extends AbstractConfigProcessor {
         Map<String, List<String>> parameters = null;
 
         if (children.getLength() > 0) {
-            parameters = new LinkedHashMap<>(4, 1.0f);
+            parameters = new LinkedHashMap<>(Util.calculateMapCapacity(4));
             for (int i = 0, size = children.getLength(); i < size; i++) {
                 Node n = children.item(i);
                 if (n.getNodeType() == Node.ELEMENT_NODE) {
