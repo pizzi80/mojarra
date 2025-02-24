@@ -148,7 +148,7 @@ public final class AjaxHandler extends TagHandlerImpl implements BehaviorHolderA
 
     @Override
     public void applyAttachedObject(FacesContext context, UIComponent parent) {
-        FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+        FaceletContext ctx = FaceletContext.getCurrentInstance(context);
         applyAttachedObject(ctx, parent, getEventName());
     }
 
@@ -169,8 +169,7 @@ public final class AjaxHandler extends TagHandlerImpl implements BehaviorHolderA
      */
     @Override
     public String getEventName() {
-        FacesContext context = FacesContext.getCurrentInstance();
-        FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+        FaceletContext ctx = FaceletContext.getCurrentInstance();
         return event != null ? event.getValue(ctx) : null;
     }
 
@@ -186,7 +185,7 @@ public final class AjaxHandler extends TagHandlerImpl implements BehaviorHolderA
     }
 
     // Applies a wrapping AjaxHandler by pushing/popping the AjaxBehavior
-    // to the AjaxBeahviors object.
+    // to the AjaxBehaviors object.
     private void applyWrapping(FaceletContext ctx, UIComponent parent, String eventName) throws IOException {
 
         // In the wrapping case, we assume that some wrapped component
