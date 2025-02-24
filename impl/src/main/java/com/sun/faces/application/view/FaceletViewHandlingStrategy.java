@@ -52,7 +52,6 @@ import static jakarta.faces.component.UIComponent.COMPOSITE_FACET_NAME;
 import static jakarta.faces.component.UIComponent.VIEW_LOCATION_KEY;
 import static jakarta.faces.component.UIViewRoot.COMPONENT_TYPE;
 import static jakarta.faces.view.AttachedObjectTarget.ATTACHED_OBJECT_TARGETS_KEY;
-import static jakarta.faces.view.facelets.FaceletContext.FACELET_CONTEXT_KEY;
 import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 import static java.lang.Boolean.TRUE;
 import static java.util.Collections.emptyList;
@@ -76,6 +75,26 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.context.StateContext;
+import com.sun.faces.facelets.compiler.FaceletDoctype;
+import com.sun.faces.facelets.el.ContextualCompositeMethodExpression;
+import com.sun.faces.facelets.el.VariableMapperWrapper;
+import com.sun.faces.facelets.impl.DefaultFaceletFactory;
+import com.sun.faces.facelets.impl.XMLFrontMatterSaver;
+import com.sun.faces.facelets.tag.composite.CompositeComponentBeanInfo;
+import com.sun.faces.facelets.tag.faces.CompositeComponentTagHandler;
+import com.sun.faces.facelets.tag.ui.UIDebug;
+import com.sun.faces.renderkit.RenderKitUtils;
+import com.sun.faces.renderkit.html_basic.DoctypeRenderer;
+import com.sun.faces.util.Cache;
+import com.sun.faces.util.ComponentStruct;
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.HtmlUtils;
+import com.sun.faces.util.RequestStateManager;
+import com.sun.faces.util.Util;
 
 import jakarta.el.ELContext;
 import jakarta.el.ExpressionFactory;
@@ -123,26 +142,6 @@ import jakarta.faces.view.ViewMetadata;
 import jakarta.faces.view.facelets.Facelet;
 import jakarta.faces.view.facelets.FaceletContext;
 import jakarta.servlet.http.HttpSession;
-
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.context.StateContext;
-import com.sun.faces.facelets.compiler.FaceletDoctype;
-import com.sun.faces.facelets.el.ContextualCompositeMethodExpression;
-import com.sun.faces.facelets.el.VariableMapperWrapper;
-import com.sun.faces.facelets.impl.DefaultFaceletFactory;
-import com.sun.faces.facelets.impl.XMLFrontMatterSaver;
-import com.sun.faces.facelets.tag.composite.CompositeComponentBeanInfo;
-import com.sun.faces.facelets.tag.faces.CompositeComponentTagHandler;
-import com.sun.faces.facelets.tag.ui.UIDebug;
-import com.sun.faces.renderkit.RenderKitUtils;
-import com.sun.faces.renderkit.html_basic.DoctypeRenderer;
-import com.sun.faces.util.Cache;
-import com.sun.faces.util.ComponentStruct;
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.HtmlUtils;
-import com.sun.faces.util.RequestStateManager;
-import com.sun.faces.util.Util;
 
 /**
  * This {@link ViewHandlingStrategy} handles Facelets/PDL-based views.
@@ -1034,7 +1033,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
 
         // PENDING this implementation is terribly wasteful.
         // Must find a better way.
-        FaceletContext faceletContext = (FaceletContext) context.getAttributes().get(FACELET_CONTEXT_KEY);
+        FaceletContext faceletContext = FaceletContext.getCurrentInstance(context);
         DefaultFaceletFactory factory = RequestStateManager.get(context, FACELET_FACTORY);
         VariableMapper orig = faceletContext.getVariableMapper();
 
