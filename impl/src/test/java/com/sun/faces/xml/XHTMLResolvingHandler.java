@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -31,11 +31,10 @@ import org.xml.sax.helpers.DefaultHandler;
 
 public class XHTMLResolvingHandler extends DefaultHandler {
 
-    private ResourceBundle bundle;
+    private final ResourceBundle bundle;
 
     public XHTMLResolvingHandler() {
-        bundle = ResourceBundle.getBundle(this.getClass().getPackage().getName() + ".Entities",
-                Locale.US);
+        bundle = ResourceBundle.getBundle(this.getClass().getPackage().getName() + ".Entities", Locale.US);
     }
 
     @Override
@@ -54,18 +53,13 @@ public class XHTMLResolvingHandler extends DefaultHandler {
 
                 @Override
                 public InputStream getByteStream() {
-                    InputStream inputStream = null;
-                    try {
-                        inputStream = new ByteArrayInputStream(value.getBytes("UTF-8"));
-                    } catch (UnsupportedEncodingException ex) {
-                    }
+                    InputStream inputStream = new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8));
                     return inputStream;
                 }
 
                 @Override
                 public Reader getCharacterStream() {
-                    Reader reader = null;
-                    reader = new StringReader(value);
+                    Reader reader = new StringReader(value);
                     return reader;
                 }
 
