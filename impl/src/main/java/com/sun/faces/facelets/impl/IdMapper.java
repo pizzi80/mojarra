@@ -24,13 +24,13 @@ import com.sun.faces.util.Util;
 import jakarta.faces.context.FacesContext;
 
 /**
- * Used to provide aliases to Facelets generated unique IDs with tend to be womewhat long.
+ * Used to provide aliases to Facelets generated unique IDs with tend to be somewhat long.
  */
 public class IdMapper {
 
     private static final String KEY = IdMapper.class.getName();
 
-    private Cache<String, String> idCache = new Cache<>(new IdGen());
+    private final Cache<String, String> idCache = new Cache<>(new IdGenerator());
 
     // ------------------------------------------------------------ Constructors
 
@@ -40,34 +40,28 @@ public class IdMapper {
     // ---------------------------------------------------------- Public Methods
 
     public String getAliasedId(String id) {
-
         return idCache.get(id);
-
     }
 
     public static void setMapper(FacesContext ctx, IdMapper mapper) {
-
         Util.notNull("ctx", ctx);
         if (mapper == null) {
             ctx.getAttributes().remove(KEY);
         } else {
             ctx.getAttributes().put(KEY, mapper);
         }
-
     }
 
     public static IdMapper getMapper(FacesContext ctx) {
-
         Util.notNull("ctx", ctx);
         return (IdMapper) ctx.getAttributes().get(KEY);
-
     }
 
     // ---------------------------------------------------------- Nested Classes
 
-    private static final class IdGen implements Cache.Factory<String, String> {
+    private static final class IdGenerator implements Cache.Factory<String, String> {
 
-        private AtomicInteger counter = new AtomicInteger(0);
+        private final AtomicInteger counter = new AtomicInteger(0);
 
         // ------------------------------------------ Methods from Cache.Factory
 
