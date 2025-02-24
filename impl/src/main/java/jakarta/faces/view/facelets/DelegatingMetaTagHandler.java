@@ -40,7 +40,7 @@ public abstract class DelegatingMetaTagHandler extends MetaTagHandler {
     /**
      * Class that defines methods relating to helping tag handler instances.
      */
-    protected TagHandlerDelegateFactory delegateFactory;
+    protected final TagHandlerDelegateFactory delegateFactory;
 
     /**
      * Instantiates this handler with the given config.
