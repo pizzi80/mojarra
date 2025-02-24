@@ -40,7 +40,7 @@ public class ClientWindowScopeManager implements HttpSessionListener {
     /**
      * Stores the CDI context manager.
      */
-    private ClientWindowScopeContextManager contextManager;
+    private final ClientWindowScopeContextManager contextManager;
 
     /**
      * Constructor.

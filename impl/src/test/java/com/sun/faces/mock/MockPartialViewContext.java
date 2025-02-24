@@ -30,7 +30,7 @@ import jakarta.faces.event.PhaseId;
  */
 public class MockPartialViewContext extends PartialViewContext {
 
-    private Map<Object, Object> attributes;
+    private final Map<Object, Object> attributes;
     private boolean partial = false;
     private boolean renderAll = false;
 

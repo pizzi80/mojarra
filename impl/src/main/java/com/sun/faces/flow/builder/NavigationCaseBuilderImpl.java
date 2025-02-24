@@ -30,8 +30,8 @@ import jakarta.faces.flow.builder.NavigationCaseBuilder;
 
 public class NavigationCaseBuilderImpl extends NavigationCaseBuilder {
 
-    private FlowBuilderImpl root;
-    private MutableNavigationCase navCase;
+    private final FlowBuilderImpl root;
+    private final MutableNavigationCase navCase;
 
     public NavigationCaseBuilderImpl(FlowBuilderImpl root) {
         navCase = new MutableNavigationCase();

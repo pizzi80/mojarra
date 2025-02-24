@@ -24,7 +24,7 @@ import jakarta.faces.flow.builder.SwitchCaseBuilder;
 
 public class SwitchCaseBuilderImpl extends SwitchCaseBuilder {
 
-    private SwitchBuilderImpl root;
+    private final SwitchBuilderImpl root;
     private SwitchCaseImpl myCase;
 
     public SwitchCaseBuilderImpl(SwitchBuilderImpl root) {

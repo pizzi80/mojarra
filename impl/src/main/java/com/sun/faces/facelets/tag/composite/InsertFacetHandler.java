@@ -52,12 +52,12 @@ public class InsertFacetHandler extends TagHandlerImpl {
     // Attributes
 
     // This attribute is required.
-    private TagAttribute name;
+    private final TagAttribute name;
 
     // This attribute is not required. If it's not defined or false,
     // then the facet associated with name need not be present in the
     // using page.
-    private TagAttribute required;
+    private final TagAttribute required;
 
     // ------------------------------------------------------------ Constructors
 
@@ -86,9 +86,9 @@ public class InsertFacetHandler extends TagHandlerImpl {
 
     private class RelocateFacetListener extends RelocateListener {
 
-        private FaceletContext ctx;
-        private UIComponent component;
-        private Location location;
+        private final FaceletContext ctx;
+        private final UIComponent component;
+        private final Location location;
 
         // -------------------------------------------------------- Constructors
 

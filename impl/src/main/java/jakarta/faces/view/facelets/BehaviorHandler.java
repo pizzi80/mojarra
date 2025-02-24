@@ -30,7 +30,7 @@ import jakarta.faces.view.BehaviorHolderAttachedObjectHandler;
 public class BehaviorHandler extends FaceletsAttachedObjectHandler implements BehaviorHolderAttachedObjectHandler {
 
     private final TagAttribute event;
-    private String behaviorId;
+    private final String behaviorId;
     private TagHandlerDelegate helper;
 
     /**

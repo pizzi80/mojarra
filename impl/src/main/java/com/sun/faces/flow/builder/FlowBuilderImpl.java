@@ -36,10 +36,10 @@ import jakarta.faces.flow.builder.ViewBuilder;
 
 public class FlowBuilderImpl extends FlowBuilder {
 
-    private FlowImpl flow;
-    private ExpressionFactory expressionFactory;
-    private ELContext elContext;
-    private FacesContext context;
+    private final FlowImpl flow;
+    private final ExpressionFactory expressionFactory;
+    private final ELContext elContext;
+    private final FacesContext context;
     private boolean didInit;
     private boolean hasId;
 

@@ -25,10 +25,10 @@ import jakarta.faces.flow.builder.SwitchCaseBuilder;
 
 public class SwitchBuilderImpl extends SwitchBuilder {
 
-    private FlowBuilderImpl root;
-    private String switchId;
-    private SwitchNodeImpl switchNode;
-    private SwitchCaseBuilderImpl switchCaseBuilder;
+    private final FlowBuilderImpl root;
+    private final String switchId;
+    private final SwitchNodeImpl switchNode;
+    private final SwitchCaseBuilderImpl switchCaseBuilder;
 
     SwitchBuilderImpl(FlowBuilderImpl root, String id) {
         this.root = root;

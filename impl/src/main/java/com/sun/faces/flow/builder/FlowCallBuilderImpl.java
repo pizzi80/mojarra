@@ -28,8 +28,8 @@ import jakarta.faces.flow.builder.FlowCallBuilder;
 
 public class FlowCallBuilderImpl extends FlowCallBuilder {
 
-    private FlowBuilderImpl root;
-    private String flowCallNodeId;
+    private final FlowBuilderImpl root;
+    private final String flowCallNodeId;
     private String flowDocumentId;
     private String flowId;
 

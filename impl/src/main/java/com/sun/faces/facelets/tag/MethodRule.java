@@ -68,9 +68,9 @@ public final class MethodRule extends MetaRule {
 
         private final TagAttribute _attribute;
 
-        private Class<?>[] _paramList;
+        private final Class<?>[] _paramList;
 
-        private Class<?> _returnType;
+        private final Class<?> _returnType;
 
         public MethodExpressionMetadata(Method method, TagAttribute attribute, Class returnType, Class[] paramList) {
             _method = method;

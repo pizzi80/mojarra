@@ -35,7 +35,7 @@ import jakarta.faces.convert.ConverterException;
  */
 public class PropertyEditorHelper {
 
-    private Application app;
+    private final Application app;
 
     public PropertyEditorHelper(Application app) {
         this.app = app;

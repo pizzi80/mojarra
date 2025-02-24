@@ -36,7 +36,7 @@ import jakarta.faces.view.facelets.TagHandler;
 public class AttachedBehaviors implements Serializable {
 
     private static final long serialVersionUID = 228672860891514377L;
-    private Map<String, TagHandler> behaviors = new HashMap<>();
+    private final Map<String, TagHandler> behaviors = new HashMap<>();
     public static final String COMPOSITE_BEHAVIORS_KEY = "jakarta.faces.view.ClientBehaviors";
 
     public void add(String eventName, TagHandler owner) {

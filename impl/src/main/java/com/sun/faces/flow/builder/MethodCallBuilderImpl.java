@@ -28,9 +28,9 @@ import jakarta.faces.flow.builder.MethodCallBuilder;
 
 public class MethodCallBuilderImpl extends MethodCallBuilder {
 
-    private FlowBuilderImpl root;
-    private String methodCallId;
-    private MethodCallNodeImpl methodCallNode;
+    private final FlowBuilderImpl root;
+    private final String methodCallId;
+    private final MethodCallNodeImpl methodCallNode;
     private static final Class<?>[] EMPTY_ARGS = new Class[0];
 
     public MethodCallBuilderImpl(FlowBuilderImpl root, String id) {

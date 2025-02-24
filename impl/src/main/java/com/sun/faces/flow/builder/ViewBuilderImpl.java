@@ -25,8 +25,8 @@ import jakarta.faces.flow.builder.ViewBuilder;
 
 public class ViewBuilderImpl extends ViewBuilder {
 
-    private FlowBuilderImpl root;
-    private ViewNodeImpl viewNode;
+    private final FlowBuilderImpl root;
+    private final ViewNodeImpl viewNode;
 
     public ViewBuilderImpl(FlowBuilderImpl root, String viewNodeId, String vdlDocumentId) {
         this.root = root;

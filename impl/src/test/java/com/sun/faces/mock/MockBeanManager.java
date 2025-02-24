@@ -48,7 +48,7 @@ import jakarta.enterprise.inject.spi.ProducerFactory;
 
 public class MockBeanManager implements BeanManager {
 
-    private ELResolver elResolver;
+    private final ELResolver elResolver;
     
     public MockBeanManager() {
         this.elResolver = new MockELResolver();

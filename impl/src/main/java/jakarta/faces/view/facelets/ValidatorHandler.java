@@ -35,11 +35,9 @@ import jakarta.faces.view.EditableValueHolderAttachedObjectHandler;
  */
 public class ValidatorHandler extends FaceletsAttachedObjectHandler implements EditableValueHolderAttachedObjectHandler {
 
-    private String validatorId;
-
+    private final String validatorId;
+    private final ValidatorConfig config;
     private TagHandlerDelegate helper;
-
-    private ValidatorConfig config;
 
     /**
      * <p class="changed_added_2_0">
