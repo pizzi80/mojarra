@@ -248,7 +248,7 @@ public class DbfFactory {
 
 
     private static final class Input implements LSInput {
-        InputStream in;
+        final InputStream in;
         public Input(InputStream in) {
            this.in = in;
         }
