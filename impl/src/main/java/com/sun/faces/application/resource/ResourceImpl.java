@@ -50,6 +50,7 @@ import java.util.logging.Logger;
 
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 import jakarta.faces.application.ProjectStage;
 import jakarta.faces.application.Resource;
@@ -190,7 +191,7 @@ public class ResourceImpl extends Resource implements Externalizable {
 
         if (isResourceRequest()) {
             if (responseHeaders == null) {
-                responseHeaders = new HashMap<>(6, 1.0f);
+                responseHeaders = new HashMap<>(Util.calculateMapCapacity(6));
             }
 
             if (FacesContext.getCurrentInstance().isProjectStage(Development)) {
