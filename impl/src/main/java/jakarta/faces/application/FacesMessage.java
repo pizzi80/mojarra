@@ -427,7 +427,7 @@ public class FacesMessage implements Serializable {
          * The (optional) name for this severity.
          * </p>
          */
-        String severityName;
+        final String severityName;
 
         // ----------------------------------------------------- Public Methods
 
