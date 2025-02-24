@@ -54,8 +54,8 @@ final class UITextHandler extends AbstractUIHandler {
                 UIComponent c = new UIText(alias, nt);
                 String uid;
                 UIComponent ancestorNamingContainer = parent.getNamingContainer();
-                if (null != ancestorNamingContainer && ancestorNamingContainer instanceof UniqueIdVendor) {
-                    uid = ((UniqueIdVendor) ancestorNamingContainer).createUniqueId(ctx.getFacesContext(), null);
+                if (ancestorNamingContainer instanceof UniqueIdVendor uniqueIdVendor) {
+                    uid = uniqueIdVendor.createUniqueId(ctx.getFacesContext(), null);
                 } else {
                     uid = ComponentSupport.getViewRoot(ctx, parent).createUniqueId();
                 }
