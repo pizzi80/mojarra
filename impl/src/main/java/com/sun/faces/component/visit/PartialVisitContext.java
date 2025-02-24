@@ -48,6 +48,27 @@ import jakarta.faces.context.FacesContext;
  */
 public class PartialVisitContext extends VisitContext {
 
+    // The client ids to visit
+    private Collection<String> clientIds;
+
+    // The ids to visit
+    private Collection<String> ids;
+
+    // The client ids that have yet to be visited
+    private Collection<String> unvisitedClientIds;
+
+    // This map contains the information needed by getSubtreeIdsToVisit().
+    // The keys in this map are NamingContainer client ids. The values
+    // are collections containing all of the client ids to visit within
+    // corresponding naming container.
+    private Map<String, Collection<String>> subtreeClientIds;
+
+    // The FacesContext for this request
+    private final FacesContext facesContext;
+
+    // Our visit hints
+    private final Set<VisitHint> hints;
+
     /**
      * Creates a PartialVisitorContext instance.
      *
@@ -343,6 +364,8 @@ public class PartialVisitContext extends VisitContext {
     // our internal state when ids to visit are added or removed.
     private class CollectionProxy<E extends String> extends AbstractCollection<E> {
 
+        private final Collection<E> wrapped;
+
         private CollectionProxy(Collection<E> wrapped) {
             this.wrapped = wrapped;
         }
@@ -368,12 +391,15 @@ public class PartialVisitContext extends VisitContext {
             return added;
         }
 
-        private final Collection<E> wrapped;
     }
 
     // Little proxy iterator implementation used by CollectionProxy
     // so that we can catch removes.
     private class IteratorProxy<E extends String> implements Iterator<E> {
+
+        private final Iterator<E> wrapped;
+        private E current = null;
+
         private IteratorProxy(Iterator<E> wrapped) {
             this.wrapped = wrapped;
         }
@@ -400,29 +426,6 @@ public class PartialVisitContext extends VisitContext {
             wrapped.remove();
         }
 
-        private final Iterator<E> wrapped;
-
-        private E current = null;
     }
 
-    // The client ids to visit
-    private Collection<String> clientIds;
-
-    // The ids to visit
-    private Collection<String> ids;
-
-    // The client ids that have yet to be visited
-    private Collection<String> unvisitedClientIds;
-
-    // This map contains the information needed by getSubtreeIdsToVisit().
-    // The keys in this map are NamingContainer client ids. The values
-    // are collections containing all of the client ids to visit within
-    // corresponding naming container.
-    private Map<String, Collection<String>> subtreeClientIds;
-
-    // The FacesContext for this request
-    private final FacesContext facesContext;
-
-    // Our visit hints
-    private final Set<VisitHint> hints;
 }
