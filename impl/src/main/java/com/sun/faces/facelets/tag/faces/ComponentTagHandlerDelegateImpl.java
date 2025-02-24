@@ -67,7 +67,7 @@ public class ComponentTagHandlerDelegateImpl extends TagHandlerDelegate {
 
     private final TagAttribute binding;
 
-    protected String componentType;
+    protected final String componentType;
 
     protected final TagAttribute id;
 
