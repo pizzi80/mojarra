@@ -1016,8 +1016,7 @@ public class UIInput extends UIOutput implements EditableValueHolder {
         // If our value is valid and not empty or empty w/ validate empty fields enabled, call all validators
         if (isValid() && (!isEmpty(newValue) || validateEmptyFields(context))) {
             if (validators != null && !this.validators.isEmpty()) {
-                List<Validator> validators = this.validators.getAttachedObjects();
-                for (Validator validator : validators) {
+                for (Validator validator : this.validators.getAttachedObjects()) {
                     try {
                         validator.validate(context, this, newValue);
                     } catch (ValidatorException ve) {
