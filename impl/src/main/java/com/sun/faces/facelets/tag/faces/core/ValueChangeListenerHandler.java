@@ -51,49 +51,8 @@ import jakarta.faces.view.facelets.TagException;
  */
 public final class ValueChangeListenerHandler extends TagHandlerImpl implements EditableValueHolderAttachedObjectHandler {
 
-    private static class LazyValueChangeListener implements ValueChangeListener, Serializable {
-
-        private static final long serialVersionUID = 7613811124326963180L;
-
-        private final String type;
-
-        private final ValueExpression binding;
-
-        public LazyValueChangeListener(String type, ValueExpression binding) {
-            this.type = type;
-            this.binding = binding;
-        }
-
-        @Override
-        public void processValueChange(ValueChangeEvent event) throws AbortProcessingException {
-            ValueChangeListener instance = null;
-            FacesContext faces = FacesContext.getCurrentInstance();
-            if (faces == null) {
-                return;
-            }
-            if (binding != null) {
-                instance = (ValueChangeListener) binding.getValue(faces.getELContext());
-            }
-            if (instance == null && type != null) {
-                try {
-                    instance = (ValueChangeListener) ReflectionUtil.newInstance(type);
-                } catch (Exception e) {
-                    throw new AbortProcessingException("Could not instantiate ValueChangeListener of type " + type, e);
-                }
-                if (binding != null) {
-                    binding.setValue(faces.getELContext(), instance);
-                }
-            }
-            if (instance != null) {
-                instance.processValueChange(event);
-            }
-        }
-    }
-
     private final TagAttribute binding;
-
     private final String listenerType;
-
     private final TagAttribute typeAttribute;
 
     public ValueChangeListenerHandler(TagConfig config) {
@@ -101,11 +60,10 @@ public final class ValueChangeListenerHandler extends TagHandlerImpl implements 
         binding = getAttribute("binding");
         typeAttribute = getAttribute("type");
         if (null != typeAttribute) {
-            String stringType = null;
+            final String stringType;
             if (!typeAttribute.isLiteral()) {
-                FacesContext context = FacesContext.getCurrentInstance();
-                FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-                stringType = (String) typeAttribute.getValueExpression(ctx, String.class).getValue(ctx);
+                FaceletContext ctx = FaceletContext.getCurrentInstance();
+                stringType = typeAttribute.getValueExpression(ctx, String.class).getValue(ctx);
             } else {
                 stringType = typeAttribute.getValue();
             }
@@ -139,29 +97,30 @@ public final class ValueChangeListenerHandler extends TagHandlerImpl implements 
 
     @Override
     public void applyAttachedObject(FacesContext context, UIComponent parent) {
-        FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+        FaceletContext ctx = FaceletContext.getCurrentInstance(context);
         EditableValueHolder evh = (EditableValueHolder) parent;
-        ValueExpression b = null;
+        ValueExpression ve = null;
         if (binding != null) {
-            b = binding.getValueExpression(ctx, ValueChangeListener.class);
+            ve = binding.getValueExpression(ctx, ValueChangeListener.class);
         }
-        ValueChangeListener listener = new LazyValueChangeListener(listenerType, b);
+        ValueChangeListener listener = new LazyValueChangeListener(listenerType, ve);
         evh.addValueChangeListener(listener);
     }
 
     @Override
     public String getFor() {
-        String result = null;
-        TagAttribute attr = getAttribute("for");
+        final TagAttribute attr = getAttribute("for");
 
-        if (null != attr) {
+        final String result;
+        if (attr != null) {
             if (attr.isLiteral()) {
                 result = attr.getValue();
             } else {
-                FacesContext context = FacesContext.getCurrentInstance();
-                FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-                result = (String) attr.getValueExpression(ctx, String.class).getValue(ctx);
+                FaceletContext ctx = FaceletContext.getCurrentInstance();
+                result = attr.getValueExpression(ctx, String.class).getValue(ctx);
             }
+        } else {
+            result = null;
         }
         return result;
 
@@ -172,6 +131,47 @@ public final class ValueChangeListenerHandler extends TagHandlerImpl implements 
             ReflectionUtil.forName(type);
         } catch (ClassNotFoundException e) {
             throw new TagAttributeException(typeAttribute, "Couldn't qualify ValueChangeListener", e);
+        }
+    }
+
+    // LazyValueChangeListener ------------------------------------------------------------------------------
+
+    private static class LazyValueChangeListener implements ValueChangeListener, Serializable {
+
+        private static final long serialVersionUID = 7613811124326963180L;
+
+        private final String type;
+        private final ValueExpression binding;
+
+        public LazyValueChangeListener(String type, ValueExpression binding) {
+            this.type = type;
+            this.binding = binding;
+        }
+
+        @Override
+        public void processValueChange(ValueChangeEvent event) throws AbortProcessingException {
+            FacesContext faces = FacesContext.getCurrentInstance();
+            if (faces == null) {
+                return;
+            }
+
+            ValueChangeListener instance = null;
+            if (binding != null) {
+                instance = binding.getValue(faces.getELContext());
+            }
+            if (instance == null && type != null) {
+                try {
+                    instance = ReflectionUtil.newInstance(type);
+                } catch (Exception e) {
+                    throw new AbortProcessingException("Could not instantiate ValueChangeListener of type " + type, e);
+                }
+                if (binding != null) {
+                    binding.setValue(faces.getELContext(), instance);
+                }
+            }
+            if (instance != null) {
+                instance.processValueChange(event);
+            }
         }
     }
 
