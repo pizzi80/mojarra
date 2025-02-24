@@ -52,7 +52,7 @@ import jakarta.faces.render.RenderKitFactory;
  */
 public class UIViewRootTestCase extends UIComponentBaseTestCase {
 
-    public static String[][] FACTORIES = {
+    public static final String[][] FACTORIES = {
             { FactoryFinder.APPLICATION_FACTORY, "com.sun.faces.mock.MockApplicationFactory" },
             { FactoryFinder.FACES_CONTEXT_FACTORY, "com.sun.faces.mock.MockFacesContextFactory" },
             { FactoryFinder.LIFECYCLE_FACTORY, "com.sun.faces.mock.MockLifecycleFactory" },
