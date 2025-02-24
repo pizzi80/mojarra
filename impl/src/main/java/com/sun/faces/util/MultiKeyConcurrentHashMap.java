@@ -45,7 +45,7 @@ public class MultiKeyConcurrentHashMap<K, V> {
     /**
      * The default initial number of table slots for this table. Used when not otherwise specified in constructor.
      */
-    static int DEFAULT_INITIAL_CAPACITY = 16;
+    static final int DEFAULT_INITIAL_CAPACITY = 16;
 
     /**
      * The maximum capacity, used if a higher value is implicitly specified by either of the constructors with arguments.
