@@ -107,8 +107,8 @@ final class UIInstructionHandler extends AbstractUIHandler {
                 IdMapper mapper = IdMapper.getMapper(ctx.getFacesContext());
                 String mid = mapper != null ? mapper.getAliasedId(id) : id;
                 UIComponent ancestorNamingContainer = parent.getNamingContainer();
-                if (null != ancestorNamingContainer && ancestorNamingContainer instanceof UniqueIdVendor) {
-                    uid = ((UniqueIdVendor) ancestorNamingContainer).createUniqueId(ctx.getFacesContext(), mid);
+                if (ancestorNamingContainer instanceof UniqueIdVendor uniqueIdVendor) {
+                    uid = uniqueIdVendor.createUniqueId(ctx.getFacesContext(), mid);
                 } else {
                     uid = ComponentSupport.getViewRoot(ctx, parent).createUniqueId(ctx.getFacesContext(), mid);
                 }
