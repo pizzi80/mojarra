@@ -261,7 +261,7 @@ public class IterableDataModel<E> extends DataModel<E> {
      */
     private static <E> List<E> iterableToList(Iterable<E> iterable) {
 
-        List<E> list = null;
+        final List<E> list;
 
         if (iterable instanceof List) {
             list = (List<E>) iterable;
@@ -269,9 +269,8 @@ public class IterableDataModel<E> extends DataModel<E> {
             list = new ArrayList<>((Collection<E>) iterable);
         } else {
             list = new ArrayList<>();
-            Iterator<E> iterator = iterable.iterator();
-            while (iterator.hasNext()) {
-                list.add(iterator.next());
+            for (E e : iterable) {
+                list.add(e);
             }
         }
 
