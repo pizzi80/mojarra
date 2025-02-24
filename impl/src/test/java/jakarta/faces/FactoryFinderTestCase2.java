@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 public class FactoryFinderTestCase2 {
 
-        public static String FACTORIES[][] = {
+        public static final String[][] FACTORIES = {
 	{ FactoryFinder.APPLICATION_FACTORY,
 	  "com.sun.faces.mock.MockApplicationFactory"
 	},
