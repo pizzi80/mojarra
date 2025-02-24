@@ -23,7 +23,6 @@ import com.sun.faces.facelets.TemplateClient;
 import com.sun.faces.facelets.tag.TagHandlerImpl;
 
 import jakarta.faces.component.UIComponent;
-import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.facelets.FaceletContext;
 import jakarta.faces.view.facelets.TagAttribute;
 import jakarta.faces.view.facelets.TagConfig;
@@ -43,9 +42,8 @@ public final class InsertHandler extends TagHandlerImpl implements TemplateClien
         TagAttribute attr = getAttribute("name");
         if (attr != null) {
             if (!attr.isLiteral()) {
-                FacesContext context = FacesContext.getCurrentInstance();
-                FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-                name = (String) attr.getValueExpression(ctx, String.class).getValue(ctx);
+                FaceletContext ctx = FaceletContext.getCurrentInstance();
+                name = attr.getValueExpression(ctx, String.class).getValue(ctx);
             } else {
                 name = attr.getValue();
             }
