@@ -16,6 +16,8 @@
 
 package com.sun.faces.application.resource;
 
+import java.util.Objects;
+
 /**
  * <p>
  * <code>LibraryInfo</code> is a simple wrapper class for information pertinent to building a complete resource path
@@ -63,44 +65,19 @@ public class LibraryInfo {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        if (this == obj) {
-            return true;
-        }
-        final LibraryInfo other = (LibraryInfo) obj;
-        if (name == null ? other.name != null : !name.equals(other.name)) {
-            return false;
-        }
-        if (version != other.version && (version == null || !version.equals(other.version))) {
-            return false;
-        }
-        if (localePrefix == null ? other.localePrefix != null : !localePrefix.equals(other.localePrefix)) {
-            return false;
-        }
-        if (contract == null ? other.contract != null : !contract.equals(other.contract)) {
-            return false;
-        }
-        if (path == null ? other.path != null : !path.equals(other.path)) {
-            return false;
-        }
-        return true;
+    public boolean equals(Object object) {
+        if (!(object instanceof LibraryInfo info)) return false;
+
+        return Objects.equals(name, info.name)
+            && Objects.equals(version, info.version)
+            && Objects.equals(localePrefix, info.localePrefix)
+            && Objects.equals(contract, info.contract)
+            && Objects.equals(path, info.path);
     }
 
     @Override
     public int hashCode() {
-        int hash = 5;
-        hash = 37 * hash + (name != null ? name.hashCode() : 0);
-        hash = 37 * hash + (version != null ? version.hashCode() : 0);
-        hash = 37 * hash + (localePrefix != null ? localePrefix.hashCode() : 0);
-        hash = 37 * hash + (contract != null ? contract.hashCode() : 0);
-        hash = 37 * hash + (path != null ? path.hashCode() : 0);
-        return hash;
+        return Objects.hash(name, version, localePrefix, contract, path);
     }
 
     /**
@@ -132,8 +109,8 @@ public class LibraryInfo {
     }
 
     public String getPath(String localePrefix) {
-        String result = null;
-        if (null == localePrefix) {
+        final String result;
+        if (localePrefix == null) {
             result = nonLocalizedPath;
         } else {
             result = path;
