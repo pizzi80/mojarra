@@ -644,10 +644,10 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                     if (metadata.isRequired(context)) {
                         Object location = attrs.get(VIEW_LOCATION_KEY);
                         if (location == null) {
-                            location = "";
+                            location = NO_VALUE;
                         }
                         throw new FacesException(
-                                location.toString() + ": Unable to find attribute with name \"" + attrName + "\" in top level component in consuming page, "
+                                location + ": Unable to find attribute with name \"" + attrName + "\" in top level component in consuming page, "
                                         + " or with default value in composite component.  " + "Page author or composite component author error.");
                     } else {
                         continue;
