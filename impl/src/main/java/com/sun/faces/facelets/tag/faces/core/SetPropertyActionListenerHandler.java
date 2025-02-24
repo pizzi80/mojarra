@@ -16,8 +16,6 @@
 
 package com.sun.faces.facelets.tag.faces.core;
 
-import static jakarta.faces.view.facelets.FaceletContext.FACELET_CONTEXT_KEY;
-
 import java.io.IOException;
 import java.io.Serializable;
 
@@ -72,7 +70,7 @@ public class SetPropertyActionListenerHandler extends TagHandlerImpl implements 
 
     @Override
     public void applyAttachedObject(FacesContext context, UIComponent parent) {
-        FaceletContext faceletContext = (FaceletContext) context.getAttributes().get(FACELET_CONTEXT_KEY);
+        FaceletContext faceletContext = FaceletContext.getCurrentInstance(context);
 
         ActionSource src = (ActionSource) parent;
         ValueExpression valueExpr = value.getValueExpression(faceletContext, Object.class);
@@ -83,15 +81,15 @@ public class SetPropertyActionListenerHandler extends TagHandlerImpl implements 
 
     @Override
     public String getFor() {
-        String result = null;
-        TagAttribute attr = getAttribute("for");
+        final TagAttribute attr = getAttribute("for");
 
+        String result = null;
         if (attr != null) {
             if (attr.isLiteral()) {
                 result = attr.getValue();
             } else {
-                FaceletContext ctx = (FaceletContext) FacesContext.getCurrentInstance().getAttributes().get(FACELET_CONTEXT_KEY);
-                result = (String) attr.getValueExpression(ctx, String.class).getValue(ctx);
+                FaceletContext ctx = FaceletContext.getCurrentInstance();
+                result = attr.getValueExpression(ctx, String.class).getValue(ctx);
             }
         }
 
@@ -102,8 +100,8 @@ public class SetPropertyActionListenerHandler extends TagHandlerImpl implements 
 
         private static final long serialVersionUID = -2760242070551459725L;
 
-        private ValueExpression value;
-        private ValueExpression target;
+        private final ValueExpression value;
+        private final ValueExpression target;
 
         public SetPropertyListener(ValueExpression value, ValueExpression target) {
             this.value = value;
