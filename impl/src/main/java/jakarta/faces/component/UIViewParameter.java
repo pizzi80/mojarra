@@ -356,7 +356,7 @@ public class UIViewParameter extends UIInput {
      */
 
     public String getStringValue(FacesContext context) {
-        String result = null;
+        final String result;
         if (hasValueExpression()) {
             result = getStringValueFromModel(context);
         } else {
@@ -384,7 +384,7 @@ public class UIViewParameter extends UIInput {
         Object currentValue = ve.getValue(context.getELContext());
 
         // If there is a converter attribute, use it to to ask application
-        // instance for a converter with this identifer.
+        // instance for a converter with this identifier.
         Converter c = getConverter();
 
         if (c == null) {
