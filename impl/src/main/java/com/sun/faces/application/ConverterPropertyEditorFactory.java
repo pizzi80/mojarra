@@ -25,9 +25,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.WeakHashMap;
@@ -73,11 +70,11 @@ public class ConverterPropertyEditorFactory {
             /**
              * The position of the constant in the byte array that defines the template class.
              */
-            int index;
+            final int index;
             /**
              * The number of bytes that the constant occupies in the byte array that defines the template class.
              */
-            int length;
+            final int length;
 
             public Utf8InfoRef(int index, int length) {
                 this.index = index;
@@ -94,11 +91,11 @@ public class ConverterPropertyEditorFactory {
             /**
              * The utf8 constant reference from the template source.
              */
-            Utf8InfoRef ref;
+            final Utf8InfoRef ref;
             /**
              * The bytes to replace the constant with (must also be a valid utf8 constant pool entry).
              */
-            byte[] replacement;
+            final byte[] replacement;
 
             public Utf8InfoReplacement(Utf8InfoRef ref, String replacement) {
                 this.ref = ref;
@@ -148,11 +145,11 @@ public class ConverterPropertyEditorFactory {
                 Class<?> templateTargetClass = tc.getTargetClass();
                 loadTemplateBytes();
                 classNameConstant = findConstant(getVMClassName(templateClass));
-                classNameRefConstant = findConstant(new StringBuilder(64).append('L').append(getVMClassName(templateClass)).append(';').toString());
+                classNameRefConstant = findConstant('L' + getVMClassName(templateClass) + ';');
                 targetClassConstant = findConstant(getVMClassName(templateTargetClass));
             } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException | IOException e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Unexected exception ClassTemplateInfo", e);
+                    LOGGER.log(Level.FINE, "Unexpected exception ClassTemplateInfo", e);
                 }
             }
         }
@@ -307,7 +304,7 @@ public class ConverterPropertyEditorFactory {
          * Generate the bytes for a new class based on the <code>templateBytes</code>, but with all the replacements in
          * <code>replacements</code> performed.
          *
-         * @param replacements one or more Utf8InfoReplacments
+         * @param replacements one or more Utf8InfoReplacements
          * @return the bytes for the new class definition.
          */
         private byte[] replaceInTemplate(Utf8InfoReplacement... replacements) {
@@ -441,18 +438,16 @@ public class ConverterPropertyEditorFactory {
     // Cache of DisposableClassLoaders keyed on the class loader of the target.
     private Map<ClassLoader, WeakReference<DisposableClassLoader>> classLoaderCache;
 
-    private static final Map<Character, String> PRIM_MAP = new HashMap<>(8, 1.0f);
-
-    static {
-        PRIM_MAP.put('B', "byte");
-        PRIM_MAP.put('C', "char");
-        PRIM_MAP.put('S', "short");
-        PRIM_MAP.put('I', "int");
-        PRIM_MAP.put('F', "float");
-        PRIM_MAP.put('J', "long");
-        PRIM_MAP.put('D', "double");
-        PRIM_MAP.put('Z', "boolean");
-    }
+    private static final Map<Character, String> PRIM_MAP = Map.of(
+            'B', "byte",
+            'C', "char",
+            'S', "short",
+            'I', "int",
+            'F', "float",
+            'J', "long",
+            'D', "double",
+            'Z', "boolean"
+    );
 
     /**
      * Create a <code>ConverterPropertyEditorFactory</code> that uses the default template class
@@ -507,11 +502,7 @@ public class ConverterPropertyEditorFactory {
             DisposableClassLoader loader;
             WeakReference<DisposableClassLoader> loaderRef = classLoaderCache.get(targetClass.getClassLoader());
             if (loaderRef == null || (loader = loaderRef.get()) == null) {
-                loader = (DisposableClassLoader) AccessController.doPrivileged((PrivilegedAction<Object>) () -> new DisposableClassLoader(targetClass.getClassLoader()));
-
-                if (loader == null) {
-                    return null;
-                }
+                loader = new DisposableClassLoader(targetClass.getClassLoader());
 
                 classLoaderCache.put(targetClass.getClassLoader(), new WeakReference<>(loader));
             }
