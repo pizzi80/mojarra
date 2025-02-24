@@ -26,7 +26,7 @@ import jakarta.faces.view.facelets.FaceletContext;
 
 final class UILiteralTextHandler extends AbstractUIHandler {
 
-    protected final String txtString;
+    private final String txtString;
 
     public UILiteralTextHandler(String txtString) {
         this.txtString = txtString;
@@ -38,8 +38,8 @@ final class UILiteralTextHandler extends AbstractUIHandler {
             UIComponent c = new UILiteralText(txtString);
             String uid;
             UIComponent ancestorNamingContainer = parent.getNamingContainer();
-            if (null != ancestorNamingContainer && ancestorNamingContainer instanceof UniqueIdVendor) {
-                uid = ((UniqueIdVendor) ancestorNamingContainer).createUniqueId(ctx.getFacesContext(), null);
+            if (ancestorNamingContainer instanceof UniqueIdVendor uniqueIdVendor) {
+                uid = uniqueIdVendor.createUniqueId(ctx.getFacesContext(), null);
             } else {
                 uid = ComponentSupport.getViewRoot(ctx, parent).createUniqueId();
             }
