@@ -67,7 +67,7 @@ public class ResourceHandlerImpl extends ResourceHandler {
     // Log instance for this class
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
 
-    ResourceManager manager;
+    final ResourceManager manager;
     List<Pattern> excludePatterns;
     private long creationTime;
     private long maxAge;
