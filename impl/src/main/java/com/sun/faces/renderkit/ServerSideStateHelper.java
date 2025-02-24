@@ -89,7 +89,7 @@ public class ServerSideStateHelper extends StateHelper {
     /**
      * Flag determining how server state IDs are generated.
      */
-    protected boolean generateUniqueStateIds;
+    protected final boolean generateUniqueStateIds;
 
     /**
      * Used to generate unique server state IDs.
