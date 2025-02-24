@@ -85,7 +85,7 @@ public class ValidatorTagHandlerDelegateImpl extends TagHandlerDelegate implemen
     @Override
     public void applyAttachedObject(FacesContext context, UIComponent parent) {
 
-        FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+        FaceletContext ctx = FaceletContext.getCurrentInstance(context);
         EditableValueHolder evh = (EditableValueHolder) parent;
         if (owner.isDisabled(ctx)) {
             Set<String> disabledIds = RequestStateManager.get(context, RequestStateManager.DISABLED_VALIDATORS);
@@ -131,21 +131,20 @@ public class ValidatorTagHandlerDelegateImpl extends TagHandlerDelegate implemen
 
     @Override
     public String getFor() {
+        final TagAttribute attr = owner.getTagAttribute("for");
 
-        String result = null;
-        TagAttribute attr = owner.getTagAttribute("for");
-
-        if (null != attr) {
+        final String result;
+        if (attr != null) {
             if (attr.isLiteral()) {
                 result = attr.getValue();
             } else {
-                FacesContext context = FacesContext.getCurrentInstance();
-                FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+                FaceletContext ctx = FaceletContext.getCurrentInstance();
                 result = attr.getValueExpression(ctx, String.class).getValue(ctx);
             }
+        } else {
+            result = null;
         }
         return result;
-
     }
 
     // ------------------------------------------------------- Protected Methods
