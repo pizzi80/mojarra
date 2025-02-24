@@ -120,9 +120,8 @@ public class ExpressionLanguage {
     /*
      * @see jakarta.faces.application.Application#evaluateExpressionGet(jakarta.faces.context.FacesContext, String, Class)
      */
-    @SuppressWarnings("unchecked")
     public <T> T evaluateExpressionGet(FacesContext context, String expression, Class<? extends T> expectedType) throws ELException {
-        return (T) getExpressionFactory().createValueExpression(context.getELContext(), expression, expectedType).getValue(context.getELContext());
+        return getExpressionFactory().createValueExpression(context.getELContext(), expression, expectedType).getValue(context.getELContext());
     }
 
     public CompositeELResolver getApplicationELResolvers() {

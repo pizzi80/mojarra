@@ -240,7 +240,7 @@ public final class DevTools {
                 for (Map.Entry<String, UIComponent> entry : c.getFacets().entrySet()) {
                     writer.write("<dd style=\"margin-top: 2px; margin-bottom: 2px;\">");
                     writer.write("<span style=\"font-family: 'Trebuchet MS', Verdana, Arial, Sans-Serif; font-size: small;\">");
-                    writer.write((String) entry.getKey());
+                    writer.write(entry.getKey());
                     writer.write("</span>");
                     writeComponent(writer, entry.getValue());
                     writer.write("</dd>");

@@ -48,7 +48,7 @@ public class AttachedObjectTargetImpl implements AttachedObjectTarget {
         List<UIComponent> result;
         FacesContext ctx = FacesContext.getCurrentInstance();
         if (null != targetsList) {
-            String targetsListStr = (String) targetsList.getValue(ctx.getELContext());
+            String targetsListStr = targetsList.getValue(ctx.getELContext());
             Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
             String[] targetArray = Util.split(appMap, targetsListStr, " ");
             result = new ArrayList<>(targetArray.length);

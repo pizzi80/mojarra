@@ -115,7 +115,7 @@ public class ListDataModel<E> extends DataModel<E> {
         } else if (!isRowAvailable()) {
             throw new NoRowAvailableException();
         } else {
-            return (E) list.get(index);
+            return list.get(index);
         }
 
     }

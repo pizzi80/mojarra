@@ -42,7 +42,7 @@ public class CompositeAttributePropertyDescriptor extends PropertyDescriptor {
         if ("type".equals(attributeName) && null != result && !(result instanceof Class)) {
             FacesContext context = FacesContext.getCurrentInstance();
             ELContext elContext = context.getELContext();
-            String classStr = (String) ((ValueExpression) result).getValue(elContext);
+            String classStr = ((ValueExpression) result).getValue(elContext);
             if (null != classStr) {
                 try {
                     result = ReflectionUtil.forName(classStr);
