@@ -203,7 +203,7 @@ public class MockApplication extends Application {
         this.stateManager = stateManager;
     }
 
-    private Map<String, String> components = new HashMap<>();
+    private final Map<String, String> components = new HashMap<>();
 
     @Override
     public void addComponent(String componentType, String componentClass) {
@@ -234,7 +234,7 @@ public class MockApplication extends Application {
         return (components.keySet().iterator());
     }
 
-    private Map<String, String> converters = new HashMap<>();
+    private final Map<String, String> converters = new HashMap<>();
 
     @Override
     public void addConverter(String converterId, String converterClass) {
@@ -284,7 +284,7 @@ public class MockApplication extends Application {
         return messageBundle;
     }
 
-    private Map<String, String> validators = new HashMap<>();
+    private final Map<String, String> validators = new HashMap<>();
 
     @Override
     public void addValidator(String validatorId, String validatorClass) {
@@ -794,7 +794,7 @@ public class MockApplication extends Application {
      */
     private static class ComponentSystemEventHelper {
 
-        private Cache<Class<?>, Cache<Class<? extends SystemEvent>, EventInfo>> sourceCache;
+        private final Cache<Class<?>, Cache<Class<? extends SystemEvent>, EventInfo>> sourceCache;
 
         // -------------------------------------------------------- Constructors
         public ComponentSystemEventHelper() {
@@ -841,7 +841,7 @@ public class MockApplication extends Application {
      */
     private static class SystemEventInfo {
 
-        private Cache<Class<?>, EventInfo> cache = new Cache<>(
+        private final Cache<Class<?>, EventInfo> cache = new Cache<>(
                 new Factory<Class<?>, EventInfo>() {
                     @Override
                     public EventInfo newInstance(Class<?> arg)
@@ -850,7 +850,7 @@ public class MockApplication extends Application {
                     }
                 }
         );
-        private Class<? extends SystemEvent> systemEvent;
+        private final Class<? extends SystemEvent> systemEvent;
 
         // -------------------------------------------------------- Constructors
         private SystemEventInfo(Class<? extends SystemEvent> systemEvent) {
@@ -876,11 +876,11 @@ public class MockApplication extends Application {
      */
     private static class EventInfo {
 
-        private Class<? extends SystemEvent> systemEvent;
-        private Class<?> sourceClass;
-        private Set<SystemEventListener> listeners;
+        private final Class<? extends SystemEvent> systemEvent;
+        private final Class<?> sourceClass;
+        private final Set<SystemEventListener> listeners;
         private Constructor<? extends SystemEvent> eventConstructor;
-        private Map<Class<?>, Constructor> constructorMap;
+        private final Map<Class<?>, Constructor> constructorMap;
 
         // -------------------------------------------------------- Constructors
         public EventInfo(Class<? extends SystemEvent> systemEvent,
@@ -981,8 +981,8 @@ public class MockApplication extends Application {
      */
     private static final class Cache<K, V> {
 
-        private ConcurrentMap<K, Future<V>> cache = new ConcurrentHashMap<>();
-        private Factory<K, V> factory;
+        private final ConcurrentMap<K, Future<V>> cache = new ConcurrentHashMap<>();
+        private final Factory<K, V> factory;
 
         // -------------------------------------------------------- Constructors
         /**
@@ -1015,12 +1015,7 @@ public class MockApplication extends Application {
             while (true) {
                 Future<V> f = cache.get(key);
                 if (f == null) {
-                    Callable<V> callable = new Callable<>() {
-                        @Override
-                        public V call() throws Exception {
-                            return factory.newInstance(key);
-                        }
-                    };
+                    Callable<V> callable = () -> factory.newInstance(key);
                     FutureTask<V> ft = new FutureTask<>(callable);
                     // here is the real beauty of the concurrent utilities.
                     // 1.  putIfAbsent() is atomic
@@ -1040,16 +1035,12 @@ public class MockApplication extends Application {
                     return f.get();
                 } catch (CancellationException ce) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST,
-                                ce.toString(),
-                                ce);
+                        LOGGER.log(Level.FINEST, ce.toString(), ce);
                     }
                     cache.remove(key);
                 } catch (InterruptedException ie) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST,
-                                ie.toString(),
-                                ie);
+                        LOGGER.log(Level.FINEST, ie.toString(), ie);
                     }
                     cache.remove(key);
                 } catch (ExecutionException ee) {

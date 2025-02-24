@@ -50,8 +50,8 @@ import java.util.Set;
 
 public class MockBeanManager implements BeanManager, ELAwareBeanManager {
 
-    private ELResolver elResolver;
-
+    private final ELResolver elResolver;
+    
     public MockBeanManager() {
         this.elResolver = new MockELResolver();
     }

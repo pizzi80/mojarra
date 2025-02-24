@@ -45,7 +45,7 @@ public class FormRenderer extends HtmlBasicRenderer {
 
     private static final Attribute[] ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.FORMFORM);
 
-    private boolean writeStateAtEnd;
+    private final boolean writeStateAtEnd;
 
     // ------------------------------------------------------------ Constructors
 

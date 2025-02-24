@@ -317,10 +317,9 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
     // NOT SERIALIZABLE
     private static class ResultSetMap extends TreeMap<String, Object> {
 
-        private ResultSetDataModel model;
+        private final ResultSetDataModel model;
 
         public ResultSetMap(ResultSetDataModel model, Comparator<String> comparator) throws SQLException {
-
             super(comparator);
             this.model = model;
             index = model.index;
@@ -332,7 +331,7 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
         }
 
         // The zero-relative row index of our row
-        private int index;
+        private final int index;
 
         // Removing entries is not allowed
         @Override
@@ -342,8 +341,7 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
 
         @Override
         public boolean containsValue(Object value) {
-            for (Iterator i = entrySet().iterator(); i.hasNext();) {
-                Map.Entry entry = (Map.Entry) i.next();
+            for (Map.Entry<String, Object> entry : entrySet()) {
                 Object contained = entry.getValue();
                 if (value == null) {
                     if (contained == null) {
@@ -447,7 +445,7 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
             this.map = map;
         }
 
-        private ResultSetMap map;
+        private final ResultSetMap map;
 
         // Adding entries is not allowed
         @Override
@@ -527,13 +525,13 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
     // behavior for the Set returned by entrySet() from ResultSetMap
     private static class ResultSetEntriesIterator implements Iterator<Map.Entry<String, Object>> {
 
+        private final ResultSetMap map;
+        private final Iterator<String> keys;
+
         public ResultSetEntriesIterator(ResultSetMap map) {
             this.map = map;
             keys = map.keySet().iterator();
         }
-
-        private ResultSetMap map;
-        private Iterator<String> keys;
 
         @Override
         public boolean hasNext() {
@@ -558,13 +556,13 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
     // a single entry from the Set returned by entrySet() from ResultSetMap
     private static class ResultSetEntry implements Map.Entry<String, Object> {
 
+        private final ResultSetMap map;
+        private final String key;
+
         public ResultSetEntry(ResultSetMap map, String key) {
             this.map = map;
             this.key = key;
         }
-
-        private ResultSetMap map;
-        private String key;
 
         @Override
         public boolean equals(Object o) {
@@ -626,11 +624,11 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
     // for ResultSetMap
     private static class ResultSetKeys extends AbstractSet<String> {
 
+        private final ResultSetMap map;
+
         public ResultSetKeys(ResultSetMap map) {
             this.map = map;
         }
-
-        private ResultSetMap map;
 
         // Adding keys is not allowed
         @Override
@@ -694,11 +692,11 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
     // behavior for the Set returned by keySet() from ResultSetMap
     private static class ResultSetKeysIterator implements Iterator<String> {
 
+        private final Iterator<String> keys;
+
         public ResultSetKeysIterator(ResultSetMap map) {
             keys = map.realKeys();
         }
-
-        private Iterator<String> keys;
 
         @Override
         public boolean hasNext() {
@@ -722,11 +720,11 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
     // for the Collection returned by values() from ResultSetMap
     private static class ResultSetValues extends AbstractCollection<Object> {
 
+        private final ResultSetMap map;
+
         public ResultSetValues(ResultSetMap map) {
             this.map = map;
         }
-
-        private ResultSetMap map;
 
         @Override
         public boolean add(Object o) {
@@ -779,13 +777,13 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
     // for the Iterator returned by values().iterator() from ResultSetMap
     private static class ResultSetValuesIterator implements Iterator<Object> {
 
+        private final ResultSetMap map;
+        private final Iterator<String> keys;
+
         public ResultSetValuesIterator(ResultSetMap map) {
             this.map = map;
             keys = map.keySet().iterator();
         }
-
-        private ResultSetMap map;
-        private Iterator<String> keys;
 
         @Override
         public boolean hasNext() {

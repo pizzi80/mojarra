@@ -34,7 +34,7 @@ import jakarta.faces.view.ValueHolderAttachedObjectHandler;
  */
 public class ConverterHandler extends FaceletsAttachedObjectHandler implements ValueHolderAttachedObjectHandler {
 
-    private String converterId;
+    private final String converterId;
     private TagHandlerDelegate helper;
 
     /**

@@ -64,9 +64,6 @@ import jakarta.faces.model.ListDataModel;
 import jakarta.faces.model.ResultSetDataModel;
 import jakarta.faces.model.ScalarDataModel;
 
-// ------------------------------------------------------------- Private Classes
-// Private class to represent saved state information
-
 /**
  * <p>
  * <strong class="changed_modified_2_0_rev_a changed_modified_2_1 changed_modified_2_2">UIData</strong> is a

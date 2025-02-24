@@ -96,7 +96,7 @@ import jakarta.faces.render.Renderer;
  */
 public abstract class UIComponent implements PartialStateHolder, TransientStateHolder, SystemEventListenerHolder, ComponentSystemEventListener {
 
-    private static Logger LOGGER = Logger.getLogger("jakarta.faces.component", "jakarta.faces.LogStrings");
+    private static final Logger LOGGER = Logger.getLogger("jakarta.faces.component", "jakarta.faces.LogStrings");
 
     /**
      * <p class="changed_added_2_0">

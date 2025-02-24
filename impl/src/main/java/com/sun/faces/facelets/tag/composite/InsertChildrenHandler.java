@@ -49,7 +49,7 @@ public class InsertChildrenHandler extends TagHandlerImpl {
 
     // This attribute is not required. If not defined, then assume the facet
     // isn't necessary.
-    private TagAttribute required;
+    private final TagAttribute required;
 
     // ------------------------------------------------------------ Constructors
 
@@ -77,10 +77,10 @@ public class InsertChildrenHandler extends TagHandlerImpl {
 
     private class RelocateChildrenListener extends RelocateListener {
 
-        private FaceletContext ctx;
-        private UIComponent component;
-        private int idx;
-        private Location location;
+        private final FaceletContext ctx;
+        private final UIComponent component;
+        private final int idx;
+        private final Location location;
 
         // -------------------------------------------------------- Constructors
 

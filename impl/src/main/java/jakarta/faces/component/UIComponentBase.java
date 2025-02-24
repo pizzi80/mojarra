@@ -1803,7 +1803,7 @@ public abstract class UIComponentBase extends UIComponent {
 
         // private Map<String, Object> attributes;
         private transient UIComponent component;
-        private transient Map<String, PropertyDescriptor> pdMap;
+        private final transient Map<String, PropertyDescriptor> pdMap;
         private transient ConcurrentMap<String, Method> readMap;
 
         // -------------------------------------------------------- Constructors

@@ -28,10 +28,10 @@ public final class IteratedValueExpression extends ValueExpression {
 
     private static final long serialVersionUID = 1L;
 
-    private ValueExpression orig;
+    private final ValueExpression orig;
 
-    private int start;
-    private int index;
+    private final int start;
+    private final int index;
 
     public IteratedValueExpression(ValueExpression orig, int start, int index) {
         this.orig = orig;

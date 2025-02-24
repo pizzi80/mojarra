@@ -33,8 +33,8 @@ public class SwitchNodeImpl extends SwitchNode implements Serializable {
 
     private final String id;
     private ValueExpression defaultOutcome;
-    private CopyOnWriteArrayList<SwitchCase> _cases;
-    private List<SwitchCase> cases;
+    private final CopyOnWriteArrayList<SwitchCase> _cases;
+    private final List<SwitchCase> cases;
 
     public SwitchNodeImpl(String id) {
         this.id = id;

@@ -24,8 +24,8 @@ import jakarta.faces.flow.builder.ReturnBuilder;
 
 public class ReturnBuilderImpl extends ReturnBuilder {
 
-    private FlowBuilderImpl root;
-    String id;
+    private final FlowBuilderImpl root;
+    private final String id;
 
     public ReturnBuilderImpl(FlowBuilderImpl root, String id) {
         this.root = root;

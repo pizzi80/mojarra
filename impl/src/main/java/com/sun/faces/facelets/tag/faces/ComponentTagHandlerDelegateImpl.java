@@ -61,7 +61,7 @@ import jakarta.faces.view.facelets.TagHandlerDelegate;
 
 public class ComponentTagHandlerDelegateImpl extends TagHandlerDelegate {
 
-    private ComponentHandler owner;
+    private final ComponentHandler owner;
 
     private final static Logger log = FacesLogger.FACELETS_COMPONENT.getLogger();
 

@@ -32,7 +32,7 @@ public class MockServletConfig implements ServletConfig {
         setServletContext(context);
     }
 
-    private Hashtable<String, String> parameters = new Hashtable<>();
+    private final Hashtable<String, String> parameters = new Hashtable<>();
     private ServletContext context;
 
     // --------------------------------------------------------- Public Methods

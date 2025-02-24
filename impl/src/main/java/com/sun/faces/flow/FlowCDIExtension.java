@@ -34,7 +34,7 @@ import jakarta.faces.flow.FlowScoped;
 
 public class FlowCDIExtension implements Extension {
 
-    private Map<Contextual<?>, FlowCDIContext.FlowBeanInfo> flowScopedBeanFlowIds = new ConcurrentHashMap<>();
+    private final Map<Contextual<?>, FlowCDIContext.FlowBeanInfo> flowScopedBeanFlowIds = new ConcurrentHashMap<>();
 
     /**
      * Before bean discovery.

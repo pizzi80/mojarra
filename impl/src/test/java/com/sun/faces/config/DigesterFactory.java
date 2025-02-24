@@ -41,32 +41,28 @@ import com.sun.faces.util.ToolsUtil;
  */
 public class DigesterFactory {
 
-    private static final Logger logger = ToolsUtil.getLogger(ToolsUtil.FACES_LOGGER
-            + ToolsUtil.CONFIG_LOGGER);
+    private static final Logger logger = ToolsUtil.getLogger(ToolsUtil.FACES_LOGGER + ToolsUtil.CONFIG_LOGGER);
 
     /**
      * <p>
      * <code>Xerces</code> specific feature to enable both DTD and Schema
      * validation.</p>
      */
-    private static final String XERCES_VALIDATION
-            = "http://xml.org/sax/features/validation";
+    private static final String XERCES_VALIDATION = "http://xml.org/sax/features/validation";
 
     /**
      * <p>
      * <code>Xerces</code> specific feature to enable both DTD and Schema
      * validation.</p>
      */
-    private static final String XERCES_SCHEMA_VALIDATION
-            = "http://apache.org/xml/features/validation/schema";
+    private static final String XERCES_SCHEMA_VALIDATION = "http://apache.org/xml/features/validation/schema";
 
     /**
      * <p>
      * <code>Xerces</code> specific feature to enabled constraint
      * validation.</p>
      */
-    private static final String XERCES_SCHEMA_CONSTRAINT_VALIDATION
-            = "http://apache.org/xml/features/validation/schema-full-checking";
+    private static final String XERCES_SCHEMA_CONSTRAINT_VALIDATION = "http://apache.org/xml/features/validation/schema-full-checking";
 
     /**
      * <p>
@@ -84,19 +80,14 @@ public class DigesterFactory {
      * <p>
      * Indicates whether or not document validation is requested or not.</p>
      */
-    private boolean validating;
+    private final boolean validating;
 
     /**
      * <p>
      * The <code>ThreadLocal</code> variable used to record the VersionListener
      * instance for each processing thread.</p>
      */
-    private static ThreadLocal<VersionListener> versionListener = new ThreadLocal<>() {
-        @Override
-        protected VersionListener initialValue() {
-            return (null);
-        }
-    };
+    private static final ThreadLocal<VersionListener> versionListener = ThreadLocal.withInitial(() -> null);
 
     // ------------------------------------------------------------ Constructors
     /**
@@ -109,7 +100,6 @@ public class DigesterFactory {
      * <code>false</code>.
      */
     private DigesterFactory(boolean isValidating) {
-
         validating = isValidating;
     } // END DigesterFactory
 
@@ -340,7 +330,7 @@ public class DigesterFactory {
          * Contains mapping between grammar name and the local URL to the
          * physical resource.</p>
          */
-        private HashMap<String, String> entities = new HashMap<>();
+        private final HashMap<String, String> entities = new HashMap<>();
 
         // -------------------------------------------------------- Constructors
         public JsfEntityResolver() {

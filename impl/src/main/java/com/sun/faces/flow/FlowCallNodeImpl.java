@@ -28,6 +28,7 @@ import jakarta.faces.flow.FlowCallNode;
 import jakarta.faces.flow.Parameter;
 
 public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
+
     private static final long serialVersionUID = 543332738561754405L;
 
     private final String id;
@@ -35,7 +36,7 @@ public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
 
     private final ValueExpression calledFlowDocumentIdVE;
 
-    private Map<String, Parameter> _outboundParameters;
+    private final Map<String, Parameter> _outboundParameters;
     private Map<String, Parameter> outboundParameters;
 
     public FlowCallNodeImpl(String id, String calledFlowDocumentId, String calledFlowId, List<Parameter> outboundParametersFromConfig) {
@@ -43,8 +44,7 @@ public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
         this.id = id;
 
         if (null != calledFlowDocumentId) {
-            calledFlowDocumentIdVE = context.getApplication().getExpressionFactory().createValueExpression(context.getELContext(), calledFlowDocumentId,
-                    String.class);
+            calledFlowDocumentIdVE = context.getApplication().getExpressionFactory().createValueExpression(context.getELContext(), calledFlowDocumentId, String.class);
         } else {
             calledFlowDocumentIdVE = null;
         }

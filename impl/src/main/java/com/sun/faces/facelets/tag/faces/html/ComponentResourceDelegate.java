@@ -38,7 +38,7 @@ import jakarta.faces.view.facelets.TagAttributes;
  */
 public abstract class ComponentResourceDelegate extends ComponentTagHandlerDelegateImpl {
 
-    private TagAttributes attributes;
+    private final TagAttributes attributes;
 
     // ------------------------------------------------------------ Constructors
 
