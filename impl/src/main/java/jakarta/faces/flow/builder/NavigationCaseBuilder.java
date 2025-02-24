@@ -155,7 +155,7 @@ public abstract class NavigationCaseBuilder {
      *
      */
 
-    public abstract class RedirectBuilder {
+    public abstract static class RedirectBuilder {
 
         /**
          * <p class="changed_added_2_2">
