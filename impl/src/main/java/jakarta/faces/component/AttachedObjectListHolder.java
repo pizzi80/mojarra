@@ -21,7 +21,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -161,7 +160,7 @@ class AttachedObjectListHolder<T> implements PartialStateHolder {
     }
 
     List<T> getAttachedObjects() {
-        return Collections.unmodifiableList(attachedObjects);
+        return attachedObjects;
     }
 
     boolean isEmpty() {
