@@ -331,7 +331,7 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
         /**
          * The source <code>UISelectItems</code>.
          */
-        protected UISelectItems sourceComponent;
+        protected final UISelectItems sourceComponent;
 
         // -------------------------------------------------------- Constructors
 
