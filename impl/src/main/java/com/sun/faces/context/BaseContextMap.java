@@ -181,7 +181,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
     abstract static class BaseIterator<E> implements Iterator<E> {
 
-        protected Enumeration e;
+        protected final Enumeration e;
         protected String currentKey;
         protected boolean removeCalled = false;
 
