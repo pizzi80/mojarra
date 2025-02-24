@@ -240,10 +240,9 @@ public class ResultSetDataModel extends DataModel<Map<String, Object>> {
                 rowData = getRowData();
             }
             DataModelEvent event = new DataModelEvent(this, index, rowData);
-            int n = listeners.length;
-            for (int i = 0; i < n; i++) {
-                if (null != listeners[i]) {
-                    listeners[i].rowSelected(event);
+            for (DataModelListener listener : listeners) {
+                if (listener != null) {
+                    listener.rowSelected(event);
                 }
             }
         }
