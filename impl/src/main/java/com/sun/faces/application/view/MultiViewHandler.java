@@ -355,8 +355,7 @@ public class MultiViewHandler extends ViewHandler {
                 String string = entry.getKey();
                 List<String> list = entry.getValue();
                 List<String> values = new ArrayList<>();
-                for (Iterator<String> it = list.iterator(); it.hasNext();) {
-                    String value = it.next();
+                for (String value : list) {
                     try {
                         value = URLDecoder.decode(value, responseEncoding);
                     } catch (UnsupportedEncodingException e) {
