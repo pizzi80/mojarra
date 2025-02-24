@@ -16,7 +16,6 @@
 
 package com.sun.faces.facelets.tag.composite;
 
-import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.facelets.FaceletContext;
 import jakarta.faces.view.facelets.TagAttribute;
 import jakarta.faces.view.facelets.TagConfig;
@@ -38,24 +37,23 @@ public class BehaviorHolderAttachedObjectTargetHandler extends AttachedObjectTar
         TagAttribute event = getAttribute("event");
         FaceletContext ctx = null;
 
-        if (null != event) {
+        if (event != null) {
             if (!event.isLiteral()) {
-                FacesContext facesContext = FacesContext.getCurrentInstance();
-                ctx = (FaceletContext) facesContext.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-                String eventStr = (String) event.getValueExpression(ctx, String.class).getValue(ctx);
+                ctx = FaceletContext.getCurrentInstance();
+                String eventStr = event.getValueExpression(ctx, String.class).getValue(ctx);
                 target.setEvent(eventStr);
             } else {
                 target.setEvent(event.getValue());
             }
         }
         TagAttribute defaultAttr = getAttribute("default");
-        if (null != defaultAttr) {
-            if (null == ctx) {
-                FacesContext facesContext = FacesContext.getCurrentInstance();
-                ctx = (FaceletContext) facesContext.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+        if (defaultAttr != null) {
+            if (ctx == null) {
+                ctx = FaceletContext.getCurrentInstance();
             }
             target.setDefaultEvent(defaultAttr.getBoolean(ctx));
         }
+
         return target;
     }
 
