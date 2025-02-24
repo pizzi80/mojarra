@@ -133,7 +133,7 @@ public class MutableNavigationCase extends NavigationCase {
             ExpressionFactory factory = context.getApplication().getExpressionFactory();
             toViewIdExpr = factory.createValueExpression(context.getELContext(), toViewId, String.class);
         }
-        String result = (String) toViewIdExpr.getValue(context.getELContext());
+        String result = toViewIdExpr.getValue(context.getELContext());
         if (result.charAt(0) != '/') {
             result = '/' + result;
         }

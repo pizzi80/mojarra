@@ -111,7 +111,7 @@ public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
         String result = null;
 
         if (null != calledFlowDocumentIdVE) {
-            result = (String) calledFlowDocumentIdVE.getValue(context.getELContext());
+            result = calledFlowDocumentIdVE.getValue(context.getELContext());
         }
 
         return result;
@@ -122,7 +122,7 @@ public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
         String result = null;
 
         if (null != calledFlowIdVE) {
-            result = (String) calledFlowIdVE.getValue(context.getELContext());
+            result = calledFlowIdVE.getValue(context.getELContext());
         }
 
         return result;

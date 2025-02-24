@@ -73,7 +73,7 @@ public class AttributeHandler extends TagHandlerImpl {
 
         // Get the value of required the name propertyDescriptor
         ValueExpression ve = name.getValueExpression(ctx, String.class);
-        String strValue = (String) ve.getValue(ctx);
+        String strValue = ve.getValue(ctx);
 
         // Search the propertyDescriptors for one for this attribute
         for (PropertyDescriptor cur : declaredAttributes) {

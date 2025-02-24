@@ -237,7 +237,7 @@ public class NavigationCase {
             toViewIdExpr = context.getApplication().getExpressionFactory().createValueExpression(context.getELContext(), toViewId, String.class);
         }
 
-        String newToViewId = (String) toViewIdExpr.getValue(context.getELContext());
+        String newToViewId = toViewIdExpr.getValue(context.getELContext());
         if (newToViewId.charAt(0) != '/') {
             newToViewId = '/' + newToViewId;
         }

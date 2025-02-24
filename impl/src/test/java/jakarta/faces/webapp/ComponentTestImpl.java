@@ -46,7 +46,7 @@ public class ComponentTestImpl extends UIComponentBase {
         }
         ValueExpression vb = getValueExpression("label");
         if (vb != null) {
-            return ((String) vb.getValue(getFacesContext().getELContext()));
+            return vb.getValue(getFacesContext().getELContext());
         } else {
             return (null);
         }

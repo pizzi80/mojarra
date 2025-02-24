@@ -70,7 +70,7 @@ public abstract class AttachedObjectTargetHandler extends TagHandlerImpl {
         targetList.add(target);
 
         ValueExpression ve = name.getValueExpression(ctx, String.class);
-        String strValue = (String) ve.getValue(ctx);
+        String strValue = ve.getValue(ctx);
         if (null != strValue) {
             target.setName(strValue);
         }
