@@ -51,7 +51,7 @@ public class ConfigurationResourceProviderFactory {
          */
         FaceletConfig(FaceletConfigResourceProvider.SERVICES_KEY);
 
-        String servicesKey;
+        final String servicesKey;
 
         ProviderType(String servicesKey) {
             this.servicesKey = servicesKey;
