@@ -61,20 +61,20 @@ public class RepeatHandler extends ComponentHandler {
         private final String[] attrs;
 
         public TagMetaData(Class type) {
-            Set s = new HashSet();
+            Set<String> set = new HashSet<>();
             TagAttribute[] ta = tag.getAttributes().getAll();
-            for (int i = 0; i < ta.length; i++) {
-                if ("class".equals(ta[i].getLocalName())) {
-                    s.add("styleClass");
+            for (TagAttribute attribute : ta) {
+                if ("class".equals(attribute.getLocalName())) {
+                    set.add("styleClass");
                 } else {
-                    s.add(ta[i].getLocalName());
+                    set.add(attribute.getLocalName());
                 }
             }
             try {
-                PropertyDescriptor[] pd = Introspector.getBeanInfo(type).getPropertyDescriptors();
-                for (int i = 0; i < pd.length; i++) {
-                    if (pd[i].getWriteMethod() != null) {
-                        s.remove(pd[i].getName());
+                PropertyDescriptor[] pds = Introspector.getBeanInfo(type).getPropertyDescriptors();
+                for (PropertyDescriptor propertyDescriptor : pds) {
+                    if (propertyDescriptor.getWriteMethod() != null) {
+                        set.remove(propertyDescriptor.getName());
                     }
                 }
             } catch (Exception e) {
@@ -82,13 +82,13 @@ public class RepeatHandler extends ComponentHandler {
                     log.log(Level.FINEST, "Unable to get bean info", e);
                 }
             }
-            attrs = (String[]) s.toArray(new String[s.size()]);
+            attrs = set.toArray(new String[set.size()]);
         }
 
         @Override
         public void applyMetadata(FaceletContext ctx, Object instance) {
             UIComponent c = (UIComponent) instance;
-            Map localAttrs = c.getAttributes();
+            Map<String, Object> localAttrs = c.getAttributes();
             localAttrs.put("alias.element", tag.getQName());
             if (attrs.length > 0) {
                 localAttrs.put("alias.attributes", attrs);
