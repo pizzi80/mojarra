@@ -21,7 +21,7 @@ package com.sun.faces.renderkit.html_basic;
 import static com.sun.faces.renderkit.RenderKitUtils.getParameterName;
 
 import java.io.IOException;
-import java.util.ListIterator;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -123,7 +123,7 @@ public class FormRenderer extends HtmlBasicRenderer {
 
         UIViewRoot viewRoot = context.getViewRoot();
 
-        // Write out special hhidden field for partial submits
+        // Write out special hidden field for partial submits
         String viewId = viewRoot.getViewId();
         String actionURL = context.getApplication().getViewHandler().getActionURL(context, viewId);
         ExternalContext externalContext = context.getExternalContext();
@@ -158,9 +158,8 @@ public class FormRenderer extends HtmlBasicRenderer {
         // Render ay resources that have been targeted for this form.
 
         UIViewRoot viewRoot = context.getViewRoot();
-        ListIterator iter = viewRoot.getComponentResources(context, "form").listIterator();
-        while (iter.hasNext()) {
-            UIComponent resource = (UIComponent) iter.next();
+        List<UIComponent> resources = viewRoot.getComponentResources(context, "form");
+        for ( UIComponent resource : resources ) {
             resource.encodeAll(context);
         }
 
