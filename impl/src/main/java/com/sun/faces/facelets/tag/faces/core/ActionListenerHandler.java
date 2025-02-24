@@ -45,6 +45,51 @@ import jakarta.faces.view.facelets.TagConfig;
  */
 public final class ActionListenerHandler extends ActionListenerHandlerBase implements ActionSource2AttachedObjectHandler {
 
+    private final TagAttribute binding;
+    private final String listenerType;
+    private final TagAttribute typeAttribute;
+
+    /**
+     * @param config
+     */
+    public ActionListenerHandler(TagConfig config) {
+        super(config);
+        binding = getAttribute("binding");
+        typeAttribute = getAttribute("type");
+        if (typeAttribute != null) {
+            final String stringType;
+            if (!typeAttribute.isLiteral()) {
+                FaceletContext context = FaceletContext.getCurrentInstance();
+                stringType = typeAttribute.getValueExpression(context, String.class).getValue(context);
+            } else {
+                stringType = typeAttribute.getValue();
+            }
+            checkType(stringType);
+            listenerType = stringType;
+        } else {
+            listenerType = null;
+        }
+    }
+
+    @Override
+    public void applyAttachedObject(FacesContext context, UIComponent parent) {
+        final FaceletContext ctx = FaceletContext.getCurrentInstance(context);
+        final ActionSource source = (ActionSource) parent;
+        final ValueExpression ve = binding != null ? binding.getValueExpression(ctx, ActionListener.class) : null;
+        final ActionListener listener = new LazyActionListener(listenerType, ve);
+        source.addActionListener(listener);
+    }
+
+    private void checkType(String type) {
+        try {
+            ReflectionUtil.forName(type);
+        } catch (ClassNotFoundException e) {
+            throw new TagAttributeException(typeAttribute, "Couldn't qualify ActionListener", e);
+        }
+    }
+
+    // LazyActionListener --------------------------------------------------------------------------------
+
     private final static class LazyActionListener implements ActionListener, Serializable {
 
         private static final long serialVersionUID = -9202120013153262119L;
@@ -60,21 +105,21 @@ public final class ActionListenerHandler extends ActionListenerHandlerBase imple
         @Override
         public void processAction(ActionEvent event) throws AbortProcessingException {
             ActionListener instance = null;
-            FacesContext faces = FacesContext.getCurrentInstance();
-            if (faces == null) {
+            FacesContext context = FacesContext.getCurrentInstance();
+            if (context == null) {
                 return;
             }
             if (binding != null) {
-                instance = (ActionListener) binding.getValue(faces.getELContext());
+                instance = binding.getValue(context.getELContext());
             }
             if (instance == null && type != null) {
                 try {
-                    instance = (ActionListener) ReflectionUtil.newInstance(type);
+                    instance = ReflectionUtil.newInstance(type);
                 } catch (Exception e) {
                     throw new AbortProcessingException("Could not instantiate ActionListener of type " + type, e);
                 }
                 if (binding != null) {
-                    binding.setValue(faces.getELContext(), instance);
+                    binding.setValue(context.getELContext(), instance);
                 }
             }
             if (instance != null) {
@@ -83,52 +128,4 @@ public final class ActionListenerHandler extends ActionListenerHandlerBase imple
         }
     }
 
-    private final TagAttribute binding;
-
-    private String listenerType;
-
-    private final TagAttribute typeAttribute;
-
-    /**
-     * @param config
-     */
-    public ActionListenerHandler(TagConfig config) {
-        super(config);
-        binding = getAttribute("binding");
-        typeAttribute = getAttribute("type");
-        if (null != typeAttribute) {
-            String stringType = null;
-            if (!typeAttribute.isLiteral()) {
-                FacesContext context = FacesContext.getCurrentInstance();
-                FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-                stringType = (String) typeAttribute.getValueExpression(ctx, String.class).getValue(ctx);
-            } else {
-                stringType = typeAttribute.getValue();
-            }
-            checkType(stringType);
-            listenerType = stringType;
-        } else {
-            listenerType = null;
-        }
-    }
-
-    @Override
-    public void applyAttachedObject(FacesContext context, UIComponent parent) {
-        FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
-        ActionSource as = (ActionSource) parent;
-        ValueExpression b = null;
-        if (binding != null) {
-            b = binding.getValueExpression(ctx, ActionListener.class);
-        }
-        ActionListener listener = new LazyActionListener(listenerType, b);
-        as.addActionListener(listener);
-    }
-
-    private void checkType(String type) {
-        try {
-            ReflectionUtil.forName(type);
-        } catch (ClassNotFoundException e) {
-            throw new TagAttributeException(typeAttribute, "Couldn't qualify ActionListener", e);
-        }
-    }
 }
