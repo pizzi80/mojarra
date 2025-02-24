@@ -63,7 +63,7 @@ public abstract class StateHelper {
      * Access to the context init parameters that configure this application.
      * </p>
      */
-    protected WebConfiguration webConfig;
+    protected final WebConfiguration webConfig;
 
     /**
      * <p>
@@ -71,7 +71,7 @@ public abstract class StateHelper {
      * is common to both types of state saving.
      * </p>
      */
-    protected boolean compressViewState;
+    protected final boolean compressViewState;
 
     /**
      * This will be used the by the different <code>StateHelper</code> implementations when writing the start of the state
