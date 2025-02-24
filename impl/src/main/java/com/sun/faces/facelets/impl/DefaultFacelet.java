@@ -74,7 +74,7 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
 
     private final URL src;
 
-    private IdMapper mapper;
+    private final IdMapper mapper;
 
     private Doctype savedDoctype;
 
@@ -145,10 +145,10 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
             // finally remove any children marked as deleted
             int sz = c.getChildCount();
             if (sz > 0) {
-                List cl = c.getChildren();
+                List<UIComponent> cl = c.getChildren();
                 ApplyToken token;
                 while (--sz >= 0) {
-                    UIComponent cc = (UIComponent) cl.get(sz);
+                    UIComponent cc = cl.get(sz);
                     if (!cc.isTransient()) {
                         token = (ApplyToken) cc.getAttributes().get(APPLIED_KEY);
                         if (token != null && token.time < createTime && token.alias.equals(alias)) {
