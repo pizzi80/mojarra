@@ -112,9 +112,9 @@ public class RequestCookieMap extends BaseContextMap<Object> {
 
     private static class CookieArrayEnumerator implements Enumeration {
 
-        Cookie[] cookies;
+        final Cookie[] cookies;
         int curIndex = -1;
-        int upperBound;
+        final int upperBound;
 
         public CookieArrayEnumerator(Cookie[] cookies) {
             this.cookies = cookies;
