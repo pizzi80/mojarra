@@ -46,7 +46,7 @@ import jakarta.faces.view.facelets.TagHandlerDelegate;
  */
 class BehaviorTagHandlerDelegateImpl extends TagHandlerDelegate implements AttachedObjectHandler {
 
-    private BehaviorHandler owner;
+    private final BehaviorHandler owner;
 
     public BehaviorTagHandlerDelegateImpl(BehaviorHandler owner) {
         this.owner = owner;
@@ -77,8 +77,7 @@ class BehaviorTagHandlerDelegateImpl extends TagHandlerDelegate implements Attac
             String eventName = owner.getEventName();
             boolean supportedEvent = false;
             for (AttachedObjectTarget target : targetList) {
-                if (target instanceof BehaviorHolderAttachedObjectTarget) {
-                    BehaviorHolderAttachedObjectTarget behaviorTarget = (BehaviorHolderAttachedObjectTarget) target;
+                if (target instanceof BehaviorHolderAttachedObjectTarget behaviorTarget) {
                     if (null != eventName && eventName.equals(behaviorTarget.getName()) || null == eventName && behaviorTarget.isDefaultEvent()) {
                         supportedEvent = true;
                         break;
@@ -101,14 +100,14 @@ class BehaviorTagHandlerDelegateImpl extends TagHandlerDelegate implements Attac
 
     @Override
     public void applyAttachedObject(FacesContext context, UIComponent parent) {
-        FaceletContext ctx = (FaceletContext) context.getAttributes().get(FaceletContext.FACELET_CONTEXT_KEY);
+        FaceletContext ctx = FaceletContext.getCurrentInstance(context);
         // cast to the ClientBehaviorHolder.
         ClientBehaviorHolder behaviorHolder = (ClientBehaviorHolder) parent;
         ValueExpression bindingExpr = null;
         Behavior behavior = null;
         if (null != owner.getBinding()) {
             bindingExpr = owner.getBinding().getValueExpression(ctx, Behavior.class);
-            behavior = (Behavior) bindingExpr.getValue(ctx);
+            behavior = bindingExpr.getValue(ctx);
         }
         if (null == behavior) {
             if (null != owner.getBehaviorId()) {
