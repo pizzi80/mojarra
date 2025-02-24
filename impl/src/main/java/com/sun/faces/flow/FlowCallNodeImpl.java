@@ -37,7 +37,7 @@ public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
     private final ValueExpression calledFlowDocumentIdVE;
 
     private final Map<String, Parameter> _outboundParameters;
-    private Map<String, Parameter> outboundParameters;
+    private final Map<String, Parameter> outboundParameters;
 
     public FlowCallNodeImpl(String id, String calledFlowDocumentId, String calledFlowId, List<Parameter> outboundParametersFromConfig) {
         FacesContext context = FacesContext.getCurrentInstance();
