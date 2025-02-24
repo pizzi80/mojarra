@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.sun.faces.util.Util;
+
 import jakarta.el.ELContext;
 import jakarta.el.ELException;
 import jakarta.el.ValueExpression;
@@ -87,7 +89,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
     // ---------------------------------------------------------- Public Methods
     @Override
     public String getRendererType() {
-        // We use the same sring for both the behavior id and the renderer
+        // We use the same string for both the behavior id and the renderer
         // type.
         return BEHAVIOR_ID;
     }
@@ -423,12 +425,10 @@ public class AjaxBehavior extends ClientBehaviorBase {
                 if (bindings == null) {
 
                     // We use a very small initial capacity on this HashMap.
-                    // The goal is not to reduce collisions, but to keep the
-                    // memory footprint small. It is very unlikely that an
-                    // an AjaxBehavior would have more than 1 or 2 bound
-                    // properties - and even if more are present, it's okay
-                    // if we have some collisions - will still be fast.
-                    bindings = new HashMap<>(6, 1.0f);
+                    // The goal is to keep the memory footprint small.
+                    // It is very unlikely that an an AjaxBehavior would have
+                    // more than 1 or 2 bound properties
+                    bindings = new HashMap<>(Util.calculateMapCapacity(2));
                 }
 
                 bindings.put(name, binding);
@@ -547,7 +547,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
         // Note: This code is copied from UIComponentBase. In a future
         // version of the Jakarta Faces Specification, it would be useful to define a
         // attribute/property/bindings/state helper object that can be
-        // shared across components/behaviors/validaters/converters.
+        // shared across components/behaviors/validators/converters.
 
         if (bindings == null) {
             return null;
@@ -578,7 +578,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
         Object[] values = (Object[]) state;
         String[] names = (String[]) values[0];
         Object[] states = (Object[]) values[1];
-        Map<String, ValueExpression> bindings = new HashMap<>(names.length);
+        Map<String, ValueExpression> bindings = new HashMap<>(Util.calculateMapCapacity(names.length));
         for (int i = 0; i < names.length; i++) {
             bindings.put(names[i], (ValueExpression) UIComponentBase.restoreAttachedState(context, states[i]));
         }
@@ -707,9 +707,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
 
     // Converts the specified object to a List<String>
     private static List<String> toList(String propertyName, ValueExpression expression, Object value) {
-        if (value instanceof String) {
-
-            String strValue = (String) value;
+        if (value instanceof String strValue) {
 
             // If the value contains no spaces, we can optimize.
             // This is worthwhile, since the execute/render lists
