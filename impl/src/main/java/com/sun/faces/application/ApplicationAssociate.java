@@ -174,7 +174,7 @@ public class ApplicationAssociate {
 
     private Map<String, List<String>> resourceLibraryContracts;
 
-    Map<String, ApplicationResourceBundle> resourceBundles = new HashMap<>();
+    final Map<String, ApplicationResourceBundle> resourceBundles = new HashMap<>();
 
     public static void setCurrentInstance(ApplicationAssociate associate) {
         if (associate == null) {
