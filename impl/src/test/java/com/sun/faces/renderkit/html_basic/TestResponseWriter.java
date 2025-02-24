@@ -27,7 +27,7 @@ import jakarta.faces.context.ResponseWriter;
  */
 public class TestResponseWriter extends ResponseWriter {
 
-    private Writer writer;
+    private final Writer writer;
 
     /**
      * Constructor.
