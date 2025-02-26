@@ -16,6 +16,8 @@
 
 package jakarta.faces.validator;
 
+import java.util.Objects;
+
 import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
@@ -255,24 +257,20 @@ public class LongRangeValidator implements Validator, PartialStateHolder {
     }
 
     @Override
-    public boolean equals(Object otherObj) {
-
-        if (!(otherObj instanceof LongRangeValidator)) {
+    public boolean equals(Object object) {
+        if (!(object instanceof LongRangeValidator validator)) {
             return false;
         }
-        LongRangeValidator other = (LongRangeValidator) otherObj;
-        return getMaximum() == other.getMaximum() && getMinimum() == other.getMinimum() && isMaximumSet() == other.isMaximumSet()
-                && isMinimumSet() == other.isMinimumSet();
 
+        return getMaximum() == validator.getMaximum()
+            && getMinimum() == validator.getMinimum()
+            && isMaximumSet() == validator.isMaximumSet()
+            && isMinimumSet() == validator.isMinimumSet();
     }
 
     @Override
     public int hashCode() {
-
-        int hashCode = Long.valueOf(getMinimum()).hashCode() + Long.valueOf(getMaximum()).hashCode() + Boolean.valueOf(isMinimumSet()).hashCode()
-                + Boolean.valueOf(isMaximumSet()).hashCode();
-        return hashCode;
-
+        return Objects.hash(getMinimum(), getMaximum(), isMinimumSet(), isMaximumSet());
     }
 
     // --------------------------------------------------------- Private Methods
@@ -287,8 +285,8 @@ public class LongRangeValidator implements Validator, PartialStateHolder {
      */
     private static long longValue(Object attributeValue) throws NumberFormatException {
 
-        if (attributeValue instanceof Number) {
-            return ((Number) attributeValue).longValue();
+        if (attributeValue instanceof Number number) {
+            return number.longValue();
         } else {
             return Long.parseLong(attributeValue.toString());
         }
@@ -323,7 +321,7 @@ public class LongRangeValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (!initialStateMarked()) {
-            Object values[] = new Object[2];
+            Object[] values = new Object[2];
             values[0] = maximum;
             values[1] = minimum;
             return values;
@@ -339,7 +337,7 @@ public class LongRangeValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (state != null) {
-            Object values[] = (Object[]) state;
+            Object[] values = (Object[]) state;
             maximum = (Long) values[0];
             minimum = (Long) values[1];
         }
