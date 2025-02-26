@@ -2133,11 +2133,9 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
         @Override
         public boolean equals(Object obj) {
 
-            if (!(obj instanceof ComponentSystemEventListenerAdapter)) {
+            if (!(obj instanceof ComponentSystemEventListenerAdapter in)) {
                 return false;
             }
-
-            ComponentSystemEventListenerAdapter in = (ComponentSystemEventListenerAdapter) obj;
 
             return wrapped.equals(in.wrapped) && instanceClass.equals(in.instanceClass);
 
@@ -2147,147 +2145,7 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
     // --------------------------------------------------------- Private methods
 
     private Map<String, String> wrapBundleAsMap(final ResourceBundle bundle) {
-        return new Map<String, String>() {
-
-            // This is an immutable Map
-
-            @Override
-            public String toString() {
-                StringBuilder sb = new StringBuilder();
-                Iterator<Map.Entry<String, String>> entries = entrySet().iterator();
-                Map.Entry<String, String> cur;
-                while (entries.hasNext()) {
-                    cur = entries.next();
-                    sb.append(cur.getKey()).append(": ").append(cur.getValue()).append('\n');
-                }
-
-                return sb.toString();
-            }
-
-            // Do not need to implement for immutable Map
-            @Override
-            public void clear() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean containsKey(Object key) {
-                if (key != null) {
-                    return bundle.getString(key.toString()) != null;
-                }
-
-                return false;
-            }
-
-            @Override
-            public boolean containsValue(Object value) {
-                Enumeration<String> keys = bundle.getKeys();
-                while (keys.hasMoreElements()) {
-                    if (Objects.equals(value, bundle.getString(keys.nextElement()))) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            @Override
-            public Set<Map.Entry<String, String>> entrySet() {
-                HashMap<String, String> mappings = new HashMap<>();
-
-                Enumeration<String> keys = bundle.getKeys();
-                while (keys.hasMoreElements()) {
-                    String key = keys.nextElement();
-                    String value = bundle.getString(key);
-                    mappings.put(key, value);
-                }
-
-                return mappings.entrySet();
-            }
-
-            @Override
-            @SuppressWarnings("unchecked")
-            public boolean equals(Object obj) {
-                return !(obj == null || !(obj instanceof Map)) && entrySet().equals(((Map<String, String>) obj).entrySet());
-            }
-
-            @Override
-            public String get(Object key) {
-                if (key == null) {
-                    return null;
-                }
-
-                try {
-                    return bundle.getString(key.toString());
-                } catch (MissingResourceException e) {
-                    return "???" + key + "???";
-                }
-            }
-
-            @Override
-            public int hashCode() {
-                return bundle.hashCode();
-            }
-
-            @Override
-            public boolean isEmpty() {
-                return !bundle.getKeys().hasMoreElements();
-            }
-
-            @Override
-            public Set<String> keySet() {
-                Set<String> keySet = new HashSet<>();
-                Enumeration<String> keys = bundle.getKeys();
-                while (keys.hasMoreElements()) {
-                    keySet.add(keys.nextElement());
-                }
-
-                return keySet;
-            }
-
-            // Do not need to implement for immutable Map
-            @Override
-            public String put(String k, String v) {
-                throw new UnsupportedOperationException();
-            }
-
-            // Do not need to implement for immutable Map
-            @Override
-            public void putAll(Map<? extends String, ? extends String> m) {
-                throw new UnsupportedOperationException();
-            }
-
-            // Do not need to implement for immutable Map
-            @Override
-            public String remove(Object k) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public int size() {
-                int result = 0;
-
-                Enumeration<String> keys = bundle.getKeys();
-                while (keys.hasMoreElements()) {
-                    keys.nextElement();
-                    result++;
-                }
-
-                return result;
-            }
-
-            @Override
-            public Collection<String> values() {
-                List<String> result = new ArrayList<>();
-
-                Enumeration<String> keys = bundle.getKeys();
-                while (keys.hasMoreElements()) {
-                    result.add(bundle.getString(keys.nextElement()));
-                }
-
-                return result;
-            }
-        };
+        return new ResourceBundleMap(bundle);
     }
 
     private ResourceBundle findResourceBundleUnderFQCNofThis(FacesContext context) {
@@ -2371,4 +2229,148 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
         return resourceBundle != null ? result : null;
     }
 
+    // ResourceBundleMap -------------------------------------------------------------------------------------------
+
+    private static class ResourceBundleMap implements Map<String, String> {
+
+        private static final String MISSING_RESOURCE_PREFIX = "???";
+
+        private final ResourceBundle bundle;
+
+        public ResourceBundleMap(ResourceBundle bundle) {this.bundle = bundle;}
+
+        // This is an immutable Map
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for (Entry<String, String> cur : entrySet()) {
+                sb.append(cur.getKey()).append(": ").append(cur.getValue()).append('\n');
+            }
+
+            return sb.toString();
+        }
+
+        // Do not need to implement for immutable Map
+        @Override
+        public void clear() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean containsKey(Object key) {
+            if (key != null) {
+                bundle.getString(key.toString());
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public boolean containsValue(Object value) {
+            Enumeration<String> keys = bundle.getKeys();
+            while (keys.hasMoreElements()) {
+                if (Objects.equals(value, bundle.getString(keys.nextElement()))) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Override
+        public Set<Entry<String, String>> entrySet() {
+            Map<String, String> mappings = new HashMap<>();
+
+            Enumeration<String> keys = bundle.getKeys();
+            while (keys.hasMoreElements()) {
+                String key = keys.nextElement();
+                String value = bundle.getString(key);
+                mappings.put(key, value);
+            }
+
+            return mappings.entrySet();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof Map map && entrySet().equals(map.entrySet());
+        }
+
+        @Override
+        public String get(Object key) {
+            if (key instanceof String keyString) {
+                try {
+                    return bundle.getString(keyString);
+                } catch (MissingResourceException e) {
+                    return MISSING_RESOURCE_PREFIX + keyString + MISSING_RESOURCE_PREFIX;
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public int hashCode() {
+            return bundle.hashCode();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return !bundle.getKeys().hasMoreElements();
+        }
+
+        @Override
+        public Set<String> keySet() {
+            Set<String> keySet = new HashSet<>();
+            Enumeration<String> keys = bundle.getKeys();
+            while (keys.hasMoreElements()) {
+                keySet.add(keys.nextElement());
+            }
+            return keySet;
+        }
+
+        // Do not need to implement for immutable Map
+        @Override
+        public String put(String k, String v) {
+            throw new UnsupportedOperationException();
+        }
+
+        // Do not need to implement for immutable Map
+        @Override
+        public void putAll(Map<? extends String, ? extends String> m) {
+            throw new UnsupportedOperationException();
+        }
+
+        // Do not need to implement for immutable Map
+        @Override
+        public String remove(Object k) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int size() {
+            int result = 0;
+
+            Enumeration<String> keys = bundle.getKeys();
+            while (keys.hasMoreElements()) {
+                keys.nextElement();
+                result++;
+            }
+
+            return result;
+        }
+
+        @Override
+        public Collection<String> values() {
+            List<String> result = new ArrayList<>();
+
+            Enumeration<String> keys = bundle.getKeys();
+            while (keys.hasMoreElements()) {
+                result.add(bundle.getString(keys.nextElement()));
+            }
+
+            return result;
+        }
+    }
 }
