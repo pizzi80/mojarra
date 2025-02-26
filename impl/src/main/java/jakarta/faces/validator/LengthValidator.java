@@ -16,6 +16,8 @@
 
 package jakarta.faces.validator;
 
+import java.util.Objects;
+
 import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
@@ -213,24 +215,20 @@ public class LengthValidator implements Validator, PartialStateHolder {
     }
 
     @Override
-    public boolean equals(Object otherObj) {
-
-        if (!(otherObj instanceof LengthValidator)) {
+    public boolean equals(Object object) {
+        if (!(object instanceof LengthValidator validator)) {
             return false;
         }
-        LengthValidator other = (LengthValidator) otherObj;
-        return getMaximum() == other.getMaximum() && getMinimum() == other.getMinimum() && isMinimumSet() == other.isMinimumSet()
-                && isMaximumSet() == other.isMaximumSet();
 
+        return getMaximum() == validator.getMaximum()
+            && getMinimum() == validator.getMinimum()
+            && isMinimumSet() == validator.isMinimumSet()
+            && isMaximumSet() == validator.isMaximumSet();
     }
 
     @Override
     public int hashCode() {
-
-        int hashCode = Integer.valueOf(getMinimum()).hashCode() + Integer.valueOf(getMaximum()).hashCode() + Boolean.valueOf(isMaximumSet()).hashCode()
-                + Boolean.valueOf(isMinimumSet()).hashCode();
-        return hashCode;
-
+        return Objects.hash(getMinimum(), getMaximum(), isMaximumSet(), isMinimumSet());
     }
 
     // -------------------------------------------------------- Private Methods
@@ -243,15 +241,7 @@ public class LengthValidator implements Validator, PartialStateHolder {
      * @param attributeValue The attribute value to be converted
      */
     private static String stringValue(Object attributeValue) {
-
-        if (attributeValue == null) {
-            return null;
-        } else if (attributeValue instanceof String) {
-            return (String) attributeValue;
-        } else {
-            return attributeValue.toString();
-        }
-
+        return Objects.toString(attributeValue, null);
     }
 
     private static String integerToString(UIComponent component, Integer toConvert, FacesContext context) {
@@ -282,7 +272,7 @@ public class LengthValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (!initialStateMarked()) {
-            Object values[] = new Object[2];
+            Object[] values = new Object[2];
             values[0] = maximum;
             values[1] = minimum;
             return values;
@@ -298,7 +288,7 @@ public class LengthValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (state != null) {
-            Object values[] = (Object[]) state;
+            Object[] values = (Object[]) state;
             maximum = (Integer) values[0];
             minimum = (Integer) values[1];
         }
