@@ -17,9 +17,11 @@
 package com.sun.faces.facelets.tag.faces.core;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -49,45 +51,48 @@ import jakarta.faces.view.facelets.TagConfig;
  */
 public final class LoadBundleHandler extends TagHandlerImpl {
 
-    private final static class ResourceBundleMap implements Map {
-        private final static class ResourceEntry implements Map.Entry {
+    private final TagAttribute basename;
+    private final TagAttribute var;
 
-            protected final String key;
+    /**
+     * @param config
+     */
+    public LoadBundleHandler(TagConfig config) {
+        super(config);
+        basename = getRequiredAttribute("basename");
+        var = getRequiredAttribute("var");
+    }
 
-            protected final String value;
-
-            public ResourceEntry(String key, String value) {
-                this.key = key;
-                this.value = value;
+    /**
+     * See taglib documentation.
+     */
+    @Override
+    public void apply(FaceletContext ctx, UIComponent parent) throws IOException {
+        final UIViewRoot root = ComponentSupport.getViewRoot(ctx, parent);
+        final ResourceBundle bundle;
+        try {
+            String name = basename.getValue(ctx);
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            if (root != null && root.getLocale() != null) {
+                bundle = ResourceBundle.getBundle(name, root.getLocale(), cl);
+            } else {
+                bundle = ResourceBundle.getBundle(name, Locale.getDefault(), cl);
             }
-
-            @Override
-            public Object getKey() {
-                return key;
-            }
-
-            @Override
-            public Object getValue() {
-                return value;
-            }
-
-            @Override
-            public Object setValue(Object value) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public int hashCode() {
-                return key.hashCode();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                return obj instanceof ResourceEntry && hashCode() == obj.hashCode();
-            }
+        } catch (Exception e) {
+            throw new TagAttributeException(tag, basename, e);
         }
+        ResourceBundleMap map = new ResourceBundleMap(bundle);
+        FacesContext faces = ctx.getFacesContext();
+        faces.getExternalContext().getRequestMap().put(var.getValue(ctx), map);
+    }
 
-        protected final ResourceBundle bundle;
+    // ResourceBundleMap ---------------------------------------------------------------------
+
+    private final static class ResourceBundleMap implements Map<String,Object> {
+
+        private static final String MISSING_RESOURCE_PREFIX = "???";
+
+        private final ResourceBundle bundle;
 
         public ResourceBundleMap(ResourceBundle bundle) {
             this.bundle = bundle;
@@ -129,8 +134,8 @@ public final class LoadBundleHandler extends TagHandlerImpl {
         public Object get(Object key) {
             try {
                 return bundle.getObject((String) key);
-            } catch (java.util.MissingResourceException mre) {
-                return "???" + key + "???";
+            } catch (MissingResourceException mre) {
+                return MISSING_RESOURCE_PREFIX + key + MISSING_RESOURCE_PREFIX;
             }
         }
 
@@ -140,9 +145,9 @@ public final class LoadBundleHandler extends TagHandlerImpl {
         }
 
         @Override
-        public Set keySet() {
-            Enumeration e = bundle.getKeys();
-            Set s = new HashSet();
+        public Set<String> keySet() {
+            Enumeration<String> e = bundle.getKeys();
+            Set<String> s = new HashSet<>();
             while (e.hasMoreElements()) {
                 s.add(e.nextElement());
             }
@@ -150,7 +155,7 @@ public final class LoadBundleHandler extends TagHandlerImpl {
         }
 
         @Override
-        public Object put(Object key, Object value) {
+        public Object put(String key, Object value) {
             throw new UnsupportedOperationException();
         }
 
@@ -170,49 +175,50 @@ public final class LoadBundleHandler extends TagHandlerImpl {
         }
 
         @Override
-        public Collection values() {
-            Enumeration e = bundle.getKeys();
-            Set s = new HashSet();
+        public Collection<Object> values() {
+            Enumeration<String> e = bundle.getKeys();
+            List<Object> s = new ArrayList<>();
             while (e.hasMoreElements()) {
-                s.add(bundle.getObject((String) e.nextElement()));
+                s.add(bundle.getObject(e.nextElement()));
             }
             return s;
         }
-    }
 
-    private final TagAttribute basename;
+        private final static class ResourceEntry implements Map.Entry<String,Object> {
 
-    private final TagAttribute var;
+            private final String key;
+            private final String value;
 
-    /**
-     * @param config
-     */
-    public LoadBundleHandler(TagConfig config) {
-        super(config);
-        basename = getRequiredAttribute("basename");
-        var = getRequiredAttribute("var");
-    }
-
-    /**
-     * See taglib documentation.
-     */
-    @Override
-    public void apply(FaceletContext ctx, UIComponent parent) throws IOException {
-        UIViewRoot root = ComponentSupport.getViewRoot(ctx, parent);
-        ResourceBundle bundle = null;
-        try {
-            String name = basename.getValue(ctx);
-            ClassLoader cl = Thread.currentThread().getContextClassLoader();
-            if (root != null && root.getLocale() != null) {
-                bundle = ResourceBundle.getBundle(name, root.getLocale(), cl);
-            } else {
-                bundle = ResourceBundle.getBundle(name, Locale.getDefault(), cl);
+            public ResourceEntry(String key, String value) {
+                this.key = key;
+                this.value = value;
             }
-        } catch (Exception e) {
-            throw new TagAttributeException(tag, basename, e);
+
+            @Override
+            public String getKey() {
+                return key;
+            }
+
+            @Override
+            public Object getValue() {
+                return value;
+            }
+
+            @Override
+            public Object setValue(Object value) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public int hashCode() {
+                return key.hashCode();
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                return obj instanceof ResourceEntry && hashCode() == obj.hashCode();
+            }
         }
-        ResourceBundleMap map = new ResourceBundleMap(bundle);
-        FacesContext faces = ctx.getFacesContext();
-        faces.getExternalContext().getRequestMap().put(var.getValue(ctx), map);
     }
+
 }
