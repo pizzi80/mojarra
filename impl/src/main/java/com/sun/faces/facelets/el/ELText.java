@@ -21,6 +21,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.el.ELUtils;
 import com.sun.faces.util.HtmlUtils;
 import com.sun.faces.util.MessageUtils;
@@ -383,7 +384,7 @@ public class ELText {
         }
 
         if (text.isEmpty()) {
-            return new ELText("");
+            return new ELText(RIConstants.NO_VALUE);
         } else if (text.size() == 1) {
             return text.get(0);
         } else {
