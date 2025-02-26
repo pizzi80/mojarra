@@ -108,7 +108,7 @@ public class ParameterizedTypeImpl implements ParameterizedType {
      */
     @Override
     public boolean equals(Object other) {
-        return other instanceof ParameterizedType ? equals((ParameterizedType) other) : false;
+        return other instanceof ParameterizedType && equals((ParameterizedType) other);
     }
 
     /**
