@@ -131,8 +131,7 @@ public abstract class ResourceHelper {
 
         InputStream in = null;
 
-        if (toStream instanceof ClientResourceInfo) {
-            ClientResourceInfo resource = (ClientResourceInfo) toStream;
+        if (toStream instanceof ClientResourceInfo resource) {
 
             in = getInputStreamFromClientInfo(resource, ctx);
             if (null == in) {
@@ -479,14 +478,12 @@ public abstract class ResourceHelper {
      * @param s input String
      * @return the String without a leading slash if it has one.
      */
-    protected String trimLeadingSlash(String s) {
-
+    protected static String trimLeadingSlash(String s) {
         if (s.charAt(0) == '/') {
             return s.substring(1);
         } else {
             return s;
         }
-
     }
 
     // --------------------------------------------------------- Private Methods
@@ -533,24 +530,23 @@ public abstract class ResourceHelper {
 
     private static final class ELEvaluatingInputStream extends InputStream {
 
+        private final FacesContext ctx;
+        private final InputStream inner;
+        private final ClientResourceInfo info;
+
         // Premature optimization is the root of all evil. Blah blah.
         private final List<Integer> buf = new ArrayList<>(1024);
         private boolean failedExpressionTest = false;
         private boolean writingExpression = false;
-        private final InputStream inner;
-        private final ClientResourceInfo info;
-        private final FacesContext ctx;
         private boolean expressionEvaluated;
         private boolean endOfStreamReached;
 
         // ---------------------------------------------------- Constructors
 
         public ELEvaluatingInputStream(FacesContext ctx, ClientResourceInfo info, InputStream inner) {
-
+            this.ctx = ctx;
             this.inner = inner;
             this.info = info;
-            this.ctx = ctx;
-
         }
 
         // ------------------------------------------------ Methods from InputStream
@@ -712,8 +708,9 @@ public abstract class ResourceHelper {
     	if (!path.endsWith(".properties") || loc == null) {
     		return Collections.singletonList(path);
     	}
-    	List<String> list = new ArrayList<>();
-    	String base = path.substring(0, path.lastIndexOf(".properties"));
+
+    	final List<String> list = new ArrayList<>(4);
+        final String base = path.substring(0, path.lastIndexOf(".properties"));
     	if (!loc.getVariant().isEmpty()) {
     		list.add(String.format("%s_%s_%s_%s.properties", base, loc.getLanguage(), loc.getCountry(), loc.getVariant()));
     	}
