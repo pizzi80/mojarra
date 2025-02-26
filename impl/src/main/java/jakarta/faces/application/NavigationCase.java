@@ -22,6 +22,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import jakarta.el.ValueExpression;
 import jakarta.faces.context.ExternalContext;
@@ -322,7 +323,7 @@ public class NavigationCase {
     /**
      * <p class="changed_added_2_0">
      * Return the <code>&lt;redirect&gt;</code> value for this <code>&lt;navigation-case&gt;</code>. This will be
-     * <code>true</code> if the view parametets should be encoded into the redirect URL (only applies to redirect case)
+     * <code>true</code> if the view parameters should be encoded into the redirect URL (only applies to redirect case)
      * </p>
      *
      * @return <code>true</code> if view parameters are to be included, <code>false</code> otherwise.
@@ -336,20 +337,19 @@ public class NavigationCase {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+
+        if ( ! (o instanceof NavigationCase navigation) ) {
             return false;
         }
 
-        NavigationCase that = (NavigationCase) o;
-
-        return redirect == that.redirect && !(fromAction != null ? !fromAction.equals(that.fromAction) : that.fromAction != null)
-                && !(fromOutcome != null ? !fromOutcome.equals(that.fromOutcome) : that.fromOutcome != null)
-                && !(condition != null ? !condition.equals(that.condition) : that.condition != null)
-                && !(fromViewId != null ? !fromViewId.equals(that.fromViewId) : that.fromViewId != null)
-                && !(toViewId != null ? !toViewId.equals(that.toViewId) : that.toViewId != null)
-                && !(toFlowDocumentId != null ? !toFlowDocumentId.equals(that.toFlowDocumentId) : that.toFlowDocumentId != null)
-                && !(parameters != null ? !parameters.equals(that.parameters) : that.parameters != null);
-
+        return redirect == navigation.redirect
+            && Objects.equals(fromAction, navigation.fromAction)
+            && Objects.equals(fromOutcome, navigation.fromOutcome)
+            && Objects.equals(condition, navigation.condition)
+            && Objects.equals(fromViewId, navigation.fromViewId)
+            && Objects.equals(toViewId, navigation.toViewId)
+            && Objects.equals(toFlowDocumentId, navigation.toFlowDocumentId)
+            && Objects.equals(parameters, navigation.parameters);
     }
 
     @Override
