@@ -20,6 +20,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Objects;
 
 import jakarta.el.ELContext;
 import jakarta.el.ELException;
@@ -107,27 +108,18 @@ public final class TagValueExpression extends ValueExpression implements Externa
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+
+        if ( !(o instanceof TagValueExpression expression) ) {
             return false;
         }
 
-        TagValueExpression that = (TagValueExpression) o;
-
-        if (tagAttribute != null ? !tagAttribute.equals(that.tagAttribute) : that.tagAttribute != null) {
-            return false;
-        }
-        if (wrapped != null ? !wrapped.equals(that.wrapped) : that.wrapped != null) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(tagAttribute, expression.tagAttribute)
+            && Objects.equals(wrapped, expression.wrapped);
     }
 
     @Override
     public int hashCode() {
-        int result = wrapped != null ? wrapped.hashCode() : 0;
-        result = 31 * result + (tagAttribute != null ? tagAttribute.hashCode() : 0);
-        return result;
+        return Objects.hash(tagAttribute, wrapped);
     }
 
     @Override
