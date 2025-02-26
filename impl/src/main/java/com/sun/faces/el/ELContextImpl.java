@@ -41,7 +41,7 @@ import jakarta.faces.context.FacesContext;
  */
 public class ELContextImpl extends ELContext {
 
-    private FunctionMapper functionMapper = new NoopFunctionMapper();
+    private FunctionMapper functionMapper = NoopFunctionMapper.INSTANCE;
     private VariableMapper variableMapper;
     private final ELResolver resolver;
 
@@ -122,6 +122,8 @@ public class ELContextImpl extends ELContext {
     }
 
     private static class NoopFunctionMapper extends FunctionMapper {
+
+        private static final NoopFunctionMapper INSTANCE = new NoopFunctionMapper();
 
         @Override
         public Method resolveFunction(String s, String s1) {
