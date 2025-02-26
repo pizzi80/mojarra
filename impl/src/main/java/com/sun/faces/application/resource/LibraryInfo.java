@@ -66,7 +66,13 @@ public class LibraryInfo {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof LibraryInfo info)) return false;
+        if ( this == object ) {
+            return true;
+        }
+
+        if (!(object instanceof LibraryInfo info)) {
+            return false;
+        }
 
         return Objects.equals(name, info.name)
             && Objects.equals(version, info.version)
