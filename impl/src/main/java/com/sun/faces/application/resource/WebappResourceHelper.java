@@ -59,20 +59,19 @@ public class WebappResourceHelper extends ResourceHelper {
     // ------------------------------------------------------------ Constructors
 
     public WebappResourceHelper() {
-
         WebConfiguration webconfig = WebConfiguration.getInstance();
         cacheTimestamp = webconfig.isOptionEnabled(CacheResourceModificationTimestamp);
         BASE_RESOURCE_PATH = ensureLeadingSlash(webconfig.getOptionValue(WebConfiguration.WebContextInitParameter.WebAppResourcesDirectory));
         BASE_CONTRACTS_PATH = ensureLeadingSlash(webconfig.getOptionValue(WebConfiguration.WebContextInitParameter.WebAppContractsDirectory));
-
     }
+
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof WebappResourceHelper helper)) return false;
+        if (!(object instanceof WebappResourceHelper resource)) return false;
 
-        return Objects.equals(BASE_RESOURCE_PATH, helper.BASE_RESOURCE_PATH)
-            && Objects.equals(BASE_CONTRACTS_PATH, helper.BASE_CONTRACTS_PATH)
-            && cacheTimestamp == helper.cacheTimestamp;
+        return Objects.equals(BASE_RESOURCE_PATH, resource.BASE_RESOURCE_PATH)
+            && Objects.equals(BASE_CONTRACTS_PATH, resource.BASE_CONTRACTS_PATH)
+            && cacheTimestamp == resource.cacheTimestamp;
     }
 
     @Override
