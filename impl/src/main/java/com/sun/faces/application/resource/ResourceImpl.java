@@ -129,15 +129,12 @@ public class ResourceImpl extends Resource implements Externalizable {
 
     @Override
     public boolean equals(Object o) {
-
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if ( ! (o instanceof ResourceImpl resource) ) {
             return false;
         }
-
-        ResourceImpl resource = (ResourceImpl) o;
 
         return resourceInfo.equals(resource.resourceInfo);
     }
