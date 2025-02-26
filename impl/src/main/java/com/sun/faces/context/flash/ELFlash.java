@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.config.WebConfiguration.WebContextInitParameter;
 import com.sun.faces.facelets.tag.ui.UIDebug;
@@ -1332,8 +1333,8 @@ public class ELFlash extends Flash {
          * </p>
          */
         Cookie encode() {
-            String value = (null != previousRequestFlashInfo ? previousRequestFlashInfo.encode() : "") + "_"
-                    + (null != nextRequestFlashInfo ? nextRequestFlashInfo.encode() : "");
+            String value = (null != previousRequestFlashInfo ? previousRequestFlashInfo.encode() : RIConstants.NO_VALUE) + "_"
+                    + (null != nextRequestFlashInfo ? nextRequestFlashInfo.encode() : RIConstants.NO_VALUE);
             String encryptedValue = guard.encrypt(value);
             Cookie result = new Cookie(FLASH_COOKIE_NAME, URLEncoder.encode(encryptedValue, UTF_8));
 
@@ -1443,9 +1444,8 @@ public class ELFlash extends Flash {
 
         @Override
         public boolean equals(Object obj) {
-            if (obj == null) return false;
-            if (getClass() != obj.getClass()) return false;
-            final FlashInfo info = (FlashInfo) obj;
+            if ( !(obj instanceof FlashInfo info) ) return false;
+
             return  isRedirect == info.isRedirect &&
                     Objects.equals(lifetimeMarker, info.lifetimeMarker) &&
                     sequenceNumber == info.sequenceNumber;
@@ -1453,11 +1453,7 @@ public class ELFlash extends Flash {
 
         @Override
         public int hashCode() {
-            int hash = 7;
-            hash = 71 * hash + (isRedirect ? 1 : 0);
-            hash = 71 * hash + (lifetimeMarker != null ? lifetimeMarker.hashCode() : 0);
-            hash = 71 * hash + (int) (sequenceNumber ^ sequenceNumber >>> 32);
-            return hash;
+            return Objects.hash(isRedirect, lifetimeMarker, sequenceNumber);
         }
 
         void decode(String value) {
