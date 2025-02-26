@@ -88,11 +88,10 @@ public final class TagMethodExpression extends MethodExpression implements Exter
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+
+        if ( !(o instanceof TagMethodExpression expression) ) {
             return false;
         }
-
-        TagMethodExpression expression = (TagMethodExpression) o;
 
         return Objects.equals(attr, expression.attr)
             && Objects.equals(orig, expression.orig);
