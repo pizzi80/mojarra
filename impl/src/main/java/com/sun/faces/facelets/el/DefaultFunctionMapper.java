@@ -22,9 +22,9 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.facelets.util.ReflectionUtil;
 
 import jakarta.el.FunctionMapper;
@@ -41,7 +41,7 @@ public final class DefaultFunctionMapper extends FunctionMapper implements Exter
 
     private static final long serialVersionUID = 1L;
 
-    private Map functions = null;
+    private Map<String,Function> functions = null;
 
     /*
      * (non-Javadoc)
@@ -51,7 +51,7 @@ public final class DefaultFunctionMapper extends FunctionMapper implements Exter
     @Override
     public Method resolveFunction(String prefix, String localName) {
         if (functions != null) {
-            Function f = (Function) functions.get(prefix + ':' + localName);
+            Function f = functions.get(prefix + ':' + localName);
             return f.getMethod();
         }
         return null;
@@ -59,11 +59,12 @@ public final class DefaultFunctionMapper extends FunctionMapper implements Exter
 
     public void addFunction(String prefix, String localName, Method m) {
         if (functions == null) {
-            functions = new HashMap();
+            functions = new HashMap<>();
         }
-        Function f = new Function(prefix, localName, m);
+        final String key = prefix + ':' + localName;
+        final Function f = new Function(prefix, localName, m);
         synchronized (this) {
-            functions.put(prefix + ':' + localName, f);
+            functions.put(key, f);
         }
     }
 
@@ -84,15 +85,15 @@ public final class DefaultFunctionMapper extends FunctionMapper implements Exter
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        functions = (Map) in.readObject();
+        functions = (Map<String,Function>) in.readObject();
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(128);
         sb.append("FunctionMapper[\n");
-        for (Iterator itr = functions.values().iterator(); itr.hasNext();) {
-            sb.append(itr.next()).append('\n');
+        for (Function function : functions.values()) {
+            sb.append(function).append('\n');
         }
         sb.append(']');
         return sb.toString();
@@ -140,7 +141,7 @@ public final class DefaultFunctionMapper extends FunctionMapper implements Exter
          */
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeUTF(prefix != null ? prefix : "");
+            out.writeUTF(prefix != null ? prefix : RIConstants.NO_VALUE);
             out.writeUTF(localName);
             out.writeUTF(m.getDeclaringClass().getName());
             out.writeUTF(m.getName());
@@ -156,7 +157,7 @@ public final class DefaultFunctionMapper extends FunctionMapper implements Exter
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
             prefix = in.readUTF();
-            if ("".equals(prefix)) {
+            if (prefix.isEmpty()) {
                 prefix = null;
             }
             localName = in.readUTF();
