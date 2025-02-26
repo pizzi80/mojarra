@@ -16,6 +16,8 @@
 
 package jakarta.faces.validator;
 
+import java.util.Objects;
+
 import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
@@ -262,19 +264,19 @@ public class DoubleRangeValidator implements Validator, PartialStateHolder {
      * instances.
      * </p>
      *
-     * @param otherObj the object to compare against.
+     * @param object the object to compare against.
      * @return true if equal, false otherwise.
      */
     @Override
-    public boolean equals(Object otherObj) {
-
-        if (!(otherObj instanceof DoubleRangeValidator)) {
+    public boolean equals(Object object) {
+        if (!(object instanceof DoubleRangeValidator validator)) {
             return false;
         }
-        DoubleRangeValidator other = (DoubleRangeValidator) otherObj;
-        return getMaximum() == other.getMaximum() && getMinimum() == other.getMinimum() && isMaximumSet() == other.isMaximumSet()
-                && isMinimumSet() == other.isMinimumSet();
 
+        return getMaximum() == validator.getMaximum()
+            && getMinimum() == validator.getMinimum()
+            && isMaximumSet() == validator.isMaximumSet()
+            && isMinimumSet() == validator.isMinimumSet();
     }
 
     /**
@@ -286,11 +288,7 @@ public class DoubleRangeValidator implements Validator, PartialStateHolder {
      */
     @Override
     public int hashCode() {
-
-        int hashCode = Double.valueOf(getMinimum()).hashCode() + Double.valueOf(getMaximum()).hashCode() + Boolean.valueOf(isMinimumSet()).hashCode()
-                + Boolean.valueOf(isMaximumSet()).hashCode();
-        return hashCode;
-
+        return Objects.hash(getMinimum(), getMaximum(), isMinimumSet(), isMaximumSet());
     }
 
     // --------------------------------------------------------- Private Methods
@@ -341,7 +339,7 @@ public class DoubleRangeValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (!initialStateMarked()) {
-            Object values[] = new Object[2];
+            Object[] values = new Object[2];
             values[0] = maximum;
             values[1] = minimum;
             return values;
@@ -357,7 +355,7 @@ public class DoubleRangeValidator implements Validator, PartialStateHolder {
             throw new NullPointerException();
         }
         if (state != null) {
-            Object values[] = (Object[]) state;
+            Object[] values = (Object[]) state;
             maximum = (Double) values[0];
             minimum = (Double) values[1];
         }
