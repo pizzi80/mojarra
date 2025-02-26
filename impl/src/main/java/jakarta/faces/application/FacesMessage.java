@@ -327,10 +327,17 @@ public class FacesMessage implements Serializable {
      */
     @Override
     public boolean equals(Object object) {
-        return (object == this) || (object != null && object.getClass() == getClass()
-            && Objects.equals(severity, ((FacesMessage) object).severity)
-            && Objects.equals(summary, ((FacesMessage) object).summary)
-            && Objects.equals(detail, ((FacesMessage) object).detail));
+        if ( this == object ) {
+            return true;
+        }
+
+        if ( ! (object instanceof FacesMessage message) ) {
+            return false;
+        }
+
+        return Objects.equals(severity, message.severity)
+            && Objects.equals(summary, message.summary)
+            && Objects.equals(detail, message.detail);
     }
 
     /**
@@ -400,7 +407,7 @@ public class FacesMessage implements Serializable {
      * Class used to represent message severity levels in a typesafe enumeration.
      * </p>
      */
-    public static class Severity implements Comparable {
+    public static class Severity implements Comparable<Severity> {
 
         // ------------------------------------------------------- Constructors
 
@@ -441,8 +448,8 @@ public class FacesMessage implements Serializable {
          * @param severity The other object to be compared to
          */
         @Override
-        public int compareTo(Object severity) {
-            return ordinal - ((Severity)severity).ordinal;
+        public int compareTo(Severity severity) {
+            return ordinal - severity.ordinal;
         }
 
         /**
