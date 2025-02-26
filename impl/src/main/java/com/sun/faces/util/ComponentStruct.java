@@ -105,13 +105,7 @@ public class ComponentStruct implements StateHolder {
 
     @Override
     public boolean equals(Object obj) {
-        boolean result = false;
-
-        if (obj instanceof ComponentStruct struct) {
-            result = struct.clientId.equals(clientId);
-        }
-
-        return result;
+        return obj instanceof ComponentStruct struct && Objects.equals(clientId, struct.clientId);
     }
 
     /**
