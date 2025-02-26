@@ -54,7 +54,7 @@ final class MockApplicationMap implements Map<String, Object> {
         Enumeration<String> keys = context.getAttributeNames();
         while (keys.hasMoreElements()) {
             Object next = context.getAttribute(keys.nextElement());
-            if (next == value) {
+            if (next == value) { // <-- why not equals ????
                 return true;
             }
         }
