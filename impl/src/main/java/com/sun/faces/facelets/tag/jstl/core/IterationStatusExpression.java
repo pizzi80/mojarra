@@ -16,6 +16,8 @@
 
 package com.sun.faces.facelets.tag.jstl.core;
 
+import java.util.Objects;
+
 import com.sun.faces.facelets.tag.IterationStatus;
 
 import jakarta.el.ELContext;
@@ -103,17 +105,11 @@ public final class IterationStatusExpression extends ValueExpression {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == null) {
+        if ( !(obj instanceof IterationStatusExpression expression) ) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final IterationStatusExpression other = (IterationStatusExpression) obj;
-        if (status != other.status && (status == null || !status.equals(other.status))) {
-            return false;
-        }
-        return true;
+
+        return Objects.equals(status, expression.status);
     }
 
     /*
