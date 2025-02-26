@@ -17,6 +17,7 @@
 package com.sun.faces.mock;
 
 import java.security.Principal;
+import java.util.Objects;
 
 /**
  * <p>
@@ -26,7 +27,7 @@ public class MockPrincipal implements Principal {
 
     private static final String EMPTY_STRING = "";
     private static final int EMPTY_STRING_HASHCODE = EMPTY_STRING.hashCode();
-    private static final String[] EMPTY_STRING_ARRAY = new String[0];
+    private static final String[] EMPTY_STRING_ARRAY = {};
 
     protected final String name;
     protected final String[] roles;
@@ -65,17 +66,11 @@ public class MockPrincipal implements Principal {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null) {
+        if (!(o instanceof Principal principal )) {
             return false;
         }
-        if (!(o instanceof Principal principal)) {
-            return false;
-        }
-        if (name == null) {
-            return (principal.getName() == null);
-        } else {
-            return (name.equals(principal.getName()));
-        }
+
+        return Objects.equals(name, principal.getName());
     }
 
     @Override
