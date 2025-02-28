@@ -16,20 +16,20 @@
 
 package com.sun.faces.context;
 
-import static com.sun.faces.RIConstants.CHAR_ENCODING;
-
-import java.io.UnsupportedEncodingException;
+import static com.sun.faces.RIConstants.CHARSET_ENCODING;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.sun.faces.util.Util;
 
+import jakarta.faces.application.SharedUtils;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.lifecycle.ClientWindow;
 import jakarta.faces.render.ResponseStateManager;
@@ -67,27 +67,30 @@ class UrlBuilder {
 
     // ------------------------------------------------------------ Constructors
 
-    public UrlBuilder(String url, String encoding) {
-        if (url == null || url.trim().isEmpty()) {
+    public UrlBuilder(String url, Charset encoding) {
+        if (Util.isBlank(url)) {
             throw new IllegalArgumentException("Url cannot be empty");
         }
         this.url = new StringBuilder(url.length() * 2);
         extractSegments(url);
-        this.encoding = encoding != null ? Charset.forName(encoding) : null;
+        this.encoding = encoding;
         // PERF TL lookup per-instance
     }
 
     public UrlBuilder(String url) {
-        this(url, CHAR_ENCODING);
+        this(url, CHARSET_ENCODING);
     }
 
     // ---------------------------------------------------------- Public Methods
 
     public UrlBuilder addParameters(String name, List<String> values) {
-        if ( name == null || name.isBlank() ) {
+        name = SharedUtils.trimToNull(name);
+
+        if ( name == null ) {
             throw new IllegalArgumentException("Parameter name cannot be empty");
         }
-        addValuesToParameter(name.trim(), values, true);
+
+        addValuesToParameter(name, values, true);
 
         return this;
     }
@@ -95,11 +98,12 @@ class UrlBuilder {
     public UrlBuilder addParameters(Map<String, List<String>> params) {
         if (params != null && !params.isEmpty()) {
             for (Map.Entry<String, List<String>> entry : params.entrySet()) {
-                if (entry.getKey() == null || entry.getKey().trim().isEmpty()) {
+                final String paramName = SharedUtils.trimToNull(entry.getKey());
+                if (paramName == null) {
                     throw new IllegalArgumentException("Parameter name cannot be empty");
                 }
                 List<String> values = entry.getValue();
-                addValuesToParameter(entry.getKey().trim(), values, true);
+                addValuesToParameter(paramName, values, true);
             }
         }
 
@@ -107,7 +111,7 @@ class UrlBuilder {
     }
 
     public UrlBuilder setPath(String path) {
-        if (path == null || path.trim().isEmpty()) {
+        if (path == null || path.isBlank()) {
             throw new IllegalArgumentException("Path cannot be empty");
         }
         this.path = path;
@@ -154,7 +158,7 @@ class UrlBuilder {
 
     protected void parseQueryString() {
         if (parameters == null) {
-            parameters = new LinkedHashMap<>();
+            parameters = new LinkedHashMap<>(8);
         }
 
         // if query string is null, then it has been parsed into parameters
@@ -168,7 +172,7 @@ class UrlBuilder {
         for (String pair : pairs) {
             String[] nameAndValue = Util.split(appMap, pair, PARAMETER_NAME_VALUE_SEPARATOR);
             // ignore malformed pair
-            if (nameAndValue.length != 2 || nameAndValue[0].trim().isEmpty()) {
+            if (nameAndValue.length != 2 || nameAndValue[0].isBlank()) {
                 continue;
             }
 
@@ -262,25 +266,32 @@ class UrlBuilder {
     }
 
     protected void addValueToParameter(String name, String value, boolean replace) {
-        List<String> values = new ArrayList<>(value == null ? 0 : 1);
+        final List<String> values;
         if (value != null) {
-            values.add(value);
+            values = Collections.singletonList(value);
+        } else {
+            values = Collections.emptyList();
         }
         addValuesToParameter(name, values, replace);
     }
 
     protected void addValuesToParameter(String name, List<String> valuesRef, boolean replace) {
-        List<String> values = new ArrayList<>();
+        final List<String> values;
         if (valuesRef != null) {
-            for (String string : valuesRef) {
-                if (string != null) {
-                    values.add(encoding != null ? URLEncoder.encode(string, encoding) : string);
+            values = new ArrayList<>(valuesRef.size());
+            for (String ref : valuesRef) {
+                if (ref != null) {
+                    values.add(encoding != null ? URLEncoder.encode(ref, encoding) : ref);
                 }
             }
         }
+        else {
+            // we need a mutable List
+            values = new ArrayList<>(0);
+        }
 
         if (parameters == null) {
-            parameters = new LinkedHashMap<>();
+            parameters = new LinkedHashMap<>(8);
         }
 
         if (replace) {

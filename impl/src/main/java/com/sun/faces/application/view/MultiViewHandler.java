@@ -40,8 +40,8 @@ import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -316,7 +316,7 @@ public class MultiViewHandler extends ViewHandler {
 
     @Override
     public String getBookmarkableURL(FacesContext context, String viewId, Map<String, List<String>> parameters, boolean includeViewParams) {
-        Map<String, List<String>> params;
+        final Map<String, List<String>> params;
         if (includeViewParams) {
             params = getFullParameterList(context, viewId, parameters);
         } else {
@@ -347,28 +347,24 @@ public class MultiViewHandler extends ViewHandler {
      */
     @Override
     public String getRedirectURL(FacesContext context, String viewId, Map<String, List<String>> parameters, boolean includeViewParams) {
-        String responseEncoding = Util.getResponseEncoding(context);
+        final Charset responseEncoding = Util.getResponseEncodingCharset(context);
 
         if (parameters != null) {
-            Map<String, List<String>> decodedParameters = new HashMap<>();
+            Map<String, List<String>> decodedParameters = new HashMap<>(Util.calculateMapCapacity(parameters.size()));
             for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
                 String string = entry.getKey();
-                List<String> list = entry.getValue();
-                List<String> values = new ArrayList<>();
-                for (String value : list) {
-                    try {
-                        value = URLDecoder.decode(value, responseEncoding);
-                    } catch (UnsupportedEncodingException e) {
-                        throw new RuntimeException("Unable to decode");
-                    }
-                    values.add(value);
+                List<String> values = entry.getValue();
+                List<String> decodedValues = new ArrayList<>(values.size());
+                for (String value : values) {
+                    value = URLDecoder.decode(value, responseEncoding);
+                    decodedValues.add(value);
                 }
-                decodedParameters.put(string, values);
+                decodedParameters.put(string, decodedValues);
             }
             parameters = decodedParameters;
         }
 
-        Map<String, List<String>> params;
+        final Map<String, List<String>> params;
         if (includeViewParams) {
             params = getFullParameterList(context, viewId, parameters);
         } else {
@@ -505,7 +501,7 @@ public class MultiViewHandler extends ViewHandler {
     }
 
     protected Map<String, List<String>> getFullParameterList(FacesContext ctx, String viewId, Map<String, List<String>> existingParameters) {
-        Map<String, List<String>> copy;
+        final Map<String, List<String>> copy;
         if (existingParameters == null || existingParameters.isEmpty()) {
             copy = new LinkedHashMap<>(4);
         } else {
