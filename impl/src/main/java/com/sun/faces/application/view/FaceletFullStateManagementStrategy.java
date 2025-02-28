@@ -344,9 +344,9 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
 
         @SuppressWarnings("unchecked")
         List<Object> savedActions = (List<Object>) context.getViewRoot().getAttributes().get(DYNAMIC_ACTIONS);
-        List<ComponentStruct> actions = stateContext.getDynamicActions();
 
         if (!isEmpty(savedActions)) {
+            List<ComponentStruct> actions = stateContext.getDynamicActions();
             for (Object savedAction : savedActions) {
                 ComponentStruct action = new ComponentStruct();
                 action.restoreState(context, savedAction);
@@ -616,9 +616,9 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
         }
 
         List<ComponentStruct> actions = stateContext.getDynamicActions();
-        Map<String, UIComponent> componentMap = stateContext.getDynamicComponents();
 
         if (actions != null) {
+            Map<String, UIComponent> componentMap = stateContext.getDynamicComponents();
             List<Object> savedActions = new ArrayList<>(actions.size());
             for (ComponentStruct action : actions) {
                 UIComponent component = componentMap.get(action.getClientId());
@@ -843,9 +843,7 @@ public class FaceletFullStateManagementStrategy extends StateManagementStrategy 
         if (component.getParent().getChildren().contains(component)) {
             UIComponent parent = component.getParent();
             int index = 0;
-            Iterator<UIComponent> iterator = parent.getChildren().iterator();
-            while (iterator.hasNext()) {
-                UIComponent child = iterator.next();
+            for (UIComponent child : parent.getChildren()) {
                 if (child == component) {
                     break;
                 } else {
