@@ -19,6 +19,7 @@
 
 package com.sun.faces.util;
 
+import static com.sun.faces.RIConstants.CHAR_ENCODING;
 import static com.sun.faces.RIConstants.FACELETS_ENCODING_KEY;
 import static com.sun.faces.RIConstants.FACES_SERVLET_MAPPINGS;
 import static com.sun.faces.RIConstants.FACES_SERVLET_REGISTRATION;
@@ -46,6 +47,7 @@ import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1725,6 +1727,24 @@ public class Util {
         }
 
         throw new NumberFormatException("there is no numeric segment");
+    }
+
+    /**
+     * @param context the {@link FacesContext} for the current request
+     * @return the encoding {@link Charset} to be used for the response,
+     * or the default hardcoded Charset if it's not possible to retrieve the current encoding charset,
+     * or it's not a valid Java Charset.
+     */
+    public static Charset getResponseEncodingCharset(FacesContext context) {
+        try {
+            return Charset.forName(getResponseEncoding(context));
+        }
+        catch (Exception e) {
+            if (LOGGER.isLoggable(FINEST)) {
+                LOGGER.log(FINEST, "No encoding found, defaulting to {0}", CHAR_ENCODING);
+            }
+            return RIConstants.CHARSET_ENCODING;
+        }
     }
 
     /**
