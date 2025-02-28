@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.sun.faces.util.Util;
+
 import jakarta.faces.context.FacesContext;
 
 public enum SharedUtils { ;
@@ -43,12 +45,12 @@ public enum SharedUtils { ;
      */
     static boolean isMixedExpression(String expression) {
 
-        if (null == expression) {
+        if (expression == null) {
             return false;
         }
 
         // if it doesn't start and end with delimiters
-        return !(expression.startsWith("#{") && expression.endsWith("}")) && isExpression(expression);
+        return ! (expression.startsWith("#{") && expression.endsWith("}")) && isExpression(expression);
 
     }
 
@@ -57,7 +59,7 @@ public enum SharedUtils { ;
      */
     static boolean isExpression(String expression) {
 
-        if (null == expression) {
+        if (expression == null) {
             return false;
         }
 
@@ -68,7 +70,7 @@ public enum SharedUtils { ;
 
     static Map<String, List<String>> evaluateExpressions(FacesContext context, Map<String, List<String>> map) {
         if (map != null && !map.isEmpty()) {
-            Map<String, List<String>> ret = new HashMap<>(map.size());
+            Map<String, List<String>> ret = new HashMap<>(Util.calculateMapCapacity(map.size()));
             for (Map.Entry<String, List<String>> entry : map.entrySet()) {
                 ret.put(entry.getKey(), evaluateExpressions(context, entry.getValue()));
             }
