@@ -195,9 +195,9 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
 
         @SuppressWarnings("unchecked")
         List<Object> savedActions = (List<Object>) stateMap.get(DYNAMIC_ACTIONS);
-        List<ComponentStruct> actions = stateContext.getDynamicActions();
 
         if (!isEmpty(savedActions)) {
+            List<ComponentStruct> actions = stateContext.getDynamicActions();
             for (Object savedAction : savedActions) {
                 ComponentStruct action = new ComponentStruct();
                 action.restoreState(context, savedAction);
