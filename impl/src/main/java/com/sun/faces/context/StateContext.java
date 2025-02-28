@@ -22,11 +22,11 @@ import static com.sun.faces.util.ComponentStruct.ADD;
 import static com.sun.faces.util.ComponentStruct.REMOVE;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -381,7 +381,7 @@ public class StateContext {
             super(context);
         }
 
-        private boolean thisEventCorrespondsToSubtreeRootRemove(FacesContext context, UIComponent c) {
+        private static boolean thisEventCorrespondsToSubtreeRootRemove(FacesContext context, UIComponent c) {
             boolean result = false;
             if (null != c) {
                 c = c.getParent();
@@ -393,7 +393,7 @@ public class StateContext {
             return result;
         }
 
-        private boolean thisEventCorrespondsToSubtreeRootAdd(FacesContext context, UIComponent c) {
+        private static boolean thisEventCorrespondsToSubtreeRootAdd(FacesContext context, UIComponent c) {
             boolean result = false;
             Map<Object, Object> contextMap = context.getAttributes();
             UIViewRoot root = context.getViewRoot();
@@ -403,11 +403,12 @@ public class StateContext {
                 if (dynamics.contains(c)) {
                     result = true;
                 } else {
-                    c = c.getParent();
-                    while (null != c && !dynamics.contains(c)) {
+
+                    do {
                         c = c.getParent();
-                    }
-                    if (null == c || root.equals(c)) {
+                    } while (c != null && !dynamics.contains(c));
+
+                    if (c == null || root.equals(c)) {
                         dynamics.add(originalComponent);
                         result = true;
                     }
@@ -419,10 +420,10 @@ public class StateContext {
 
         private static final String DYNAMIC_COMPONENT_ADD_COLLECTION = RIConstants.FACES_PREFIX + "DynamicComponentSubtreeRoots";
 
-        private Collection<UIComponent> getDynamicComponentCollection(Map<Object, Object> contextMap) {
+        private static Collection<UIComponent> getDynamicComponentCollection(Map<Object, Object> contextMap) {
             Collection<UIComponent> result = (Collection<UIComponent>) contextMap.get(DYNAMIC_COMPONENT_ADD_COLLECTION);
-            if (null == result) {
-                result = new HashSet<>();
+            if (result == null) {
+                result = new HashSet<>(8);
                 contextMap.put(DYNAMIC_COMPONENT_ADD_COLLECTION, result);
             }
             return result;
@@ -449,7 +450,7 @@ public class StateContext {
             }
         }
 
-        private void childRemovedFromParent(UIComponent parent, String childTagId) {
+        private static void childRemovedFromParent(UIComponent parent, String childTagId) {
             if (parent != null) {
                 Collection<String> removedChildrenIds = getPreviouslyRemovedChildren(parent);
                 removedChildrenIds.add(childTagId);
@@ -458,7 +459,7 @@ public class StateContext {
             }
         }
 
-        private Collection<String> getPreviouslyRemovedChildren(UIComponent parent) {
+        private static Collection<String> getPreviouslyRemovedChildren(UIComponent parent) {
             Map<String, Object> attrs = parent.getAttributes();
             Collection<String> removedChildrenIds = (Collection<String>) attrs.get(ComponentSupport.REMOVED_CHILDREN);
 
@@ -470,7 +471,7 @@ public class StateContext {
             return removedChildrenIds;
         }
 
-        private void markChildrenModified(UIComponent parent) {
+        private static void markChildrenModified(UIComponent parent) {
             parent.getAttributes().put(ComponentSupport.MARK_CHILDREN_MODIFIED, true);
         }
 
@@ -496,7 +497,7 @@ public class StateContext {
 
         // Handles the addition of a new child to the parent. Returns true
         // if the child was previously removed from this parent.
-        private boolean childAddedToSameParentAsBefore(UIComponent parent, String childTagId) {
+        private static boolean childAddedToSameParentAsBefore(UIComponent parent, String childTagId) {
             if (parent != null) {
                 Map<String, Object> attrs = parent.getAttributes();
                 Collection<String> removedChildrenIds = (Collection<String>) attrs.get(ComponentSupport.REMOVED_CHILDREN);
@@ -521,12 +522,12 @@ public class StateContext {
         /**
          * Stores the list of adds/removes.
          */
-        private List<ComponentStruct> dynamicActions;
+        private volatile List<ComponentStruct> dynamicActions;
 
         /**
          * Stores the hash map of dynamic components.
          */
-        private transient HashMap<String, UIComponent> dynamicComponents;
+        private transient volatile HashMap<String, UIComponent> dynamicComponents;
 
         /**
          * Constructor.
@@ -544,12 +545,14 @@ public class StateContext {
          */
         @Override
         public List<ComponentStruct> getDynamicActions() {
-            synchronized (this) {
-                if (dynamicActions == null) {
-                    dynamicActions = new ArrayList<>();
+            if (dynamicActions == null) {
+                synchronized (this) {
+                    if (dynamicActions == null) {
+                        dynamicActions = new LinkedList<>(); // it's better a LinkedList because we have a lot of add/remove operations
+                    }
                 }
             }
-            
+
             return dynamicActions;
         }
 
@@ -560,12 +563,14 @@ public class StateContext {
          */
         @Override
         public Map<String, UIComponent> getDynamicComponents() {
-            synchronized (this) {
-                if (dynamicComponents == null) {
-                    dynamicComponents = new HashMap<>();
+            if (dynamicComponents == null) {
+                synchronized (this) {
+                    if (dynamicComponents == null) {
+                        dynamicComponents = new HashMap<>();
+                    }
                 }
             }
-            
+
             return dynamicComponents;
         }
 
