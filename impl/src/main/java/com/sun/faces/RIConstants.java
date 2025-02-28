@@ -17,6 +17,7 @@
 
 package com.sun.faces;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import com.sun.faces.config.manager.FacesSchema;
@@ -61,7 +62,8 @@ public class RIConstants {
     public static final String APPLICATION_XML_CONTENT_TYPE = "application/xml";
     public static final String TEXT_XML_CONTENT_TYPE = "text/xml";
     public static final String ALL_MEDIA = "*/*";
-    public static final String CHAR_ENCODING = StandardCharsets.UTF_8.name();
+    public static final Charset CHARSET_ENCODING = StandardCharsets.UTF_8;
+    public static final String CHAR_ENCODING = CHARSET_ENCODING.name();
     public static final String FACELETS_ENCODING_KEY = "facelets.Encoding";
     public static final String DEFAULT_LIFECYCLE = FACES_PREFIX + "DefaultLifecycle";
     public static final String DEFAULT_STATEMANAGER = FACES_PREFIX + "DefaultStateManager";
