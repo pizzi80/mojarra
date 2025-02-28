@@ -19,6 +19,7 @@
 
 package com.sun.faces.util;
 
+import static com.sun.faces.RIConstants.CHAR_ENCODING;
 import static com.sun.faces.RIConstants.CDI_BEAN_MANAGER;
 import static com.sun.faces.RIConstants.FACELETS_ENCODING_KEY;
 import static com.sun.faces.RIConstants.FACES_SERVLET_MAPPINGS;
@@ -47,6 +48,7 @@ import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -838,7 +840,7 @@ public class Util {
      * Execute the passed task and return the computed result atomically using the passed lock.
      * @param lock The {@link Lock} to be used for atomic execution
      * @param task The {@link Supplier} to be executed atomically
-     * @return The result of the passed task.      
+     * @return The result of the passed task.
      */
     public static <R> R execAtomic(Lock lock, Supplier<R> task) {
         lock.lock();
