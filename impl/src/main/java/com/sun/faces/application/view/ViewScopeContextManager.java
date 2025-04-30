@@ -30,9 +30,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.Util;
-
 import jakarta.enterprise.context.spi.Contextual;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.inject.spi.BeanManager;
@@ -43,6 +40,9 @@ import jakarta.faces.context.FacesContext;
 import jakarta.inject.Named;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpSessionEvent;
+
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 /**
  * The manager that deals with CDI ViewScoped beans.
@@ -126,7 +126,7 @@ public class ViewScopeContextManager {
     public <T> T createBean(FacesContext facesContext, Contextual<T> contextual, CreationalContext<T> creational) {
         LOGGER.log(FINEST, "Creating @ViewScoped CDI bean using contextual: {0}", contextual);
 
-        if (!(contextual instanceof PassivationCapable)) {
+        if (!(contextual instanceof PassivationCapable passivationCapable)) {
             throw new IllegalArgumentException("ViewScoped bean " + contextual.toString() + " must be PassivationCapable, but is not.");
         }
 
@@ -135,7 +135,7 @@ public class ViewScopeContextManager {
         if (contextualInstance != null) {
             String name = getBeanName(contextualInstance);
             facesContext.getViewRoot().getViewMap(true).put(name, contextualInstance);
-            String passivationCapableId = ((PassivationCapable) contextual).getId();
+            String passivationCapableId = passivationCapable.getId();
 
             getContextMap(facesContext).put(passivationCapableId, new ViewScopeContextObject(passivationCapableId, name));
         }
@@ -236,18 +236,18 @@ public class ViewScopeContextManager {
      * @param create flag to indicate if we are creating the context map.
      * @return the context map.
      */
-    @SuppressWarnings("unchecked")
     private Map<String, ViewScopeContextObject> getContextMap(FacesContext facesContext, boolean create) {
         Map<String, ViewScopeContextObject> result = null;
 
         final ExternalContext externalContext = facesContext.getExternalContext();
         if (externalContext != null) {
-            // if the response has been committed -> end of the story
-            if ( externalContext.isResponseCommitted() ) return null;
-            // get or create the session
-            final Object session = externalContext.getSession(create);
-            if (session != null) {
-                try {
+            try {
+                // get the current session or create a new one
+                // note that in some remote circumstances the response could be committed,
+                // and we will get an IllegalStateException ...
+                final Object session = externalContext.getSession(create);
+
+                if (session != null) {
                     final Map<String, Object> sessionMap = externalContext.getSessionMap();
 
                     // get (or create) the global ViewScope Map
@@ -274,11 +274,11 @@ public class ViewScopeContextManager {
                         result = activeViewScopeContexts.get(viewMapId);
                     }
                 }
-                // Session already invalidated?
-                catch (Throwable e) {
-                    LOGGER.log(WARNING, e.getMessage());
-                    return null;
-                }
+            }
+            // Session already invalidated or response committed
+            catch (Throwable e) {
+                LOGGER.log(WARNING, e.getMessage());
+                return null;
             }
         }
 
@@ -290,9 +290,9 @@ public class ViewScopeContextManager {
 
         final ReentrantLock lock = getMutex(session);
 
-        return Util.execAtomic(lock, () -> create ?
-               (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>) sessionMap.computeIfAbsent(ACTIVE_VIEW_CONTEXTS, $ -> new ConcurrentHashMap<>()) :
-               (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>) sessionMap.get(ACTIVE_VIEW_CONTEXTS));
+        return Util.execAtomic(lock, () -> (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>)
+                (create ? sessionMap.computeIfAbsent(ACTIVE_VIEW_CONTEXTS, $ -> new ConcurrentHashMap<>()) :
+                          sessionMap.get(ACTIVE_VIEW_CONTEXTS)));
     }
 
     /**
