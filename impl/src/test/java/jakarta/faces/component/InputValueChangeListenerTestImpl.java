@@ -33,7 +33,7 @@ public class InputValueChangeListenerTestImpl implements ValueChangeListener {
     }
 
     @Override
-    public void processValueChange(ValueChangeEvent event) {
+    public void processValueChange(ValueChangeEvent<?> event) {
         trace(valueChangeListenerId);
     }
 

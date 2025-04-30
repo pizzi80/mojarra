@@ -98,7 +98,7 @@ public class MethodExpressionValueChangeListener implements ValueChangeListener,
      * @throws AbortProcessingException {@inheritDoc}
      */
     @Override
-    public void processValueChange(ValueChangeEvent valueChangeEvent) throws AbortProcessingException {
+    public void processValueChange(ValueChangeEvent<?> valueChangeEvent) throws AbortProcessingException {
         if (valueChangeEvent == null) {
             throw new NullPointerException();
         }
