@@ -39,7 +39,7 @@ public final class FacetHandler extends TagHandlerImpl implements jakarta.faces.
 
     public static final String KEY = "facelets.FACET_NAME";
 
-    protected final TagAttribute name;
+    private final TagAttribute name;
 
     public FacetHandler(TagConfig config) {
         super(config);
