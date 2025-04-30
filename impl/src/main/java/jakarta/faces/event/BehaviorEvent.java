@@ -48,7 +48,7 @@ public abstract class BehaviorEvent extends FacesEvent {
         super(component);
 
         if (null == behavior) {
-            throw new IllegalArgumentException("Behavior agrument cannot be null");
+            throw new IllegalArgumentException("Behavior argument cannot be null");
         }
 
         this.behavior = behavior;
@@ -69,7 +69,7 @@ public abstract class BehaviorEvent extends FacesEvent {
         super(facesContext, component);
 
         if (null == behavior) {
-            throw new IllegalArgumentException("Behavior agrument cannot be null");
+            throw new IllegalArgumentException("Behavior argument cannot be null");
         }
 
         this.behavior = behavior;
