@@ -26,7 +26,7 @@ import jakarta.faces.event.ValueChangeListener;
  */
 public class InputValueChangeListenerTestImpl implements ValueChangeListener {
 
-    protected String valueChangeListenerId = null;
+    protected final String valueChangeListenerId;
 
     public InputValueChangeListenerTestImpl(String valueChangeListenerId) {
         this.valueChangeListenerId = valueChangeListenerId;
