@@ -1168,8 +1168,8 @@ public class Util {
      */
     public static boolean isResourceExactMappedToFacesServlet(ExternalContext externalContext, String resource) {
         Object context = externalContext.getContext();
-        if (context instanceof ServletContext) {
-            return getFacesServletMappings((ServletContext) context).contains(resource);
+        if (context instanceof ServletContext servletContext) {
+            return getFacesServletMappings(servletContext).contains(resource);
         }
 
         return false;
@@ -1178,8 +1178,8 @@ public class Util {
     public static HttpServletMapping getFirstWildCardMappingToFacesServlet(ExternalContext externalContext) {
         // If needed, cache this after initialization of Faces
         Object context = externalContext.getContext();
-        if (context instanceof ServletContext) {
-            return getFacesServletMappings((ServletContext) context)
+        if (context instanceof ServletContext servletContext) {
+            return getFacesServletMappings(servletContext)
                     .stream()
                     .filter(mapping -> mapping.contains("*"))
                     .map(mapping -> new HttpServletMapping() {
