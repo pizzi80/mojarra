@@ -22,6 +22,8 @@ import jakarta.el.MethodNotFoundException;
 import jakarta.faces.component.StateHolder;
 import jakarta.faces.context.FacesContext;
 
+import com.sun.faces.RIConstants;
+
 /**
  * <p>
  * <strong><span class="changed_modified_2_0 changed_modified_2_0_rev_a
@@ -33,12 +35,13 @@ import jakarta.faces.context.FacesContext;
 
 public class MethodExpressionValueChangeListener implements ValueChangeListener, StateHolder {
 
+    private static final Class<?>[] VALUECHANGE_LISTENER_ZEROARG_SIG = {};
+
     // ------------------------------------------------------ Instance Variables
 
     private MethodExpression methodExpressionOneArg = null;
     private MethodExpression methodExpressionZeroArg = null;
     private boolean isTransient;
-    private final static Class<?>[] VALUECHANGE_LISTENER_ZEROARG_SIG = new Class<?>[] {};
 
     public MethodExpressionValueChangeListener() {
     }
@@ -57,7 +60,6 @@ public class MethodExpressionValueChangeListener implements ValueChangeListener,
      * and takes a single argument of type {@link ValueChangeEvent}.
      */
     public MethodExpressionValueChangeListener(MethodExpression methodExpressionOneArg) {
-
         super();
         this.methodExpressionOneArg = methodExpressionOneArg;
         FacesContext context = FacesContext.getCurrentInstance();
@@ -75,11 +77,9 @@ public class MethodExpressionValueChangeListener implements ValueChangeListener,
      * @param methodExpressionZeroArg a method expression that takes zero arguments
      */
     public MethodExpressionValueChangeListener(MethodExpression methodExpressionOneArg, MethodExpression methodExpressionZeroArg) {
-
         super();
         this.methodExpressionOneArg = methodExpressionOneArg;
         this.methodExpressionZeroArg = methodExpressionZeroArg;
-
     }
 
     // ------------------------------------------------------- Event Method
@@ -99,7 +99,6 @@ public class MethodExpressionValueChangeListener implements ValueChangeListener,
      */
     @Override
     public void processValueChange(ValueChangeEvent valueChangeEvent) throws AbortProcessingException {
-
         if (valueChangeEvent == null) {
             throw new NullPointerException();
         }
@@ -114,7 +113,7 @@ public class MethodExpressionValueChangeListener implements ValueChangeListener,
             if (null != methodExpressionZeroArg) {
 
                 // try to invoke a no-arg version
-                methodExpressionZeroArg.invoke(elContext, new Object[] {});
+                methodExpressionZeroArg.invoke(elContext, RIConstants.EMPTY_METH_ARGS);
             }
         }
     }
@@ -128,7 +127,6 @@ public class MethodExpressionValueChangeListener implements ValueChangeListener,
      */
     @Override
     public Object saveState(FacesContext context) {
-
         if (context == null) {
             throw new NullPointerException();
         }
@@ -143,7 +141,6 @@ public class MethodExpressionValueChangeListener implements ValueChangeListener,
      */
     @Override
     public void restoreState(FacesContext context, Object state) {
-
         if (context == null) {
             throw new NullPointerException();
         }
