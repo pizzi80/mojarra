@@ -37,7 +37,7 @@ import com.sun.faces.RIConstants;
 public final class HtmlUtils {
     private HtmlUtils() {}
 
-    private final static Set<String> UTF_CHARSET = Set.of("UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "UTF-32", "UTF-32BE", "UTF-32LE",
+    private static final Set<String> UTF_CHARSET = Set.of("UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "UTF-32", "UTF-32BE", "UTF-32LE",
             "x-UTF-16LE-BOM", "X-UTF-32BE-BOM", "X-UTF-32LE-BOM", "");
 
     // -------------------------------------------------
