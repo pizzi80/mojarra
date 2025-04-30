@@ -242,10 +242,13 @@ public class ViewScopeContextManager {
 
         final ExternalContext externalContext = facesContext.getExternalContext();
         if (externalContext != null) {
-            final Map<String, Object> sessionMap = externalContext.getSessionMap();
+            // if the response has been committed -> end of the story
+            if ( externalContext.isResponseCommitted() ) return null;
+            // get or create the session
             final Object session = externalContext.getSession(create);
             if (session != null) {
                 try {
+                    final Map<String, Object> sessionMap = externalContext.getSessionMap();
 
                     // get (or create) the global ViewScope Map
                     final Map<Object, ConcurrentMap<String, ViewScopeContextObject>> activeViewScopeContexts = getViewScopeContextMap(sessionMap, session, create);
