@@ -50,6 +50,7 @@ public class RIConstants {
 
     public static final Class<?>[] EMPTY_CLASS_ARGS = {};
     public static final Object[] EMPTY_METH_ARGS = {};
+    public static final String[] EMPTY_STRING_ARRAY = {};
     public static final String[][] EMPTY_STRING_MATRIX = {};
 
     /**
