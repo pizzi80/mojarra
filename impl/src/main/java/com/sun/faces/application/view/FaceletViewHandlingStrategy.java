@@ -814,12 +814,12 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
      */
     protected void initialize() {
         LOGGER.fine("Initializing FaceletViewHandlingStrategy");
+
         final FacesContext context = FacesContext.getCurrentInstance();
         final ExternalContext extContext = context.getExternalContext();
+        final Map<String, Object> appMap = extContext.getApplicationMap();
 
         initializeMappings(context);
-
-        metadataCache = new Cache<>(ccResource -> FaceletViewHandlingStrategy.this.createComponentMetadata(context, ccResource));
 
         try {
             responseBufferSize = Integer.parseInt(webConfig.getOptionValue(FaceletsBufferSize));
@@ -827,11 +827,10 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             responseBufferSize = Integer.parseInt(FaceletsBufferSize.getDefaultValue());
         }
 
-        LOGGER.fine("Initialization Successful");
+        // note that the Cache Factory need to retrieve always the current FacesContext instance!
+        metadataCache = new Cache<>(ccResource -> createComponentMetadata(FacesContext.getCurrentInstance(), ccResource));
 
         vdlFactory = (ViewDeclarationLanguageFactory) FactoryFinder.getFactory(VIEW_DECLARATION_LANGUAGE_FACTORY);
-
-        Map<String, Object> appMap = extContext.getApplicationMap();
 
         @SuppressWarnings("unchecked")
         Map<String, List<String>> contractDataStructure = (Map<String, List<String>>) appMap.remove(RESOURCE_LIBRARY_CONTRACT_DATA_STRUCTURE_KEY);
@@ -844,6 +843,8 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             }
             contractDataStructure.clear();
         }
+
+        LOGGER.fine("Initialization Successful");
     }
 
     /**
@@ -1027,7 +1028,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         }
     }
 
-    private BeanInfo createComponentMetadata(FacesContext context, Resource ccResource) {
+    private static BeanInfo createComponentMetadata(FacesContext context, Resource ccResource) {
 
         // PENDING this implementation is terribly wasteful.
         // Must find a better way.
