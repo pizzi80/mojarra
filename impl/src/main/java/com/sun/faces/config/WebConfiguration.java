@@ -72,6 +72,14 @@ import com.sun.faces.lifecycle.HttpMethodRestrictionsPhaseListener;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.Util;
 
+import com.sun.faces.RIConstants;
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.application.view.FaceletViewHandlingStrategy;
+import com.sun.faces.facelets.util.Classpath;
+import com.sun.faces.lifecycle.HttpMethodRestrictionsPhaseListener;
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
+
 /**
  * Class Documentation
  */
@@ -132,11 +140,12 @@ public class WebConfiguration {
         }
 
         // build the cache of list type params
-        cachedListParams = new HashMap<>(3);
-        getOptionValue(WebContextInitParameter.ResourceExcludes, " ");
-        getOptionValue(WebContextInitParameter.FaceletsViewMappings, ";");
-        getOptionValue(WebContextInitParameter.FaceletsSuffix, " ");
-
+        cachedListParams = new HashMap<>(Util.calculateMapCapacity(6)); // make room for other Faces options
+        Map<String,Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
+        getOptionValue(appMap,WebContextInitParameter.ResourceExcludes, " ");
+        getOptionValue(appMap,WebContextInitParameter.FaceletsViewMappings, ";");
+        getOptionValue(appMap,WebContextInitParameter.FaceletsSuffix, " ");
+        
         specificationVersion = getClass().getPackage().getSpecificationVersion();
     }
 
@@ -277,14 +286,20 @@ public class WebConfiguration {
     }
 
     public String[] getOptionValue(WebContextInitParameter param, String sep) {
-        String[] result;
+        Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
+        return getOptionValue(appMap, param, sep);
+    }
 
-        if ((result = cachedListParams.get(param)) == null) {
+    private String[] getOptionValue(Map<String,Object> appMap, WebContextInitParameter param, String sep) {
+        // get from cache
+        String[] result = cachedListParams.get(param);
+
+        // if not found in cache -> evaluate + save in cache
+        if (result == null) {
             String value = getOptionValue(param);
             if (value == null) {
-                result = new String[0];
+                result = RIConstants.EMPTY_STRING_ARRAY;
             } else {
-                Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
                 result = split(appMap, value, sep);
             }
             cachedListParams.put(param, result);
