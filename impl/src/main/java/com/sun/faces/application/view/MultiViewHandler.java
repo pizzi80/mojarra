@@ -82,7 +82,7 @@ public class MultiViewHandler extends ViewHandler {
     // Log instance for this class
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
 
-    private final List<String> configuredExtensions;
+    private final String[] configuredExtensions;
     private final Set<String> protectedViews;
 
     private final ViewDeclarationLanguageFactory vdlFactory;
@@ -573,7 +573,7 @@ public class MultiViewHandler extends ViewHandler {
      *
      * @param context the <code>FacesContext</code> for the current request
      * @param pref the preferred locale
-     * @return the Locale based on pref and the matching alogritm specified in JSTL 8.3.2
+     * @return the Locale based on pref and the matching algorithm specified in JSTL 8.3.2
      */
     protected Locale findMatch(FacesContext context, Locale pref) {
         Locale result = null;

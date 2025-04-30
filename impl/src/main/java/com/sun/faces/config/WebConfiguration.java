@@ -349,12 +349,17 @@ public class WebConfiguration {
     /**
      * @return the facelet suffixes.
      */
-    public List<String> getConfiguredExtensions() {
+    public String[] getConfiguredExtensions() {
         String[] faceletsSuffix = getOptionValue(FaceletsSuffix, " ");
-
-        Set<String> deduplicatedFaceletsSuffixes = new LinkedHashSet<>(asList(faceletsSuffix));
-
-        return new ArrayList<>(deduplicatedFaceletsSuffixes);
+        // if it's not configured or there is only 1 extension -> return the option value
+        if (faceletsSuffix.length < 2) {
+            return faceletsSuffix;
+        }
+        // otherwise remove duplicates
+        else {
+            Set<String> deduplicatedFaceletsSuffixes = new LinkedHashSet<>(asList(faceletsSuffix));
+            return deduplicatedFaceletsSuffixes.toArray(new String[deduplicatedFaceletsSuffixes.size()]);
+        }
     }
 
     public void overrideContextInitParameter(WebContextInitParameter param, String value) {
