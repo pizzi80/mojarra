@@ -149,7 +149,7 @@ public final class ValueChangeListenerHandler extends TagHandlerImpl implements 
         }
 
         @Override
-        public void processValueChange(ValueChangeEvent event) throws AbortProcessingException {
+        public void processValueChange(ValueChangeEvent<?> event) throws AbortProcessingException {
             FacesContext faces = FacesContext.getCurrentInstance();
             if (faces == null) {
                 return;

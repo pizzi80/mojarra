@@ -47,7 +47,7 @@ public class ValueChangeListenerTestImpl implements ValueChangeListener, StateHo
     }
 
     @Override
-    public void processValueChange(ValueChangeEvent event) {
+    public void processValueChange(ValueChangeEvent<?> event) {
         trace(getId());
     }
 

@@ -38,6 +38,6 @@ public interface ValueChangeListener extends FacesListener {
      * @throws AbortProcessingException Signal the Jakarta Faces implementation that no further processing on the
      * current event should be performed
      */
-    void processValueChange(ValueChangeEvent event) throws AbortProcessingException;
+    void processValueChange(ValueChangeEvent<?> event) throws AbortProcessingException;
 
 }
