@@ -108,7 +108,7 @@ public abstract class ExternalContext {
      * <em>Jakarta Servlet:</em> This must be accomplished by calling the
      * <code>jakarta.servlet.http.HttpServletResponse</code> method <code>addCookie()</code>. The <code>Cookie</code>
      * argument must be constructed by passing the <code>name</code> and <code>value</code> parameters. If the
-     * <code>properties</code> arugument is non-<code>null</code> and not empty, the <code>Cookie</code> instance must be
+     * <code>properties</code> argument is non-<code>null</code> and not empty, the <code>Cookie</code> instance must be
      * initialized as described below.
      * </p>
      *
@@ -208,7 +208,7 @@ public abstract class ExternalContext {
      *
      * @param value To be passed as the second argument to the <code>Cookie</code> constructor.
      *
-     * @param properties A <code>Map</code> containg key/value pairs to be passed as arguments to the setter methods as
+     * @param properties A <code>Map</code> containing key/value pairs to be passed as arguments to the setter methods as
      * described above.
      *
      * @since 2.0
@@ -235,7 +235,7 @@ public abstract class ExternalContext {
      * <code>getRequestDispatcher(path)</code>, and calling the <code>forward()</code> method on the resulting object.
      * </p>
      * <p class="changed_added_2_2">
-     * If the call to <code>getRequestDisatcher(path)</code> returns <code>null</code>, send
+     * If the call to <code>getRequestDispatcher(path)</code> returns <code>null</code>, send
      * a<code>ServletResponse SC_NOT_FOUND</code> error code.
      * </p>
      *
@@ -459,7 +459,7 @@ public abstract class ExternalContext {
     /**
      * <p>
      * <span class="changed_modified_2_0">Return</span> the application environment object instance for the current
-     * appication.
+     * application.
      * </p>
      *
      * <p class="changed_added_2_0">
@@ -1093,7 +1093,7 @@ public abstract class ExternalContext {
 
     /**
      * <p class="changed_added_2_0">
-     * Return the result of calling <code>getContentLenth()</code> on the <code>ServletRequest</code> instance for this
+     * Return the result of calling <code>getContentLength()</code> on the <code>ServletRequest</code> instance for this
      * request.
      * </p>
      *
