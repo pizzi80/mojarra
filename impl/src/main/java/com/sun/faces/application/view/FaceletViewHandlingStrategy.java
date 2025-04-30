@@ -313,7 +313,9 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
 
         view.setViewId(view.getViewId());
 
-        LOGGER.log(FINE, () -> "Building View: " + view.getViewId());
+        if ( LOGGER.isLoggable(Level.FINE) ) {
+            LOGGER.log(FINE, "Building View: " + view.getViewId());
+        }
 
         if (faceletFactory == null) {
             faceletFactory = ApplicationAssociate.getInstance(ctx.getExternalContext()).getFaceletFactory();
@@ -328,8 +330,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             stateCtx.setTrackViewModifications(false);
             facelet.apply(ctx, view);
 
-            if (facelet instanceof XMLFrontMatterSaver) {
-                XMLFrontMatterSaver frontMatterSaver = (XMLFrontMatterSaver) facelet;
+            if (facelet instanceof XMLFrontMatterSaver frontMatterSaver) {
 
                 Doctype doctype = frontMatterSaver.getSavedDoctype();
                 if (doctype != null) {
@@ -808,13 +809,12 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
      */
     protected void initialize() {
         LOGGER.fine("Initializing FaceletViewHandlingStrategy");
+        final FacesContext context = FacesContext.getCurrentInstance();
+        final ExternalContext extContext = context.getExternalContext();
 
-        initializeMappings();
+        initializeMappings(context);
 
-        metadataCache = new Cache<>(ccResource -> {
-            FacesContext context = FacesContext.getCurrentInstance();
-            return FaceletViewHandlingStrategy.this.createComponentMetadata(context, ccResource);
-        });
+        metadataCache = new Cache<>(ccResource -> FaceletViewHandlingStrategy.this.createComponentMetadata(context, ccResource));
 
         try {
             responseBufferSize = Integer.parseInt(webConfig.getOptionValue(FaceletsBufferSize));
@@ -826,8 +826,6 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
 
         vdlFactory = (ViewDeclarationLanguageFactory) FactoryFinder.getFactory(VIEW_DECLARATION_LANGUAGE_FACTORY);
 
-        FacesContext context = FacesContext.getCurrentInstance();
-        ExternalContext extContext = context.getExternalContext();
         Map<String, Object> appMap = extContext.getApplicationMap();
 
         @SuppressWarnings("unchecked")
@@ -846,10 +844,10 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
     /**
      * Initialize mappings, during the first request.
      */
-    protected void initializeMappings() {
+    protected void initializeMappings(FacesContext context) {
         String viewMappings = webConfig.getOptionValue(FaceletsViewMappings);
         if (viewMappings != null && !viewMappings.isEmpty()) {
-            Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
+            Map<String, Object> appMap = context.getExternalContext().getApplicationMap();
 
             String[] mappingsArray = split(appMap, viewMappings, ";");
 
@@ -1108,7 +1106,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         // If there's no extensions array or prefixes array, then assume defaults.
         // .xhtml extension is handled by the FaceletViewHandler
         if (extensionsArray == null && prefixesArray == null) {
-            return isMatchedWithFaceletsSuffix(viewId) ? true : viewId.endsWith(DEFAULT_FACELETS_SUFFIX);
+            return isMatchedWithFaceletsSuffix(viewId) || viewId.endsWith(DEFAULT_FACELETS_SUFFIX);
         }
 
         if (extensionsArray != null) {
