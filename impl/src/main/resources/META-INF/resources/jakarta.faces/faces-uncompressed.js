@@ -923,7 +923,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
 
                     // Trim space padding before assigning to innerHTML
                     let html = src.trim();
-                    let newElementContainer = document.createElement('div');
+                    const newElementContainer = document.createElement('div');
 
                     const tag = element.nodeName.toLowerCase();
                     const isTableInnerElement = TABLE_INNER_TAGS.includes(tag);
@@ -953,7 +953,6 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                         // special case handling for 'input' elements
                         // in order to not lose focus when updating,
                         // input elements need to be added in place.
-                        newElementContainer = document.createElement('div');
                         newElementContainer.innerHTML = html;
                         newElement = newElementContainer.firstChild;
 
