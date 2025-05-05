@@ -831,9 +831,6 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
          */
         const doUpdate = function doUpdate(updateElement, context) {
 
-            let scripts = []; // temp holding value for array of script nodes
-            let newElement;
-
             const id = updateElement.getAttribute('id');
             const viewStateRegex = new RegExp(context.namingContainerPrefix + VIEW_STATE_PARAM + faces.separatorchar + ".+$");
             const windowIdRegex = new RegExp(context.namingContainerPrefix + CLIENT_WINDOW_PARAM + faces.separatorchar + ".+$");
@@ -858,7 +855,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 throw new Error("jakarta.faces.ViewHead not supported - browsers cannot reliably replace the head's contents");
             } else if (id === "jakarta.faces.Resource") {
                 runStylesheets(src);
-                scripts = getScripts(src);
+                const scripts = getScripts(src); // temp holding value for array of script nodes
                 runScripts(scripts);
             } else {
                 const element = getElemById(id);
@@ -892,21 +889,19 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                         try {
                             runStylesheets(src);
                             // Get scripts from text
-                            scripts = getScripts(src);
+                            const scripts = getScripts(src);
                             // Remove scripts from text
                             const newSrc = removeScripts(src);
                             elementReplace(getBodyElement(newSrc), docBody);
                             runScripts(scripts);
                         } catch (e) {
                             // OK, replacing the body didn't work with XML - fall back to quirks mode insert
-                            let srcBody, bodyEnd;
+                            const bodyEnd = bodyEndEx.exec(src);
+
                             // if src contains </body>
-                            bodyEnd = bodyEndEx.exec(src);
-                            if (bodyEnd !== null) {
-                                srcBody = src.substring(bodyStartEx.lastIndex, bodyEnd.index);
-                            } else { // can't find the </body> tag, punt
-                                srcBody = src.substring(bodyStartEx.lastIndex);
-                            }
+                            const srcBody = bodyEnd !== null ? src.substring(bodyStartEx.lastIndex, bodyEnd.index) :
+                                src.substring(bodyStartEx.lastIndex); // can't find the </body> tag, punt
+
                             // replace body contents with innerHTML - note, script handling happens within function
                             elementReplaceStr(docBody, "body", srcBody);
                         }
@@ -924,6 +919,9 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                     // Trim space padding before assigning to innerHTML
                     let html = src.trim();
                     const newElementContainer = document.createElement('div');
+
+                    let newElement;
+                    let scripts; // temp holding value for array of script nodes
 
                     const tag = element.nodeName.toLowerCase();
                     const isTableInnerElement = TABLE_INNER_TAGS.includes(tag);
