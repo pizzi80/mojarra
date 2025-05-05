@@ -527,7 +527,6 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 parseErrorText += "\n" + doc.documentElement.firstChild.nextSibling.firstChild.data;
             } else if (doc.getElementsByTagName("parsererror").length > 0) {
                 const parsererror = doc.getElementsByTagName("parsererror")[0];
-                // parseErrorText = getText(parsererror, true) + "\n";
                 parseErrorText = parsererror.textContent + "\n";
             } else if (doc.parseError && doc.parseError.errorCode !== 0) {
                 parseErrorText = PARSED_UNKNOWN_ERROR;
@@ -2314,9 +2313,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 // per 14.4.1 of the 2.0 specification.  We're doing it here
                 // *before* any errors or events are propagated because the
                 // DOM element may be removed after the update has been processed.
-                if (typeof context.sourceid === 'string') {
-                    context.sourceid = document.getElementById(context.sourceid);
-                }
+                context.sourceid = getElemById(context.sourceid)
 
                 const xml = request.responseXML;
                 if (xml === null) {
