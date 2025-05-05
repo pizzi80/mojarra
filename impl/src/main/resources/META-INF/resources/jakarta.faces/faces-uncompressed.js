@@ -2617,7 +2617,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
      * <p class="changed_added_2_2">Return the windowId of the window
      * in which the argument form is rendered.</p>
      *
-     * @param {DomNode} node Determine the nature of
+     * @param {Node} node Determine the nature of
      * the argument.  If not present, search for the windowId within
      * <code>document.forms</code>.  If present and the value is a
      * string, assume the string is a DOM id and get the element with
