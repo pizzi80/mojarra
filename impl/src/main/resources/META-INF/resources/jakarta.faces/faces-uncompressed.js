@@ -58,6 +58,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
      * If the passed parameter is a string, return the result of document.getElementById().
      * Otherwise, return the parameter itself.
      * @param {Node|string} elementOrId dom element or the id of the element to retrieve
+     * @return {Element|Node} the dom element identified by the passed id, or the element itself if the passed parameter wasn't a string
      * @ignore
      */
     const getElemById = function getElemById( elementOrId ) {
@@ -1457,7 +1458,6 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             }
         };
 
-        // todo: use DOMParser to avoid potential XSS vulnerabilities
         const unescapeHTML = function unescapeHTML(escapedHTML) {
             return escapedHTML
                 .replace(/&apos;/g, "'")
@@ -1830,23 +1830,19 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 const context = {};
 
                 if (isNull(source)) {
-                    throw new Error("faces.ajax.request: source not set");
+                    throw new Error("faces.ajax.request: source must be a not null object or string");
                 }
+
                 if(delayHandler) {
                     clearTimeout(delayHandler);
                     delayHandler = null;
                 }
 
                 // set up the element based on source
-                // todo: use const + getElemById(source)
-                let element;
-                if (typeof source === 'string') {
-                    element = document.getElementById(source);
-                } else if (typeof source === 'object') {
-                    element = source;
-                } else {
-                    throw new Error("faces.ajax.request: source must be object or string");
-                }
+                const element = getElemById(source);
+
+                // validate the element
+                if ( !element ) throw new Error("faces.ajax.request: source element not found in the dom");
 
                 // attempt to handle case of name unset
                 // this might be true in a badly written composite component
