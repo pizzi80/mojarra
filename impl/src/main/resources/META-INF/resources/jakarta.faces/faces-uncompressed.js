@@ -55,11 +55,13 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
     const contains = function(stringOrArray,value) { return stringOrArray.indexOf(value) !== -1; }
 
     /**
-     * Find instance of passed String via getElementById.
+     * If the passed parameter is a string, return document.getElementById().
+     * Otherwise, return the parameter itself.
+     * @param {Node|string} elementOrId dom element or the id of the element to retrieve
      * @ignore
      */
     const getElemById = function getElemById( elementOrId ) {
-        return typeof elementOrId == 'string' ? document.getElementById(elementOrId) : elementOrId;
+        return typeof elementOrId == "string" ? document.getElementById(elementOrId) : elementOrId;
     };
 
     /**
@@ -2675,12 +2677,8 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
          * @ignore
          */
         const fetchWindowIdFromURL = function fetchWindowIdFromURL() {
-            const href = window.location.href;
-            const windowId = "windowId";
-            const regex = new RegExp("[\\?&]" + windowId + "=([^&#\\;]*)");
-            const results = regex.exec(href);
-            //initial trial over the url and a regexp
-            return (results != null) ? results[1] : null;
+            const params = new URLSearchParams(document.location.search);
+            return params.get("windowId");
         };
 
         //byId ($)
