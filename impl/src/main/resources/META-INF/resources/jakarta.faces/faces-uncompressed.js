@@ -81,14 +81,6 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
     }
 
     /**
-     * append a new pair of parameter=value to a query string
-     * @ignore
-     */
-    const appendToQueryString = function appendToQueryString( queryString , name, value) {
-        return queryString + ( (queryString.length > 0 ? "&" : EMPTY) + encodeURIComponent(name) + "=" + encodeURIComponent(value) );
-    };
-
-    /**
      * return true if one of the dom elements contains
      * a child with the attribute name equals to the passed name
      * @param elements an array of DOM elements
