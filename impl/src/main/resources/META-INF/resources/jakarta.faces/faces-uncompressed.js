@@ -1299,29 +1299,24 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 }
 
                 // is a multipart form data ?
-                const isMultiPart = (req.method === "POST" && context.form.enctype === 'multipart/form-data');
+                const isMultiPart = (req.method === "POST" && context.form.enctype === "multipart/form-data");
 
-                // If multipart prepare the FormData
-                const formData = isMultiPart ? new FormData(context.form) : undefined;
+                // If multipart use FormData else use URLSearchParams
+                const requestData = isMultiPart ? new FormData(context.form) : new URLSearchParams(req.queryString);
 
-                // Add parameters encoded or multipart
+                // Add parameters
                 for ( const i of Object.keys(req.parameters) ) {
-                    // if is multipart request -> add parameter to FormData
-                    if ( isMultiPart ) {
-                        formData.append(i,req.parameters[i]);
-                    }
-                    // else is a normal post request -> add encoded request query string to queryString for POST
-                    else {
-                        if (req.queryString.length > 0) req.queryString += "&";
-                        req.queryString += encodeURIComponent(i) + "=" + encodeURIComponent(req.parameters[i]);
-                    }
+                    requestData.append(i, req.parameters[i]);
                 }
 
-                // GET Request
-                if (req.method === "GET") {
-                    if (req.queryString.length > 0) {
-                        req.url += ((req.url.indexOf("?") > -1) ? "&" : "?") + req.queryString;
-                    }
+                // GET or POST but not multipart: encode the query params
+                if ( !isMultiPart && requestData.size > 0 ) {
+                    req.queryString = requestData.toString();
+                }
+
+                // GET Request: add query params to url if needed
+                if (req.method === "GET" && requestData.size > 0) {
+                    req.url += ((req.url.indexOf("?") > -1) ? "&" : "?") + req.queryString;
                 }
 
                 // Open Ajax request
@@ -1335,11 +1330,10 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                     req.xmlReq.setRequestHeader('Faces-Request', 'partial/ajax');
 
                     // file upload
-                    if ( isMultiPart ) formData.append('Faces-Request','partial/ajax');
+                    if ( isMultiPart ) requestData.append('Faces-Request','partial/ajax');
 
                     // GET or POST
-                    // req.xmlReq.setRequestHeader('Content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
-                    else req.xmlReq.setRequestHeader( 'Content-type' , context.form.enctype+';charset=UTF-8' );
+                    else req.xmlReq.setRequestHeader('Content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
                 }
 
                 // note that async == false is not a supported feature.  We may change it in ways
@@ -1350,9 +1344,9 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 sendEvent(req.xmlReq, req.context, "begin");
 
                 // IF multipart/form-data use FormData
-                if (isMultiPart) req.xmlReq.send(formData);
+                if (isMultiPart) req.xmlReq.send(requestData);
 
-                // ELSE use query string
+                // ELSE use query string (must be null in case of GET request)
                 else req.xmlReq.send(req.queryString);
 
                 // call OnComplete if not async
@@ -1471,6 +1465,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             }
         };
 
+        // todo: use DOMParser to avoid potential XSS vulnerabilities
         const unescapeHTML = function unescapeHTML(escapedHTML) {
             return escapedHTML
                 .replace(/&apos;/g, "'")
@@ -1851,6 +1846,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 }
 
                 // set up the element based on source
+                // todo: use const + getElemById(source)
                 let element;
                 if (typeof source === 'string') {
                     element = document.getElementById(source);
