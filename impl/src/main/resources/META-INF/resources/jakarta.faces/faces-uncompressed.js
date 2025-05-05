@@ -53,7 +53,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
     const contains = function(stringOrArray,value) { return stringOrArray.indexOf(value) !== -1; }
 
     /**
-     * If the passed parameter is a string, return document.getElementById().
+     * If the passed parameter is a string, return the result of document.getElementById().
      * Otherwise, return the parameter itself.
      * @param {Node|string} elementOrId dom element or the id of the element to retrieve
      * @ignore
@@ -2707,8 +2707,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         };
 
         //byId ($)
-        const finalNode = (node && (typeof node == "string" || node instanceof String)) ?
-            document.getElementById(node) : (node || null);
+        const finalNode = node ? getElemById(node) : null;
 
         const forms = getChildForms(finalNode);
         const result = fetchWindowIdFromForms(forms);
