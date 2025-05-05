@@ -61,7 +61,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
      * @ignore
      */
     const getElemById = function getElemById( elementOrId ) {
-        return typeof elementOrId == "string" ? document.getElementById(elementOrId) : elementOrId;
+        return typeof elementOrId === "string" ? document.getElementById(elementOrId) : elementOrId;
     };
 
     /**
@@ -2472,22 +2472,20 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         // array of element id => array of existing dom element
         const partialExecuteDomElements = partialExecuteIds.map(getElemById).filter( elem => !!elem );
 
-        // the query string
-        let qString = EMPTY;
+        // the query string builder
+        const query = new URLSearchParams();
 
         // if the partialExecuteIds does not include the form.id,
         // then add it because it's required by the spec to be always included!
         if ( partialExecuteIds && !partialExecuteIds.includes(form.id) ) {
-            qString = appendToQueryString(qString,form.id,form.id);
+            query.append(form.id, form.id);
         }
 
-        // add encoded name=value string to query string parts array.
-        // If partialExecuteIds is defined
-        // then add the field only if there is a child element with his name
+        // Add the name=value param to the query only if there is a child element with his name
         // inside one of the element identified with the id contained in "partialExecuteIds" array (partial submit)
-        const addField = function(name, value) {
+        const addField = (name, value) => {
             const add = !partialExecuteIds || partialExecuteIds.includes(name) || containsNamedChild(partialExecuteDomElements,name);
-            if (add) qString = appendToQueryString(qString,name,value);
+            if (add) query.append(name,value);
         };
 
         const els = form.elements;
@@ -2533,7 +2531,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             }
         }
 
-        return qString;
+        return query.toString();
     }
 
 
@@ -2560,13 +2558,10 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         if (!form) throw new Error("faces.getViewState:  form must be set");
 
         // the query string
-        let qString = EMPTY;
+        const query = new URLSearchParams();
 
         // add encoded name=value string to query string parts array.
-        // If partialExecuteIds is defined then add the field only if the name is inside the "partialExecuteIds" array (partial submit)
-        const addField = function(name, value) {
-            qString += ( (qString.length > 0 ? "&" : EMPTY) + encodeURIComponent(name) + "=" + encodeURIComponent(value) );
-        };
+        const addField = (name, value) => query.append(name, value);
 
         const els = form.elements;
         for (const el of els) {
@@ -2610,7 +2605,8 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 }
             }
         }
-        return qString;
+
+        return query.toString();
     };
 
     /**
