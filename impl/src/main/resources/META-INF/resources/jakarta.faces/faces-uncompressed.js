@@ -947,7 +947,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                         replaceNode(newElement,element);
                         runScripts(scripts);
 
-                    } else if (element.nodeName.toLowerCase() === 'input') {
+                    } else if (tag === 'input') {
                         // special case handling for 'input' elements
                         // in order to not lose focus when updating,
                         // input elements need to be added in place.
@@ -1077,7 +1077,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         /**
          * Eval the CDATA of the element.
          * Evaluate the parsed JavaScript code in a global context.
-         * @param element to eval
+         * @param {Node} element to eval
          * @ignore
          */
         const doEval = function doEval(element) {
