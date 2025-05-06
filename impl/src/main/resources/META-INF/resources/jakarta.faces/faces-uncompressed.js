@@ -2002,10 +2002,9 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
 
                 // check the "execute" ids to see if any include an input of type "file"
                 context.includesInputFile = false;
-                let ids = options.execute.split(SPACE);
 
                 // if @all -> execute only this form
-                if ( ids.includes("@all") ) ids = [ form.id ];
+                const ids = contains(options.execute, "@all") ? [ form.id ] : options.execute.split(SPACE);
 
                 if (ids) {
                     for ( const id of ids ) {
