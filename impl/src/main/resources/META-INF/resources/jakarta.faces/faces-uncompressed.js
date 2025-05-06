@@ -27,7 +27,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
     && (window.faces.implversion && window.faces.implversion >= 4)) ) {
 
     // --- JS Lang --------------------------------------------------------------------
-    const UDEF = 'undefined';
+    const UDEF = "undefined";
     const EMPTY = "";
     const SPACE = " ";
     const FORM = "form";
@@ -1986,10 +1986,10 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 }
 
                 // delay value for request execution
-                const explicitlyDoNotDelay =    ((typeof options.delay == 'undefined') || (typeof options.delay == 'string') &&
-                                                (options.delay.toLowerCase() === 'none'));
+                const explicitlyDoNotDelay = typeof options.delay === UDEF || typeof options.delay === "string" && options.delay.toLowerCase() === "none";
+
                 let delayValue;
-                if (typeof options.delay == 'number') {
+                if (typeof options.delay === "number") {
                     delayValue = options.delay;
                 } else  {
                     const converted = parseInt(options.delay);
