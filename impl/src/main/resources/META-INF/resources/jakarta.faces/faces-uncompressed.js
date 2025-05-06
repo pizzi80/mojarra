@@ -1988,16 +1988,10 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 // delay value for request execution
                 const explicitlyDoNotDelay = typeof options.delay === UDEF || typeof options.delay === "string" && options.delay.toLowerCase() === "none";
 
-                let delayValue;
-                if (typeof options.delay === "number") {
-                    delayValue = options.delay;
-                } else  {
-                    const converted = parseInt(options.delay);
+                const delayValue = typeof options.delay === "number" ? options.delay : parseInt(options.delay);
 
-                    if (!explicitlyDoNotDelay && isNaN(converted)) {
-                        throw new Error('invalid value for delay option: ' + options.delay);
-                    }
-                    delayValue = converted;
+                if (!explicitlyDoNotDelay && Number.isNaN(delayValue)) {
+                    throw new Error('invalid value for delay option: ' + options.delay);
                 }
 
                 // check the "execute" ids to see if any include an input of type "file"
