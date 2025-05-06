@@ -2004,17 +2004,15 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                     for ( const id of ids ) {
                         const elem = document.getElementById(id);
                         if (elem) {
-                            if (elem.nodeType === Node.ELEMENT_NODE) {
-                                if ( elem.hasAttribute("type") ) {
-                                    if (elem.getAttribute("type") === "file") {
-                                        context.includesInputFile = true;
-                                        break;
-                                    }
-                                } else {
-                                    if (hasInputFileControl(elem)) {
-                                        context.includesInputFile = true;
-                                        break;
-                                    }
+                            if ( elem.hasAttribute("type") ) {
+                                if (elem.getAttribute("type") === "file") {
+                                    context.includesInputFile = true;
+                                    break;
+                                }
+                            } else {
+                                if (hasInputFileControl(elem)) {
+                                    context.includesInputFile = true;
+                                    break;
                                 }
                             }
                         }
