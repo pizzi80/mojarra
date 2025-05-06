@@ -1387,16 +1387,10 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             const data = {};  // data payload for function
             data.type = "error";
             data.status = status;
-            data.source = context.sourceid;
+            data.source = getElemById(context.sourceid);  // data source is the dom element (14.4.1 of the 2.0 specification)
             data.responseCode = request.status;
             data.responseXML = request.responseXML;
             data.responseText = request.responseText;
-
-            // ensure data source is the dom element and not the ID
-            // per 14.4.1 of the 2.0 specification.
-            if (typeof data.source === 'string') {
-                data.source = document.getElementById(data.source);
-            }
 
             if (description) {
                 data.description = description;
@@ -1456,12 +1450,8 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             const data = {};
             data.type = "event";
             data.status = status;
-            data.source = context.sourceid;
-            // ensure data source is the dom element and not the ID
-            // per 14.4.1 of the 2.0 specification.
-            if (typeof data.source === 'string') {
-                data.source = document.getElementById(data.source);
-            }
+            data.source = getElemById(context.sourceid); // data source is the dom element (14.4.1 of the 2.0 specification)
+
             if (status !== 'begin') {
                 data.responseCode = request.status;
                 data.responseXML = request.responseXML;
