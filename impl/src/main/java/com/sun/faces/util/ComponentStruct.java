@@ -115,7 +115,7 @@ public class ComponentStruct implements StateHolder {
      */
     @Override
     public int hashCode() {
-        return Objects.hash(clientId);
+        return Objects.hashCode(clientId);
     }
 
     public String getAction() {
