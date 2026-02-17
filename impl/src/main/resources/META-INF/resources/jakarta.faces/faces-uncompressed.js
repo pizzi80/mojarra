@@ -552,7 +552,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
 
         /**
          * Deletes node
-         * @param node
+         * @param {Element} node
          * @ignore
          */
         const deleteNode = function deleteNode(node) {
@@ -561,7 +561,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
 
         /**
          * Delete all nodes
-         * @param nodes array of node
+         * @param {Array<Element>} nodes array of node
          * @ignore
          */
         const deleteNodes = function deleteNodes( nodes ) {
@@ -571,7 +571,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
 
         /**
          * Deletes all children of a node
-         * @param node
+         * @param {Node} node
          * @ignore
          */
         const deleteChildren = function deleteChildren(node) {
