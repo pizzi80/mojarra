@@ -68,9 +68,8 @@ public class SessionMap extends BaseContextMap<Object> {
     @Override
     public void putAll(Map<? extends String, ?> map) {
         HttpSession session = getSession(true);
-        for (Object object : map.entrySet()) {
-            Map.Entry entry = (Map.Entry) object;
-            String key = (String)entry.getKey();
+        for (Map.Entry<? extends String, ?> entry : map.entrySet()) {
+            String key = entry.getKey();
             Object value = entry.getValue();
             if (ProjectStage.Development.equals(stage) && !(value instanceof Serializable)) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
@@ -200,7 +199,7 @@ public class SessionMap extends BaseContextMap<Object> {
         if ( session == null ) return shared_mutex;             // PENDING: to avoid NPE in synchronized blocks
         if ( session instanceof HttpSession httpSession ) {
             try {
-                ReentrantLock mutex = (ReentrantLock) httpSession.getAttribute(MUTEX);
+                final ReentrantLock mutex = (ReentrantLock) httpSession.getAttribute(MUTEX);
                 // if the mutex was removed in the meantime -> return the shared_mutex...?
                 if ( mutex == null ) {
                     LOGGER.warning("getMutex(session) is returning a shared mutex because the Mutex attribute was removed from session in the meantime");
