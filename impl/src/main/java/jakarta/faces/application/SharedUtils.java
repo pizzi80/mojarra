@@ -35,8 +35,10 @@ public enum SharedUtils { ;
      */
     public static String trimToNull(String str) {
         if ( str == null || str.isEmpty() ) return null;    // null or empty -> return null immediately
-        str = str.strip();                                  // strip (unicode trim) the input
+        str = str.trim();                                   // trim remove leading and trailing control chars and whitespace
         if ( str.isEmpty() ) return null;                   // if the trimmed input is empty -> return null
+        str = str.strip();                                  // strip (Unicode whitespaces trim) the input
+        if ( str.isEmpty() ) return null;                   // if the stripped input is empty -> return null
         return str;                                         // return the trimmed input
     }
 
@@ -58,7 +60,6 @@ public enum SharedUtils { ;
      * Determine whether String is a value binding expression or not.
      */
     static boolean isExpression(String expression) {
-
         if (expression == null) {
             return false;
         }
@@ -83,8 +84,8 @@ public enum SharedUtils { ;
 
     static List<String> evaluateExpressions(FacesContext context, List<String> values) {
         if (!values.isEmpty()) {
-            List<String> ret = new ArrayList<>(values.size());
-            Application app = context.getApplication();
+            final Application app = context.getApplication();
+            final List<String> ret = new ArrayList<>(values.size());
             for (String val : values) {
                 if (val != null) {
                     String value = val.trim();
