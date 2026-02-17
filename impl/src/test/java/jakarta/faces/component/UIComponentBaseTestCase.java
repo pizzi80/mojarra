@@ -31,7 +31,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.sun.faces.renderkit.RenderKitUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import jakarta.faces.FacesException;
 import jakarta.faces.context.FacesContext;
@@ -43,10 +45,6 @@ import jakarta.faces.event.PostConstructViewMapEvent;
 import jakarta.faces.event.PreRenderComponentEvent;
 import jakarta.faces.event.SystemEvent;
 import jakarta.faces.event.SystemEventListener;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 /**
  * <p>
@@ -370,14 +368,14 @@ public class UIComponentBaseTestCase extends UIComponentTestCase {
         c.getAttributes().put("attr1", "value1");
         c.markInitialState();
         c.getAttributes().put("attr2", "value2");
-        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get(RenderKitUtils.ATTRIBUTES_THAT_ARE_SET_KEY));
+        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get("jakarta.faces.component.UIComponentBase.attributesThatAreSet"));
 
         Object state = c.saveState(facesContext);
         c = new ComponentTestImpl();
         c.pushComponentToEL(facesContext, c);
         c.restoreState(facesContext, state);
         c.popComponentFromEL(facesContext);
-        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get(RenderKitUtils.ATTRIBUTES_THAT_ARE_SET_KEY));
+        assertEquals(Arrays.asList("attr2"), c.getAttributes().get("jakarta.faces.component.UIComponentBase.attributesThatAreSet"));
     }
 
     @Test
@@ -739,16 +737,16 @@ public class UIComponentBaseTestCase extends UIComponentTestCase {
      * @return
      */
     protected String lifecycleTrace(String lmethod, String cmethod) {
-        StringBuilder sb = new StringBuilder();
+        StringBuffer sb = new StringBuffer();
         lifecycleTrace(lmethod, cmethod, component, sb);
         return sb.toString();
     }
 
-    protected void lifecycleTrace(String lmethod, String cmethod, UIComponent component, StringBuilder sb) {
+    protected void lifecycleTrace(String lmethod, String cmethod, UIComponent component, StringBuffer sb) {
 
         // Append the call for this lifecycle method
         String id = component.getId();
-        sb.append('/').append(lmethod).append('-').append(id);
+        sb.append("/").append(lmethod).append("-").append(id);
         if (!component.isRendered()) {
             return;
         }
@@ -757,9 +755,9 @@ public class UIComponentBaseTestCase extends UIComponentTestCase {
         Iterator<String> names = component.getFacets().keySet().iterator();
         while (names.hasNext()) {
             String name = names.next();
-            sb.append('/').append(lmethod).append('-').append(name);
+            sb.append("/").append(lmethod).append("-").append(name);
             if (cmethod != null && component.getFacets().get(name).isRendered()) {
-                sb.append('/').append(cmethod).append('-').append(name);
+                sb.append("/").append(cmethod).append("-").append(name);
             }
         }
 
@@ -772,7 +770,7 @@ public class UIComponentBaseTestCase extends UIComponentTestCase {
 
         // Append the call for this component's component method
         if (cmethod != null && component.isRendered()) {
-            sb.append('/').append(cmethod).append('-').append(id);
+            sb.append("/").append(cmethod).append("-").append(id);
         }
 
     }

@@ -58,7 +58,7 @@ public final class HtmlUtils {
 
         int end = start + length;
         for (int i = start; i < end; i++) {
-            buffIndex = writeTextChar(out, escapeUnicode, escapeIsocode, text[i], buffIndex, buff, buffLength, forXml);
+            buffIndex = writeTextChar(out, escapeUnicode, escapeIsocode, text, i, text[i], buffIndex, buff, buffLength, forXml);
         }
 
         flushBuffer(out, buff, buffIndex);
@@ -79,14 +79,14 @@ public final class HtmlUtils {
             int buffIndex = 0;
             for (int i = 0; i < length; i++) {
                 char ch = text.charAt(i);
-                buffIndex = writeTextChar(out, escapeUnicode, escapeIsocode, ch, buffIndex, buff, buffLength, forXml);
+                buffIndex = writeTextChar(out, escapeUnicode, escapeIsocode, text, i, ch, buffIndex, buff, buffLength, forXml);
             }
             flushBuffer(out, buff, buffIndex);
         }
 
     }
 
-    private static int writeTextChar(Writer out, boolean escapeUnicode, boolean escapeIsocode, char ch, int buffIndex, char[] buff, int buffLength, boolean forXml)
+    private static int writeTextChar(Writer out, boolean escapeUnicode, boolean escapeIsocode, Object originalChars, int charIndex, char ch, int buffIndex, char[] buff, int buffLength, boolean forXml)
             throws IOException {
         int nextIndex;
         if (ch <= 0x1f) {
@@ -131,7 +131,7 @@ public final class HtmlUtils {
                 // UNICODE entities: encode as needed
                 nextIndex = _writeDecRef(out, buff, buffIndex, buffLength, ch);
             } else {
-                if (forXml && !isAllowedXmlCharacter(ch)) {
+                if (forXml && !(isAllowedXmlCharacter(ch) || isAllowedSurrogateCharacter(ch, charIndex, originalChars))) {
                     return buffIndex;
                 }
 
@@ -224,7 +224,7 @@ public final class HtmlUtils {
                         // UNICODE entities: encode as needed
                         buffIndex = _writeDecRef(out, buff, buffIndex, buffLength, ch);
                     } else {
-                        if (forXml && !isAllowedXmlCharacter(ch)) {
+                        if (forXml && !(isAllowedXmlCharacter(ch) || isAllowedSurrogateCharacter(ch, i, text))) {
                             continue;
                         }
 
@@ -313,7 +313,7 @@ public final class HtmlUtils {
                     // UNICODE entities: encode as needed
                     buffIndex = _writeDecRef(out, buff, buffIndex, buffLength, ch);
                 } else {
-                    if (forXml && !isAllowedXmlCharacter(ch)) {
+                    if (forXml && !(isAllowedXmlCharacter(ch) || isAllowedSurrogateCharacter(ch, i, text))) {
                         continue;
                     }
 
@@ -325,29 +325,42 @@ public final class HtmlUtils {
         flushBuffer(out, buff, buffIndex);
     }
 
-    private static boolean isPrintableControlChar(int ch, boolean forXml) {
+    private static boolean isPrintableControlChar(char ch, boolean forXml) {
+        return (ch == 0x09 || ch == 0x0A || (ch == 0x0C && !forXml) || ch == 0x0D);
 
-        boolean isPrintable = ch == 0x09 || ch == 0x0A || (ch == 0x0C && !forXml) || ch == 0x0D;
-        // if (!isPrintable) System.out.println(">>>>>>>>>>>" + ch + " xml? " + forXml + " is not printable: ");
-        return isPrintable;
     }
 
-    public static boolean isAllowedXmlCharacter(int ch) {
-
+    static boolean isAllowedXmlCharacter(char ch) {
         // See https://www.w3.org/TR/xml/#charsets Character Range
-        boolean isAllowedXmlChar = ch < 0x20 ? isPrintableControlChar(ch, true) : ch <= 0xD7FF || ch >= 0xE000 && ch <= 0xFFFD || ch >= 0x10000 && ch <= 0x10FFFF;
-
-        // if it's not an allowed char check if it's an emoji
-        if ( !isAllowedXmlChar ) {
-            isAllowedXmlChar = isEmoji((char)ch);
-        }
-
-        return isAllowedXmlChar;
+        return ch < 0x20 ? isPrintableControlChar(ch, true) : ch <= 0xD7FF || ch >= 0xE000 && ch <= 0xFFFD; 
     }
 
-    /** @return true if it's an emoji char. an emoji is a char with high/low surrogate pair */
-    public static boolean isEmoji( char c ) {
-        return isHighSurrogate(c) || isLowSurrogate(c);
+    private static boolean isAllowedSurrogateCharacter(char ch, int index, Object originalTextOrChars) {
+        if (isHighSurrogate(ch)) {
+            return isLowSurrogate(charAt(originalTextOrChars, index + 1));
+        }
+        else if (isLowSurrogate(ch)) {
+            return isHighSurrogate(charAt(originalTextOrChars, index - 1));
+        }
+        else {
+            return false;
+        }
+    }
+
+    private static final char NO_CHAR = (char) -1;
+
+    private static char charAt(Object originalTextOrChars, int index) {
+        if (index < 0) {
+            return NO_CHAR;
+        }
+        else if (originalTextOrChars instanceof String) {
+            String text = (String) originalTextOrChars;
+            return index < text.length() ? text.charAt(index) : NO_CHAR;
+        }
+        else {
+            char[] chars = (char[]) originalTextOrChars;
+            return index < chars.length ? chars[index] : NO_CHAR;
+        }
     }
 
     /**
@@ -579,7 +592,7 @@ public final class HtmlUtils {
         for (int i = 0; i < length; i++) {
             final char ch = text.charAt(i);
 
-            if (isAllowedXmlCharacter(ch)) {
+            if (isAllowedXmlCharacter(ch) || isAllowedSurrogateCharacter(ch, i, text)) {
                 out.write(ch);
             }
         }
@@ -594,11 +607,16 @@ public final class HtmlUtils {
         InternalByteArrayOutputStream buf = null;
         OutputStreamWriter writer = null;
         char[] charArray = null;
+        boolean fragment = false;
 
         int length = text.length();
         for (int i = start; i < length; i++) {
             char ch = text.charAt(i);
-            if (DONT_ENCODE_SET.get(ch)) {
+            if (DONT_ENCODE_SET.get(ch) || (fragment && ch == '?')) {
+                if (ch == '#') {
+                    fragment = true; // RFC3986 section 3.5
+                }
+
                 if (ch == '&') {
                     if (i + 1 < length && isAmpEscaped(text, i + 1)) {
                         out.write(ch);
@@ -647,10 +665,15 @@ public final class HtmlUtils {
         InternalByteArrayOutputStream buf = null;
         OutputStreamWriter writer = null;
         char[] charArray = null;
+        boolean fragment = false;
 
         for (int i = start; i < end; i++) {
             char ch = textBuff[i];
-            if (DONT_ENCODE_SET.get(ch)) {
+            if (DONT_ENCODE_SET.get(ch) || (fragment && ch == '?')) {
+                if (ch == '#') {
+                    fragment = true; // RFC3986 section 3.5
+                }
+
                 if (ch == '&') {
                     if (i + 1 < end && isAmpEscaped(textBuff, i + 1)) {
                         out.write(ch);

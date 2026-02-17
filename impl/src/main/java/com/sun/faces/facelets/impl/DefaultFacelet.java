@@ -27,25 +27,25 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.sun.faces.facelets.tag.faces.ComponentSupport;
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.Util;
 
 import jakarta.el.ELException;
 import jakarta.el.ExpressionFactory;
 import jakarta.faces.FacesException;
 import jakarta.faces.application.ProjectStage;
 import jakarta.faces.component.Doctype;
+import jakarta.faces.component.TransientStateHelper;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.facelets.Facelet;
 import jakarta.faces.view.facelets.FaceletContext;
 import jakarta.faces.view.facelets.FaceletException;
 import jakarta.faces.view.facelets.FaceletHandler;
+
+import com.sun.faces.facelets.tag.faces.ComponentSupport;
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 /**
  * Default Facelet implementation.
@@ -68,7 +68,7 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
 
     private final long createTime;
 
-    private final long refreshPeriod;
+    private final long refreshPeriodInMillis;
 
     private final FaceletHandler root;
 
@@ -89,7 +89,7 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
         this.alias = alias;
         this.mapper = factory.idMappers != null ? factory.idMappers.get(alias) : null;
         createTime = System.currentTimeMillis();
-        refreshPeriod = this.factory.getRefreshPeriod();
+        refreshPeriodInMillis = this.factory.getRefreshPeriodInMillis();
 
         Doctype doctype = Util.getDOCTYPEFromFacesContextAttributes(FacesContext.getCurrentInstance());
         if (null != doctype) {
@@ -140,7 +140,7 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
     }
 
     private void refresh(UIComponent c) {
-        if (refreshPeriod > 0) {
+        if (refreshPeriodInMillis > 0) {
 
             // finally remove any children marked as deleted
             int sz = c.getChildCount();
@@ -150,7 +150,7 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
                 while (--sz >= 0) {
                     UIComponent cc = cl.get(sz);
                     if (!cc.isTransient()) {
-                        token = (ApplyToken) cc.getAttributes().get(APPLIED_KEY);
+                        token = (ApplyToken) cc.getTransientStateHelper().getTransient(APPLIED_KEY);
                         if (token != null && token.time < createTime && token.alias.equals(alias)) {
                             if (log.isLoggable(Level.INFO)) {
                                 DateFormat df = SimpleDateFormat.getTimeInstance();
@@ -171,7 +171,7 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
                 for (Iterator<UIComponent> itr = col.iterator(); itr.hasNext();) {
                     fc = itr.next();
                     if (!fc.isTransient()) {
-                        token = (ApplyToken) fc.getAttributes().get(APPLIED_KEY);
+                        token = (ApplyToken) fc.getTransientStateHelper().getTransient(APPLIED_KEY);
                         if (token != null && token.time < createTime && token.alias.equals(alias)) {
                             if (log.isLoggable(Level.INFO)) {
                                 DateFormat df = SimpleDateFormat.getTimeInstance();
@@ -187,15 +187,15 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
     }
 
     private void markApplied(UIComponent parent) {
-        if (refreshPeriod > 0) {
-            Iterator<UIComponent> itr = parent.getFacetsAndChildren();
-            ApplyToken token = new ApplyToken(alias, System.currentTimeMillis() + refreshPeriod);
+        if (refreshPeriodInMillis > 0) {
+            Iterator itr = parent.getFacetsAndChildren();
+            ApplyToken token = new ApplyToken(alias, System.currentTimeMillis() + refreshPeriodInMillis);
             while (itr.hasNext()) {
-                UIComponent c = itr.next();
+                UIComponent c = (UIComponent) itr.next();
                 if (!c.isTransient()) {
-                    Map<String, Object> attr = c.getAttributes();
-                    if (!attr.containsKey(APPLIED_KEY)) {
-                        attr.put(APPLIED_KEY, token);
+                    TransientStateHelper state = c.getTransientStateHelper();
+                    if (state.getTransient(APPLIED_KEY) == null) {
+                        state.putTransient(APPLIED_KEY, token);
                     }
                 }
             }

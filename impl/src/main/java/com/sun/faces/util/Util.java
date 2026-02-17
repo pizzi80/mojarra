@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1997, 2021 Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021 Contributors to Eclipse Foundation.
+ * Copyright (c) 2021,2025 Contributors to Eclipse Foundation.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -37,6 +37,7 @@ import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.SEVERE;
 
 import java.beans.FeatureDescriptor;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
@@ -47,6 +48,9 @@ import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.channels.ClosedChannelException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,13 +87,6 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
-import com.sun.faces.RIConstants;
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.config.manager.FacesSchema;
-import com.sun.faces.facelets.component.UIRepeat;
-import com.sun.faces.io.FastStringWriter;
-
 import jakarta.el.ELResolver;
 import jakarta.el.ValueExpression;
 import jakarta.enterprise.inject.spi.BeanManager;
@@ -117,6 +114,13 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletMapping;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.MappingMatch;
+
+import com.sun.faces.RIConstants;
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.config.manager.FacesSchema;
+import com.sun.faces.facelets.component.UIRepeat;
+import com.sun.faces.io.FastStringWriter;
 
 /**
  * <B>Util</B> is a class ...
@@ -893,12 +897,15 @@ public class Util {
     }
 
     public static Class<?> getTypeFromString(String type) throws ClassNotFoundException {
-        if ( type == null ) throw new ClassNotFoundException("Type is required");
+        Objects.requireNonNull(type);
 
-        Class<?> primitiveClass = primitiveTypes.get(type);
-        if ( primitiveClass != null ) return primitiveClass;
+        Class<?> primitiveType = primitiveTypes.get(type);
+        if ( primitiveType != null ) return primitiveType;
 
-        if (type.indexOf('.') == -1) {
+        if ("void".equals(type)) {
+            return Void.TYPE;
+        }
+        else if (type.indexOf('.') == -1) {
             type = "java.lang." + type;
         }
 
@@ -1074,7 +1081,7 @@ public class Util {
     }
 
     public static FeatureDescriptor getFeatureDescriptor(String name, String displayName, String desc, boolean expert, boolean hidden, boolean preferred,
-            Object type, Boolean designTime) {
+                                                         Object type, Boolean designTime) {
 
         FeatureDescriptor fd = new FeatureDescriptor();
         fd.setName(name);
@@ -1824,4 +1831,28 @@ public class Util {
         return encoding;
     }
 
+    public static boolean isConnectionAbort(IOException ioe) {
+        if (ioe instanceof ClosedChannelException || ioe instanceof EOFException) {
+            return true;
+        }
+
+        String exceptionClassName = ioe.getClass().getCanonicalName();
+
+        if (exceptionClassName.equals("org.apache.catalina.connector.ClientAbortException") // Tomcat
+            || exceptionClassName.equals("org.eclipse.jetty.io.EofException")) {            // Jetty
+            return true;
+        }
+
+        String exceptionMessage = ioe.getMessage();
+
+        if (exceptionMessage == null) {
+            return false;
+        }
+
+        String lowercasedExceptionMessage = exceptionMessage.toLowerCase();
+
+        return (lowercasedExceptionMessage.contains("connection") && lowercasedExceptionMessage.contains("abort"))        // #5264 Undertow (English)
+            || (lowercasedExceptionMessage.contains("connection") && lowercasedExceptionMessage.contains("closed"))       // #5583 Grizzly
+            || (lowercasedExceptionMessage.contains("verbindung") && lowercasedExceptionMessage.contains("abgebrochen")); // #5527 Undertow (German)
+    }
 }

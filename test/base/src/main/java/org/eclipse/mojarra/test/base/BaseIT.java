@@ -50,7 +50,7 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class BaseIT {
 
-    private WebDriver browser;
+    protected WebDriver browser;
 
     @ArquillianResource
     private URL baseURL;
@@ -111,8 +111,9 @@ public abstract class BaseIT {
     }
 
     protected void guardHttp(Runnable action) {
+        executeScript("window.$http = true");
         action.run();
-        waitUntil(() -> executeScript("return document.readyState=='complete'"));
+        waitUntil(() -> executeScript("return !window.$http && document.readyState=='complete'"));
     }
 
     protected void guardAjax(Runnable action) {

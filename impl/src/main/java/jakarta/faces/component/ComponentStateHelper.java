@@ -232,17 +232,13 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
     }
 
     private void initList(Serializable key) {
-        List<Object> items = (List<Object>)get(key);
-        if (items == null) {
-            items = new ArrayList<>(4);
-            defaultMap.put(key, items);
+        if (component.initialStateMarked()) {
+            deltaMap.computeIfAbsent(key, e -> new ArrayList<>(4));
         }
 
-        if (component.initialStateMarked()) {
-            List<Object> deltaMapItems = (List<Object>) deltaMap.get(key);
-            if (deltaMapItems == null) {
-                deltaMap.put(key, new ArrayList<>(items));
-            }
+        if (get(key) == null) {
+            List<Object> items = new ArrayList<>(4);
+            defaultMap.put(key, items);
         }
     }
 

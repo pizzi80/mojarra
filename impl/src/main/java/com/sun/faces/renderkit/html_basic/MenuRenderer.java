@@ -48,27 +48,21 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
-import com.sun.faces.RIConstants;
-import com.sun.faces.io.FastStringWriter;
-import com.sun.faces.renderkit.Attribute;
-import com.sun.faces.renderkit.AttributeManager;
-import com.sun.faces.renderkit.RenderKitUtils;
-import com.sun.faces.renderkit.SelectItemsIterator;
-import com.sun.faces.util.RequestStateManager;
-import com.sun.faces.util.Util;
 
 import jakarta.el.ELException;
 import jakarta.el.ExpressionFactory;
 import jakarta.el.ValueExpression;
 import jakarta.faces.FacesException;
 import jakarta.faces.component.UIComponent;
+import jakarta.faces.component.UISelectItems;
 import jakarta.faces.component.UISelectMany;
 import jakarta.faces.component.UISelectOne;
 import jakarta.faces.component.ValueHolder;
@@ -80,6 +74,17 @@ import jakarta.faces.convert.Converter;
 import jakarta.faces.convert.ConverterException;
 import jakarta.faces.model.SelectItem;
 import jakarta.faces.model.SelectItemGroup;
+
+import com.sun.faces.RIConstants;
+import com.sun.faces.io.FastStringWriter;
+import com.sun.faces.renderkit.Attribute;
+import com.sun.faces.renderkit.AttributeManager;
+import com.sun.faces.renderkit.RenderKitUtils;
+import com.sun.faces.renderkit.SelectItemsIterator;
+import com.sun.faces.util.RequestStateManager;
+import com.sun.faces.util.ScopedRunner;
+import com.sun.faces.util.ScopedRunner.ThrowingRunnable;
+import com.sun.faces.util.Util;
 
 /**
  * <B>MenuRenderer</B> is a class that renders the current value of <code>UISelectOne</code> or <code>UISelectMany</code>
@@ -426,15 +431,30 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
             writer.writeAttribute("class", labelClass, "labelClass");
         }
 
-        if (curItem.isEscape()) {
-            String label = curItem.getLabel();
-            if (label == null) {
-                label = valueString;
+        final String label = curItem.isEscape() ? Optional.ofNullable(curItem.getLabel()).orElse(valueString) : curItem.getLabel();
+
+        ThrowingRunnable writeAction = () -> {
+            if (curItem.isEscape()) {
+                writer.writeText(label, component, "label");
             }
-            writer.writeText(label, component, "label");
-        } else {
-            writer.write(curItem.getLabel());
+            else {
+                writer.write(label);
+            }
+        };
+
+        String varName = null;
+
+        if (selectComponent instanceof UISelectItems && selectComponent.getPassThroughAttributes(false) != null) {
+            varName = (String) ((UISelectItems) selectComponent).getAttributes().get("var");
         }
+
+        if (varName != null) {
+            new ScopedRunner(context).with(varName, curItem.getValue()).invokeThrowing(writeAction);
+        }
+        else {
+            writeAction.run();
+        }
+
         writer.endElement("option");
         writer.writeText("\n", component, null);
 
@@ -703,7 +723,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
      *
      * @return a new <code>Collection</code> instance or null if the instance cannot be created
      */
-    protected static Collection<Object> createCollection(Collection<Object> collection, Class<? extends Collection<Object>> fallBackType) {
+    protected Collection<Object> createCollection(Collection<Object> collection, Class<? extends Collection<Object>> fallBackType) {
 
         Class<?> lookupClass = fallBackType;
         if (collection != null) {
@@ -735,13 +755,13 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
      * @return the result of invoking <code>clone()</code> or <code>null</code> if the value could not be cloned or does not
      * implement the {@link Cloneable} interface
      */
-    protected static Collection<Object> cloneValue(Object value) {
+    protected Collection<Object> cloneValue(Object value) {
 
         if (value instanceof Cloneable) {
 
-            // Even though Cloneable marks an instance of a Class as being
+            // Even though Clonable marks an instance of a Class as being
             // safe to call .clone(), .clone() by default is protected.
-            // The Collection classes that do implement Cloneable do so at variable
+            // The Collection classes that do implement Clonable do so at variable
             // locations within the class hierarchy, so we're stuck having to
             // use reflection.
             Method cloneMethod = lookupMethod(value, "clone");

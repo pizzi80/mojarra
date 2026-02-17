@@ -727,10 +727,6 @@ public abstract class UIComponentBase extends UIComponent {
     public void subscribeToEvent(Class<? extends SystemEvent> eventClass, ComponentSystemEventListener componentListener) {
         notNullArgs(eventClass, componentListener);
 
-        if (initialStateMarked()) {
-            initialState = false;
-        }
-
         if (listenersByEventClass == null) {
             listenersByEventClass = new HashMap<>(Util.calculateMapCapacity(3));
         }
@@ -739,6 +735,7 @@ public abstract class UIComponentBase extends UIComponent {
         List<SystemEventListener> listenersForEventClass = listenersByEventClass.computeIfAbsent(eventClass, $ -> new ArrayList<>(3));
 
         if (!listenersForEventClass.contains(facesLifecycleListener)) {
+            clearInitialState();
             listenersForEventClass.add(facesLifecycleListener);
         }
     }
@@ -1730,10 +1727,6 @@ public abstract class UIComponentBase extends UIComponent {
     }
 
     private static void disconnectFromView(FacesContext context, Application application, UIComponent component) {
-
-        application.publishEvent(context, PreRemoveFromViewEvent.class, component);
-        component.setInView(false);
-        component.compositeParent = null;
         if (component.getChildCount() > 0) {
             List<UIComponent> children = component.getChildren();
             for (UIComponent child : children) {
@@ -1747,6 +1740,9 @@ public abstract class UIComponentBase extends UIComponent {
             }
         }
 
+        application.publishEvent(context, PreRemoveFromViewEvent.class, component);
+        component.setInView(false);
+        component.compositeParent = null;
     }
 
     // --------------------------------------------------------- Private Classes

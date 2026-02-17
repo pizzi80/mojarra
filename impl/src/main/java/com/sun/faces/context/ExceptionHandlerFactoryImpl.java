@@ -16,11 +16,11 @@
 
 package com.sun.faces.context;
 
-import com.sun.faces.application.ApplicationAssociate;
-
 import jakarta.faces.context.ExceptionHandler;
 import jakarta.faces.context.ExceptionHandlerFactory;
 import jakarta.faces.context.FacesContext;
+
+import com.sun.faces.application.ApplicationAssociate;
 
 /**
  * Default ExceptionHandlerFactory implementation.
@@ -40,25 +40,23 @@ public class ExceptionHandlerFactoryImpl extends ExceptionHandlerFactory {
      */
     @Override
     public ExceptionHandler getExceptionHandler() {
-        FacesContext context = FacesContext.getCurrentInstance();
-        ApplicationAssociate applicationAssociate = getAssociate(context);
+        FacesContext fc = FacesContext.getCurrentInstance();
+        ApplicationAssociate myAssociate = getAssociate(fc);
 
-        ExceptionHandler handler = new AjaxNoAjaxExceptionHandler(
-                new AjaxExceptionHandlerImpl(new ExceptionHandlerImpl(Boolean.TRUE)),
-                new ExceptionHandlerImpl(applicationAssociate != null ? applicationAssociate.isErrorPagePresent() : Boolean.TRUE)
-        );
-        return handler;
+        ExceptionHandler result = new AjaxNoAjaxExceptionHandler(new AjaxExceptionHandlerImpl(new ExceptionHandlerImpl(fc, Boolean.TRUE)),
+                new ExceptionHandlerImpl(fc, myAssociate != null ? myAssociate.isErrorPagePresent() : Boolean.TRUE));
+        return result;
 
     }
 
     // --------------------------------------------------------- Private Methods
 
-    private ApplicationAssociate getAssociate(FacesContext context) {
+    private ApplicationAssociate getAssociate(FacesContext ctx) {
 
         if (associate == null) {
             associate = ApplicationAssociate.getCurrentInstance();
-            if (associate == null && context != null) {
-                associate = ApplicationAssociate.getInstance(context.getExternalContext());
+            if (associate == null && ctx != null) {
+                associate = ApplicationAssociate.getInstance(ctx.getExternalContext());
             }
         }
         return associate;

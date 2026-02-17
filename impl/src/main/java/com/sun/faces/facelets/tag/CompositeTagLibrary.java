@@ -17,14 +17,7 @@
 package com.sun.faces.facelets.tag;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
-
-import com.sun.faces.facelets.compiler.CompilationMessageHolder;
-import com.sun.faces.facelets.tag.faces.CompositeComponentTagLibrary;
-import com.sun.faces.facelets.tag.faces.FacesComponentTagLibrary;
-import com.sun.faces.facelets.tag.faces.LazyTagLibrary;
-import com.sun.faces.util.Util;
 
 import jakarta.faces.FacesException;
 import jakarta.faces.application.FacesMessage;
@@ -33,6 +26,12 @@ import jakarta.faces.context.FacesContext;
 import jakarta.faces.view.facelets.Tag;
 import jakarta.faces.view.facelets.TagConfig;
 import jakarta.faces.view.facelets.TagHandler;
+
+import com.sun.faces.facelets.compiler.CompilationMessageHolder;
+import com.sun.faces.facelets.tag.faces.CompositeComponentTagLibrary;
+import com.sun.faces.facelets.tag.faces.FacesComponentTagLibrary;
+import com.sun.faces.facelets.tag.faces.LazyTagLibrary;
+import com.sun.faces.util.Util;
 
 /**
  * A TagLibrary that is composed of 1 or more TagLibrary children. Uses the chain of responsibility pattern to stop
@@ -63,19 +62,25 @@ public final class CompositeTagLibrary implements TagLibrary {
      */
     @Override
     public boolean containsNamespace(String ns, Tag t) {
-        for (TagLibrary library : libraries) {
-            if (library.containsNamespace(ns, null)) {
-                return true;
+        boolean containsNamespace = false;
+        for (int i = 0; i < libraries.length; i++) {
+            if (libraries[i].containsNamespace(ns, null)) {
+                if (libraries[i] instanceof TagLibraryImpl) {
+                    containsNamespace = true; // In this case, we need to add FacesComponentTagLibrary to libraries as well because it can share the same namespace.
+                }
+                else {
+                    return true;
+                }
             }
         }
         // PENDING: this is a terribly inefficient impl. Needs refactoring.
-        LazyTagLibrary[] lazyLibraries = new LazyTagLibrary[2];
+        LazyTagLibrary lazyLibraries[] = new LazyTagLibrary[2];
         lazyLibraries[0] = new CompositeComponentTagLibrary(ns);
         lazyLibraries[1] = new FacesComponentTagLibrary(ns);
         LazyTagLibrary toTest = null;
-        for (LazyTagLibrary lazyLibrary : lazyLibraries) {
-            if (lazyLibrary.tagLibraryForNSExists(ns)) {
-                toTest = lazyLibrary;
+        for (int i = 0; i < lazyLibraries.length; i++) {
+            if (lazyLibraries[i].tagLibraryForNSExists(ns)) {
+                toTest = lazyLibraries[i];
                 break;
             }
         }
@@ -83,7 +88,9 @@ public final class CompositeTagLibrary implements TagLibrary {
             TagLibrary[] librariesPlusOne = new TagLibrary[libraries.length + 1];
             System.arraycopy(libraries, 0, librariesPlusOne, 0, libraries.length);
             librariesPlusOne[libraries.length] = toTest;
-            Arrays.fill(libraries, null);
+            for (int i = 0; i < libraries.length; i++) {
+                libraries[i] = null;
+            }
             libraries = librariesPlusOne;
             return true;
         } else {
@@ -104,7 +111,7 @@ public final class CompositeTagLibrary implements TagLibrary {
                 }
             }
         }
-        return false;
+        return containsNamespace;
     }
 
     private String getPrefixFromTag(Tag t) {

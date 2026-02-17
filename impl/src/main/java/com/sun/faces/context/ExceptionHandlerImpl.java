@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 Contributors to Eclipse Foundation.
  * Copyright (c) 1997, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
@@ -16,15 +17,14 @@
 
 package com.sun.faces.context;
 
-import java.util.ArrayDeque;
+import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Queue;
+import java.util.LinkedList;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.sun.faces.renderkit.RenderKitUtils;
-import com.sun.faces.util.FacesLogger;
 
 import jakarta.el.ELException;
 import jakarta.faces.FacesException;
@@ -38,6 +38,12 @@ import jakarta.faces.event.ExceptionQueuedEvent;
 import jakarta.faces.event.ExceptionQueuedEventContext;
 import jakarta.faces.event.PhaseId;
 import jakarta.faces.event.SystemEvent;
+
+import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.config.WebConfiguration.WebContextInitParameter;
+import com.sun.faces.renderkit.RenderKitUtils;
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 /**
  * <p>
@@ -54,22 +60,25 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
     public static final java.util.logging.Level INCIDENT_ERROR = Level.parse(Integer.toString(Level.SEVERE.intValue() + 100));
 
-    private Queue<ExceptionQueuedEvent> unhandledExceptions;
-    private Queue<ExceptionQueuedEvent> handledExceptions;
+    private LinkedList<ExceptionQueuedEvent> unhandledExceptions;
+    private LinkedList<ExceptionQueuedEvent> handledExceptions;
     private ExceptionQueuedEvent handled;
-    private final boolean errorPagePresent;
+    private boolean errorPagePresent;
+    private final Set<Class<? extends Throwable>> exceptionTypesToIgnoreInLogging;
+
 
     // ------------------------------------------------------------ Constructors
 
     public ExceptionHandlerImpl() {
 
-        errorPagePresent = true;
+        this(FacesContext.getCurrentInstance(), true);
 
     }
 
-    public ExceptionHandlerImpl(boolean errorPagePresent) {
+    public ExceptionHandlerImpl(FacesContext context, boolean errorPagePresent) {
 
         this.errorPagePresent = errorPagePresent;
+        this.exceptionTypesToIgnoreInLogging = parseExceptionTypesToIgnoreInLogging(context);
 
     }
 
@@ -94,9 +103,11 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
             ExceptionQueuedEventContext context = (ExceptionQueuedEventContext) event.getSource();
             try {
                 Throwable t = context.getException();
+                Throwable unwrapped = getRootCause(t);
+                boolean loggable = isLoggable(unwrapped);
+
                 if (isRethrown(t)) {
                     handled = event;
-                    Throwable unwrapped = getRootCause(t);
                     if (unwrapped != null) {
                         throwIt(context.getContext(), new FacesException(unwrapped.getMessage(), unwrapped));
                     } else {
@@ -106,17 +117,17 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
                             throwIt(context.getContext(), new FacesException(t.getMessage(), t));
                         }
                     }
-                    if (LOGGER.isLoggable(INCIDENT_ERROR)) {
+                    if (loggable && LOGGER.isLoggable(INCIDENT_ERROR)) {
                         log(context);
                     }
 
-                } else {
+                } else if (loggable) {
                     log(context);
                 }
 
             } finally {
                 if (handledExceptions == null) {
-                    handledExceptions = new ArrayDeque<>(4);
+                    handledExceptions = new LinkedList<>();
                 }
                 handledExceptions.add(event);
                 i.remove();
@@ -143,7 +154,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
         if (event != null) {
             if (unhandledExceptions == null) {
-                unhandledExceptions = new ArrayDeque<>(4);
+                unhandledExceptions = new LinkedList<>();
             }
             unhandledExceptions.add((ExceptionQueuedEvent) event);
         }
@@ -198,6 +209,27 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
     // --------------------------------------------------------- Private Methods
 
+    @SuppressWarnings("unchecked")
+    private static Set<Class<? extends Throwable>> parseExceptionTypesToIgnoreInLogging(FacesContext context) {
+        var types = new HashSet<Class<? extends Throwable>>();
+        var typesParam = WebConfiguration.getInstance(context.getExternalContext()).getOptionValue(WebContextInitParameter.ExceptionTypesToIgnoreInLogging);
+
+        if (typesParam != null) {
+            for (var typeParam : Util.split(context.getExternalContext().getApplicationMap(), typesParam, ",")) {
+                try {
+                    types.add((Class<? extends Throwable>) Class.forName(typeParam));
+                }
+                catch (ClassNotFoundException e) {
+                    throw new IllegalArgumentException(String.format(
+                            "Context parameter '%s' references a class which cannot be found in runtime classpath: '%s'",
+                            WebContextInitParameter.ExceptionTypesToIgnoreInLogging.getQualifiedName(), typeParam), e);
+                }
+            }
+        }
+
+        return Collections.unmodifiableSet(types);
+    }
+
     private void throwIt(FacesContext ctx, FacesException fe) {
 
         boolean isDevelopment = ctx.isProjectStage(ProjectStage.Development);
@@ -206,11 +238,14 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
         try {
             extContext.responseReset();
         } catch (Exception e) {
-            if (LOGGER.isLoggable(Level.INFO)) {
-                LOGGER.log(Level.INFO, "Exception when handling error trying to reset the response.", wrapped);
+            boolean isConnectionAbort = wrapped instanceof IOException && Util.isConnectionAbort((IOException)wrapped);
+            if (!isConnectionAbort) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING, "Exception when handling error trying to reset the response.", wrapped);
+                }
             }
         }
-        if (wrapped instanceof FacesFileNotFoundException) {
+        if (null != wrapped && wrapped instanceof FacesFileNotFoundException) {
             extContext.setResponseStatus(404);
         } else {
             extContext.setResponseStatus(500);
@@ -226,7 +261,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
             if (isDevelopment) {
                 // store the view root where the exception occurred into the
                 // request scope so that the error page can display that component
-                // tree and not the one rendering the error page
+                // tree and not the one rendering the errorpage
                 ctx.getExternalContext().getRequestMap().put("com.sun.faces.error.view", ctx.getViewRoot());
             }
             throw fe;
@@ -249,6 +284,10 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
         return !(t instanceof AbortProcessingException);
 
+    }
+
+    private boolean isLoggable(Throwable unwrapped) {
+        return exceptionTypesToIgnoreInLogging.stream().noneMatch(type -> type.isInstance(unwrapped));
     }
 
     private void log(ExceptionQueuedEventContext exceptionContext) {
