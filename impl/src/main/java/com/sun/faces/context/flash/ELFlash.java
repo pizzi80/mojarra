@@ -1444,11 +1444,10 @@ public class ELFlash extends Flash {
 
         @Override
         public boolean equals(Object obj) {
-            if ( !(obj instanceof FlashInfo info) ) return false;
-
-            return  isRedirect == info.isRedirect &&
-                    Objects.equals(lifetimeMarker, info.lifetimeMarker) &&
-                    sequenceNumber == info.sequenceNumber;
+            return obj instanceof FlashInfo info
+                && isRedirect == info.isRedirect
+                && Objects.equals(lifetimeMarker, info.lifetimeMarker)
+                && sequenceNumber == info.sequenceNumber;
         }
 
         @Override
