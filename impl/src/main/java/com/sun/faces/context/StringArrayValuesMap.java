@@ -91,7 +91,7 @@ abstract class StringArrayValuesMap extends BaseContextMap<String[]> {
      * with Map.Entry with String[] value
      */
     protected int hashCode(Object obj) {
-        int hashCode = Objects.hash(obj);
+        int hashCode = Objects.hashCode(obj);
         for (Map.Entry<String,String[]> entry : entrySet()) {
             hashCode += entry.getKey().hashCode();
             hashCode += Arrays.hashCode(entry.getValue());
