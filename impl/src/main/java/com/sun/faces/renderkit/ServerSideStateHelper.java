@@ -141,7 +141,7 @@ public class ServerSideStateHelper extends StateHelper {
         // NOTE: we use a single value String array to use it inside lambdas
         final String[] id = new String[1];
 
-        UIViewRoot viewRoot = ctx.getViewRoot();
+        final UIViewRoot viewRoot = ctx.getViewRoot();
 
         if (!viewRoot.isTransient()) {
             if (!ctx.getAttributes().containsKey("com.sun.faces.ViewStateValue")) {
@@ -179,7 +179,7 @@ public class ServerSideStateHelper extends StateHelper {
                     }
                     Map<String, Object[]> actualMap = TypedCollections.dynamicallyCastMap(logicalMap.get(idInLogicalMap), String.class, Object[].class);
                     if (actualMap == null) {
-                        actualMap = Collections.synchronizedMap(new LRUMap<>(numberOfViews));
+                        actualMap = new ConcurrentLRUMap<>(numberOfViews);
                         logicalMap.put(idInLogicalMap, actualMap);
                     }
 
