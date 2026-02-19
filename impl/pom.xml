@@ -469,7 +469,7 @@
                 </executions>
             </plugin>
 
-            <!-- Generate a "consumer pom" for Maven Central release -->
+            <!-- Generate a "consumer pom" for Maven Central release
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
@@ -494,12 +494,13 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
         </plugins>
     </build>
 
     <profiles>
 
-        <!-- Maven Central release -->
+        <!-- Maven Central release
         <profile>
             <id>central-release</id>
             <build>
@@ -517,5 +518,6 @@
                 </plugins>
             </build>
         </profile>
+        -->
     </profiles>
 </project>
