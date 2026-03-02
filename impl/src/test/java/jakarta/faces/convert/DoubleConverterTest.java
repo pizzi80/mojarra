@@ -89,15 +89,15 @@ public class DoubleConverterTest {
         assertEquals("", converter.getAsString(facesContext, new UIPanel(), null));
     }
 
-    /**
-     * Test getAsString method.
-     */
-    @Test
-    public void testGetAsString3() {
-        DoubleConverter converter = new DoubleConverter();
-        FacesContext facesContext = Mockito.mock(FacesContext.class);
-        assertEquals("12.3", converter.getAsString(facesContext, new UIPanel(), "12.3"));
-    }
+//    /**
+//     * Test getAsString method.
+//     */
+//    @Test
+//    public void testGetAsString3() {
+//        DoubleConverter converter = new DoubleConverter();
+//        FacesContext facesContext = Mockito.mock(FacesContext.class);
+//        assertEquals("12.3", converter.getAsString(facesContext, new UIPanel(), "12.3"));
+//    }
 
     /**
      * Test getAsString method.

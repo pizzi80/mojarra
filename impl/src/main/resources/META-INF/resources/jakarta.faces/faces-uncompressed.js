@@ -673,8 +673,6 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         // enumerate additional boolean input attributes
         const inputElementBooleanProperties = [ 'checked', 'disabled', 'readOnly' ];
 
-        const TABLE_INNER_TAGS = ['td', 'th', 'tr', 'tbody', 'thead', 'tfoot'];
-
         /**
          * copy all attributes from one element to another - except id
          * @param target element to copy attributes to
@@ -845,6 +843,8 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             const fullHiddenStateFieldName = namingContainerPrefix ? namingContainerPrefix+hiddenStateFieldName : hiddenStateFieldName;
             return getFormInputElementByName( form , fullHiddenStateFieldName );
         };
+
+        const TABLE_INNER_TAGS = ['td', 'th', 'tr', 'tbody', 'thead', 'tfoot'];
 
         /**
          * Do update.

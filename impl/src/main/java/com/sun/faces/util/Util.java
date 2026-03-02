@@ -74,6 +74,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -1736,6 +1738,24 @@ public class Util {
         }
 
         throw new NumberFormatException("there is no numeric segment");
+    }
+
+    /**
+     * @param context the {@link FacesContext} for the current request
+     * @return the encoding {@link Charset} to be used for the response,
+     * or the default hardcoded Charset if it's not possible to retrieve the current encoding charset,
+     * or it's not a valid Java Charset.
+     */
+    public static Charset getResponseEncodingCharset(FacesContext context) {
+        try {
+            return Charset.forName(getResponseEncoding(context));
+        }
+        catch (Exception e) {
+            if (LOGGER.isLoggable(FINEST)) {
+                LOGGER.log(FINEST, "No encoding found, defaulting to {0}", CHAR_ENCODING);
+            }
+            return RIConstants.CHARSET_ENCODING;
+        }
     }
 
     /**
