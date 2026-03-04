@@ -171,7 +171,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
         try {
 
             if (LOGGER.isLoggable(INFO)) {
-                LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.101_pizzi" , servletContext.getContextPath()) );
+                LOGGER.log(INFO, MessageFormat.format("Initializing Mojarra {0} for context {1}", "5.0.102_pizzi" , servletContext.getContextPath()) );
             }
 
             if (webConfig.isOptionEnabled(VerifyFacesConfigObjects)) {
