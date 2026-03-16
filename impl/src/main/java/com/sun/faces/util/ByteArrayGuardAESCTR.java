@@ -35,7 +35,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.naming.InitialContext;
-import javax.naming.NamingException;
 
 import jakarta.faces.FacesException;
 
@@ -59,23 +58,23 @@ public final class ByteArrayGuardAESCTR {
     private static final Logger LOGGER = FacesLogger.RENDERKIT.getLogger();
 
     private static final int KEY_LENGTH = 128;
+    private static final int IV_LENGTH = 16;
 
     private static final String KEY_ALGORITHM = "AES";
     private static final String CIPHER_CODE = "AES/CTR/NoPadding";
 
-    private SecretKey sk;
+    private SecretKey secretKey;
 
     // ------------------------------------------------------------ Constructors
 
     public ByteArrayGuardAESCTR() {
-
         try {
-            setupKeyAndCharset();
-        } catch (Exception e) {
+            setupSecretKey();
+        }
+        catch (Exception e) {
             if (LOGGER.isLoggable(Level.SEVERE)) {
                 LOGGER.log(Level.SEVERE, "Unexpected exception initializing encryption." + "  No encryption will be performed.", e);
             }
-            System.err.println("ERROR: Initializing Ciphers");
         }
     }
 
@@ -90,101 +89,146 @@ public final class ByteArrayGuardAESCTR {
      * @return the encrypted value.
      */
     public String encrypt(String value) {
-        String securedata = null;
         byte[] bytes = value.getBytes(UTF_8);
         try {
-            SecureRandom rand = new SecureRandom();
-            byte[] iv = new byte[16];
-            rand.nextBytes(iv);
-            IvParameterSpec ivspec = new IvParameterSpec(iv);
-
+            byte[] iv = randomIV();
+            IvParameterSpec params = new IvParameterSpec(iv);
             Cipher encryptCipher = Cipher.getInstance(CIPHER_CODE);
 
-            encryptCipher.init(Cipher.ENCRYPT_MODE, sk, ivspec);
-            // encrypt the plaintext
-            byte[] encdata = encryptCipher.doFinal(bytes);
+            encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, params);
 
-            byte[] temp = concatBytes(iv, encdata);
+            // encrypt the plaintext
+            byte[] encrypted = encryptCipher.doFinal(bytes);
+            byte[] data = concatBytes(iv, encrypted);
 
             // Base64 encode the encrypted bytes
-            securedata = Base64.getEncoder().encodeToString(temp);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException
+            final String encoded = Base64.getEncoder().encodeToString(data);
+            return encoded;
+        }
+        catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException
                 | BadPaddingException e) {
             if (LOGGER.isLoggable(Level.SEVERE)) {
                 LOGGER.log(Level.SEVERE, "Unexpected exception initializing encryption." + "  No encryption will be performed.", e);
             }
             return null;
         }
-        return securedata;
+        catch (Exception e) {
+            throw new FacesException(e);
+        }
     }
 
     public String decrypt(String value) throws InvalidKeyException {
+        // decode from Base64
+        byte[] decoded = Base64.getDecoder().decode(value);
 
-        byte[] bytes = Base64.getDecoder().decode(value);
+        if (decoded.length < IV_LENGTH) {
+            throw new InvalidKeyException("Invalid characters in decrypted value");
+        }
 
         try {
-            byte[] iv = new byte[16];
 
-            if (bytes.length < iv.length) {
-                throw new InvalidKeyException("Invalid characters in decrypted value");
-            }
-
-            System.arraycopy(bytes, 0, iv, 0, iv.length);
-            IvParameterSpec ivspec = new IvParameterSpec(iv);
+            // copy first 16 bytes from decode value to iv byte array
+            byte[] iv = new byte[IV_LENGTH];
+            System.arraycopy(decoded, 0, iv, 0, iv.length);
+            IvParameterSpec param = new IvParameterSpec(iv);
 
             Cipher decryptCipher = Cipher.getInstance(CIPHER_CODE);
-            decryptCipher.init(Cipher.DECRYPT_MODE, sk, ivspec);
+            decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, param);
 
-            byte[] encBytes = new byte[bytes.length - 16];
-            System.arraycopy(bytes, 16, encBytes, 0, encBytes.length);
+            // copy the remaining bytes
+            byte[] encrypted = new byte[decoded.length - IV_LENGTH];
+            System.arraycopy(decoded, IV_LENGTH, encrypted, 0, encrypted.length);
 
-            byte[] plaindata = decryptCipher.doFinal(encBytes);
+            byte[] decrypted = decryptCipher.doFinal(encrypted);
 
-            for (byte cur : plaindata) {
+            for (byte cur : decrypted) {
                 // Values < 0 cause the conversion to text to fail.
-                if (cur < 0 || cur > Byte.MAX_VALUE) {
+                if (cur < 0) {
                     throw new InvalidKeyException("Invalid characters in decrypted value");
                 }
             }
-            return new String(plaindata, UTF_8);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException
-                | BadPaddingException nsae) {
-            throw new InvalidKeyException(nsae);
+            return new String(decrypted, UTF_8);
+        }
+        catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException
+                | BadPaddingException e) {
+            throw new InvalidKeyException(e);
         }
     }
 
     // --------------------------------------------------------- Private Methods
 
-    private void setupKeyAndCharset() {
+    private static boolean loaded = false;
+    private static final SecretKeySpec userDefinedKey = initUserDefinedKey();   // can be null
 
-        try {
-            InitialContext context = new InitialContext();
-            String encodedKeyArray = (String) context.lookup("java:comp/env/faces/FlashSecretKey");
-            if (null != encodedKeyArray) {
-                byte[] keyArray = Base64.getDecoder().decode(encodedKeyArray);
-                if (keyArray.length < 16) {
-                    throw new FacesException("key must be at least 16 bytes long.");
-                }
-                sk = new SecretKeySpec(keyArray, KEY_ALGORITHM);
-            }
-        } catch (NamingException exception) {
-            if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINEST, "Unable to find the encoded key.", exception);
-            }
-        } catch (FacesException e) {
-            throw new FacesException(e);
+    // this method could be synchronized with
+    // an inner block + double check on
+    // volatile boolean loaded,
+    // but it's not strictly needed
+    public static SecretKeySpec initUserDefinedKey() {
+        SecretKeySpec key = null;
+        if (!loaded) {
+            key = loadUserDefinedSecretKey();
+            loaded = true;
         }
+        return key;
+    }
 
-        if (null == sk) {
+    private static SecretKeySpec loadUserDefinedSecretKey() {
+        try {
+            final InitialContext context = new InitialContext();
+            final String encodedSecretKey = (String) context.lookup("java:comp/env/faces/FlashSecretKey");
+            if (encodedSecretKey != null) {
+                final byte[] decoded = Base64.getDecoder().decode(encodedSecretKey);
+                if (decoded.length < IV_LENGTH) {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING, "FlashSecretKey must be at least 16 bytes long. Using a random key");
+                    }
+                }
+                final SecretKeySpec userDefinedKey = new SecretKeySpec(decoded, KEY_ALGORITHM);
+                return userDefinedKey;
+            }
+        } catch (Throwable exception) {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINEST, "Unable to find the encoded key at java:comp/env/faces/FlashSecretKey", exception);
+            }
+        }
+        return null;
+    }
+
+    private void setupSecretKey() {
+        // Let's see if an encoded key was given to the application, if so use it and skip the code to generate it.
+        if ( userDefinedKey != null ) {
+            secretKey = userDefinedKey;
+        }
+        else {
             try {
-                KeyGenerator kg = KeyGenerator.getInstance(KEY_ALGORITHM);
-                kg.init(KEY_LENGTH); // 256 if you're using the Unlimited Policy Files
-                sk = kg.generateKey();
+                KeyGenerator generator = KeyGenerator.getInstance(KEY_ALGORITHM);
+                generator.init(KEY_LENGTH); // 256 if you're using the Unlimited Policy Files
+                secretKey = generator.generateKey();
             } catch (Exception e) {
                 throw new FacesException(e);
             }
         }
+    }
 
+    // Utils --------------------------------------------------------------------------------
+
+    /**
+     * The random number generator used by this class to create random values.
+     * In a holder class to defer initialization until needed.
+     */
+    private static class DeferredSecureRandom {
+        static final SecureRandom random = initSecureRandom();
+        static SecureRandom initSecureRandom() { return new SecureRandom(); }
+    }
+
+    /**
+     * @return an array of 16 random bytes
+     */
+    private static byte[] randomIV() {
+        final byte[] bytes = new byte[IV_LENGTH];
+        DeferredSecureRandom.random.nextBytes(bytes);
+        return bytes;
     }
 
     /**
@@ -194,14 +238,10 @@ public final class ByteArrayGuardAESCTR {
      * @param array1 first byte array to be concatenated
      * @param array2 second byte array to be concatenated
      */
-    private static byte[] concatBytes(byte[] array1, byte[] array2) {
-        byte[] output = new byte[array1.length + array2.length];
-        try {
-            System.arraycopy(array1, 0, output, 0, array1.length);
-            System.arraycopy(array2, 0, output, array1.length, array2.length);
-        } catch (Exception e) {
-            throw new FacesException(e);
-        }
+    private static byte[] concatBytes(final byte[] array1, final byte[] array2) {
+        final byte[] output = new byte[array1.length + array2.length];
+        System.arraycopy(array1, 0, output, 0, array1.length);
+        System.arraycopy(array2, 0, output, array1.length, array2.length);
         return output;
     }
 
