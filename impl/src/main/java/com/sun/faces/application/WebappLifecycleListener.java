@@ -164,7 +164,7 @@ public class WebappLifecycleListener {
      * Notification that the servlet context is about to be shut down. All servlets and filters have been destroy()ed before
      * any ServletContextListeners are notified of context destruction.
      *
-     * @param event the nofication event
+     * @param event the notification event
      */
     public void contextDestroyed(ServletContextEvent event) {
         applicationAssociate = null;

@@ -128,7 +128,7 @@ public class MultiViewHandler extends ViewHandler {
 
     /**
      * <p>
-     * Derive the physical view ID (i.e. the physical resource) and call call
+     * Derive the physical view ID (i.e. the physical resource) and call
      * {@link ViewDeclarationLanguage#createView(jakarta.faces.context.FacesContext, String)}.
      * </p>
      *
