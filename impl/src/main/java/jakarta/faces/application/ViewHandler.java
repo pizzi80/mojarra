@@ -39,7 +39,7 @@ import jakarta.faces.view.ViewDeclarationLanguage;
 /**
  * <p>
  * <strong><span class="changed_modified_2_0 changed_modified_2_1 changed_modified_2_2 changed_modified_2_3">
- * ViewHandler</span></strong> is the pluggablity mechanism for allowing implementations of or applications using the
+ * ViewHandler</span></strong> is the pluggability mechanism for allowing implementations of or applications using the
  * Jakarta Faces Specification to provide their own handling of the activities in the <em>Render Response</em>
  * and <em>Restore View</em> phases of the request processing lifecycle.
  *
@@ -561,7 +561,7 @@ public abstract class ViewHandler {
      * @since 2.2
      */
     public Set<String> getProtectedViewsUnmodifiable() {
-        return unmodifiableSet(emptySet());
+        return emptySet();
     }
 
     /**
