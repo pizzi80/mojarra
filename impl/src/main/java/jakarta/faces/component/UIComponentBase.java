@@ -50,6 +50,7 @@ import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1137,7 +1138,23 @@ public abstract class UIComponentBase extends UIComponent {
             return;
         }
 
-        Object[] values = (Object[]) state;
+        final Object[] values = (Object[]) state;
+
+        if ( values.length < 5 ) {
+            var id = getId(); // getClientId(context);
+
+            var clazz = getClass().getName();
+            var builder = new StringBuilder();
+            for (var value : values)
+                if ( value instanceof Object[] array ) builder.append(Arrays.toString(array));
+                else builder.append(value);
+
+            builder.append(" - attributes: ");
+            getAttributes().forEach( (name, value) -> builder.append(name).append('=').append(value).append(','));
+
+            System.out.println("[ERROR] >>>>> Could not restore state for UIComponent "+clazz+" "+id+" serialized state: "+builder);
+            return;
+        }
 
         if (values[0] != null) {
             if (listeners == null) {
