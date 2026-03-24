@@ -61,16 +61,16 @@ public class ClientWindowImpl extends ClientWindow {
     }
 
     private String calculateClientWindow(FacesContext context) {
-        return Util.execAtomic(getMutex(context.getExternalContext().getSession(true)), () -> {
+        return Util.execAtomically(getMutex(context.getExternalContext().getSession(true)), () -> {
 
             ExternalContext extContext = context.getExternalContext();
-            Map<String, Object> sessionAttrs = extContext.getSessionMap();
-            Integer counter = (Integer) sessionAttrs.getOrDefault(clientWindowCounterKey, 0);
+            Map<String, Object> sessionMap = extContext.getSessionMap();
+            Integer counter = (Integer) sessionMap.getOrDefault(clientWindowCounterKey, 0);
 
             char sep = UINamingContainer.getSeparatorChar(context);
             id = UUID.randomUUID().toString() + sep + counter;
 
-            sessionAttrs.put(clientWindowCounterKey, ++counter);
+            sessionMap.put(clientWindowCounterKey, ++counter);
             return id;
         });
     }

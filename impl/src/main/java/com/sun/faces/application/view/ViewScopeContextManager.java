@@ -290,7 +290,7 @@ public class ViewScopeContextManager {
 
         final ReentrantLock lock = getMutex(session);
 
-        return Util.execAtomic(lock, () -> (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>)
+        return Util.execAtomically(lock, () -> (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>)
                 (create ? sessionMap.computeIfAbsent(ACTIVE_VIEW_CONTEXTS, $ -> new ConcurrentHashMap<>()) :
                           sessionMap.get(ACTIVE_VIEW_CONTEXTS)));
     }

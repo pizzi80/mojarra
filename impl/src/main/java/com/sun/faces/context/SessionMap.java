@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -55,19 +54,23 @@ public class SessionMap extends BaseContextMap<Object> {
 
     @Override
     public void clear() {
-        HttpSession session = getSession(false);
+        HttpSession session = getSessionIfExists();
         if (session != null) {
-            for (Enumeration<String> e = session.getAttributeNames(); e.hasMoreElements();) {
-                String name = e.nextElement();
-                session.removeAttribute(name);
+            try {
+                for (Enumeration<String> e = session.getAttributeNames(); e.hasMoreElements(); ) {
+                    String name = e.nextElement();
+                    session.removeAttribute(name);
+                }
             }
+            // expired in the meantime, end of the story
+            catch (IllegalStateException ignored) {}
         }
     }
 
     // Supported by maps if overridden
     @Override
     public void putAll(Map<? extends String, ?> map) {
-        HttpSession session = getSession(true);
+        HttpSession session = getSessionOrCreate();
         for (Map.Entry<? extends String, ?> entry : map.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
@@ -76,7 +79,6 @@ public class SessionMap extends BaseContextMap<Object> {
                     LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[]{key, value.getClass().getName()});
                 }
             }
-            // noinspection NonSerializableObjectBoundToHttpSession
             session.setAttribute(key, value);
         }
     }
@@ -84,27 +86,23 @@ public class SessionMap extends BaseContextMap<Object> {
     @Override
     public Object get(Object key) {
         Util.notNull("key", key);
-        HttpSession session = getSession(false);
-        return session != null ? session.getAttribute(key.toString()) : null;
+        return getAttribute(getSessionIfExists(), key);
     }
 
     @Override
     public Object put(String key, Object value) {
         Util.notNull("key", key);
-        HttpSession session = getSession(true);
+        HttpSession session = getSessionOrCreate();
         Object currentValue = session.getAttribute(key);
         if (value != null && ProjectStage.Development.equals(stage) && !(value instanceof Serializable)) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[] { key, value.getClass().getName() });
             }
         }
-        // noinspection NonSerializableObjectBoundToHttpSession
-        boolean doSet = true;
-        if (value != null && currentValue != null) {
-            int valueHash = System.identityHashCode(value);
-            int currentValueHash = System.identityHashCode(currentValue);
-            doSet = valueHash != currentValueHash;
-        }
+
+        // set the value only if the currentValue is null or not the exact same object
+        final boolean doSet = currentValue == null || currentValue != value;
+
         if (doSet) {
             session.setAttribute(key, value);
         }
@@ -116,20 +114,12 @@ public class SessionMap extends BaseContextMap<Object> {
         if (key == null) {
             return null;
         }
-        HttpSession session = getSession(false);
-        if (session != null) {
-            String keyString = key.toString();
-            Object currentValue = session.getAttribute(keyString);
-            session.removeAttribute(keyString);
-            return currentValue;
-        }
-        return null;
+        return removeAttribute(getSessionIfExists(), key);
     }
 
     @Override
     public boolean containsKey(Object key) {
-        HttpSession session = getSession(false);
-        return session != null && session.getAttribute(key.toString()) != null;
+        return getAttribute(getSessionIfExists(), key) != null;
     }
 
     @Override
@@ -139,47 +129,78 @@ public class SessionMap extends BaseContextMap<Object> {
 
     @Override
     public int hashCode() {
-        HttpSession session = getSession(false);
+        HttpSession session = getSessionIfExists();
+
         if (session != null) {
-            return Objects.hash(session, entrySet());
-        } else {
-            return 0;
+            try {
+                int hashCode = 7 * session.hashCode();
+
+                for (Map.Entry<String, Object> stringObjectEntry : entrySet()) {
+                    hashCode += stringObjectEntry.hashCode();
+                }
+
+                return hashCode;
+            }
+            // expired in the meantime, end of the story
+            catch (IllegalStateException ignored){}
         }
+
+        return super.hashCode();
     }
 
     // --------------------------------------------- Methods from BaseContextMap
 
     @Override
     protected Iterator<Map.Entry<String, Object>> getEntryIterator() {
-        HttpSession session = getSession(false);
+        HttpSession session = getSessionIfExists();
         if (session != null) {
-            return new EntryIterator(session.getAttributeNames());
-        } else {
-            return Collections.emptyIterator();
+            try {
+                return new EntryIterator(session.getAttributeNames());
+            }
+            // expired in the meantime, end of the story
+            catch (IllegalStateException ignored){}
         }
+
+        return Collections.emptyIterator();
     }
 
     @Override
     protected Iterator<String> getKeyIterator() {
-        HttpSession session = getSession(false);
+        HttpSession session = getSessionIfExists();
         if (session != null) {
-            return new KeyIterator(session.getAttributeNames());
-        } else {
-            return Collections.emptyIterator();
+            try {
+                return new KeyIterator(session.getAttributeNames());
+            }
+            // expired in the meantime, end of the story
+            catch (IllegalStateException ignored) {}
         }
+
+        return Collections.emptyIterator();
     }
 
     @Override
     protected Iterator<Object> getValueIterator() {
-        HttpSession session = getSession(false);
+        HttpSession session = getSessionIfExists();
         if (session != null) {
-            return new ValueIterator(session.getAttributeNames());
-        } else {
-            return Collections.emptyIterator();
+            try {
+                return new ValueIterator(session.getAttributeNames());
+            }
+            // expired in the meantime, end of the story
+            catch (IllegalStateException ignored) {}
         }
+
+        return Collections.emptyIterator();
     }
 
     // --------------------------------------------------------- Private Methods
+
+    private HttpSession getSessionIfExists() {
+        return getSession(false);
+    }
+
+    private HttpSession getSessionOrCreate() {
+        return getSession(true);
+    }
 
     protected HttpSession getSession(boolean createNew) {
         return request.getSession(createNew);
@@ -202,27 +223,58 @@ public class SessionMap extends BaseContextMap<Object> {
                 final ReentrantLock mutex = (ReentrantLock) httpSession.getAttribute(MUTEX);
                 // if the mutex was removed in the meantime -> return the shared_mutex...?
                 if ( mutex == null ) {
-                    LOGGER.warning("getMutex(session) is returning a shared mutex because the Mutex attribute was removed from session in the meantime");
+                    LOGGER.fine("getMutex(session) is returning a shared mutex because the Mutex attribute was removed from session in the meantime");
                     return shared_mutex;
                 }
                 return mutex;
             }
-            catch (IllegalStateException sessionInvalidated) {
-                LOGGER.warning("getMutex(session) is returning a shared mutex because the session has been invalidated in the meantime");
+            catch (IllegalStateException expired) {
+                LOGGER.fine("getMutex(session) is returning a shared mutex because the session has been invalidated in the meantime");
                 return shared_mutex;
             }
         }
-        // it the session was not an HttpSession, return the shared mutex
-        // which is the case?
-        LOGGER.warning("getMutex(session): session it's not an HttpSession. returning the shared lock as a mutex object");
-        //return session;
+        // it the session was not an HttpSession, return the shared mutex, which is the case? (Portlet?)
+        LOGGER.fine("getMutex(session): session it's not an HttpSession. returning the shared lock as a mutex object");
+        // return session;
         return shared_mutex;
     }
 
     // do we really need to remove the mutex from session?
     // this could create a race condition and / or a NPE in synchronized block calling getMutex
     public static void removeMutex(HttpSession session) {
-        session.removeAttribute(MUTEX);
+        removeAttribute(session, MUTEX);
+    }
+
+    // ------------------------------------------------------------------- Utils
+
+    private static Object getAttribute(HttpSession session, Object key) {
+        if (session == null) {
+            return null;
+        }
+        try {
+            return session.getAttribute(key.toString());
+        }
+        // expired in the meantime, end of the story
+        catch (IllegalStateException ignored) {}
+
+        return null;
+    }
+
+    private static Object removeAttribute(HttpSession session, Object key) {
+        if (session == null) {
+            return null;
+        }
+
+        String keyString = key.toString();
+        try {
+            Object currentValue = session.getAttribute(keyString);
+            session.removeAttribute(keyString);
+            return currentValue;
+        }
+        // expired in the meantime, end of the story
+        catch (IllegalStateException ignored) {}
+
+        return null;
     }
 
 } // END SessionMap

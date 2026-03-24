@@ -49,7 +49,7 @@ public class LRUMap<K, V> extends LinkedHashMap<K, V> {
     public LRUMap(int maxCapacity) {
         // 1) to avoid collisions we should keep the default load factor, which is 0.75f
         // 2) to avoid the map rehash when inserting the maxCapacity+1 element before removing the eldest one, we use maxCapacity+1
-        super( calculateMapCapacity(maxCapacity+1) , 0.75f, true);
+        super(calculateMapCapacity(maxCapacity+1) , 0.75f, true);
         // but we want exactly no more than maxCapacity elements inside the Map
         this.maxCapacity = maxCapacity;
     }

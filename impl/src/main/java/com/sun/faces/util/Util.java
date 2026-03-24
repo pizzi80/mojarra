@@ -826,14 +826,16 @@ public class Util {
      * @param lock The {@link Lock} to be used for atomic execution
      * @param task The {@link FunctionalInterface} to be executed atomically
      */
-    public static void execAtomic(Lock lock, Action task) {
+    public static void execAtomically(Lock lock, Action task) {
         lock.lock();
 
         try {
             task.execute();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
+        }
+        finally {
             lock.unlock();
         }
     }
@@ -844,7 +846,7 @@ public class Util {
      * @param task The {@link Supplier} to be executed atomically
      * @return The result of the passed task.
      */
-    public static <R> R execAtomic(Lock lock, Supplier<R> task) {
+    public static <R> R execAtomically(Lock lock, Supplier<R> task) {
         lock.lock();
 
         try {

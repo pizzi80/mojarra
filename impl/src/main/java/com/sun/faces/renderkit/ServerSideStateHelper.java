@@ -53,7 +53,6 @@ import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.config.WebConfiguration.WebContextInitParameter;
 import com.sun.faces.util.ConcurrentLRUMap;
 import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.LRUMap;
 import com.sun.faces.util.RequestStateManager;
 import com.sun.faces.util.TypedCollections;
 import com.sun.faces.util.Util;
@@ -153,7 +152,7 @@ public class ServerSideStateHelper extends StateHelper {
                 final Map<String, Object> sessionMap = externalContext.getSessionMap();
                 final ReentrantLock lock = getMutex(sessionObj);
 
-                Util.execAtomic(lock, () -> {
+                Util.execAtomically(lock, () -> {
 
                     Map<String, Map> logicalMap = TypedCollections.dynamicallyCastMap((Map) sessionMap.get(LOGICAL_VIEW_MAP), String.class, Map.class);
                     if (logicalMap == null) {
@@ -270,7 +269,7 @@ public class ServerSideStateHelper extends StateHelper {
             return null;
         }
 
-        return Util.execAtomic(getMutex(sessionObj), () -> {
+        return Util.execAtomically(getMutex(sessionObj), () -> {
             Map logicalMap = (Map) externalCtx.getSessionMap().get(LOGICAL_VIEW_MAP);
             if (logicalMap != null) {
                 Map actualMap = (Map) logicalMap.get(idInLogicalMap);

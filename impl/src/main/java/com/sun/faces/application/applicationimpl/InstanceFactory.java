@@ -19,7 +19,6 @@ package com.sun.faces.application.applicationimpl;
 import static com.sun.faces.application.ApplicationImpl.THIS_LIBRARY;
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.DateTimeConverterUsesSystemTimezone;
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.RegisterConverterPropertyEditors;
-import static com.sun.faces.util.Util.calculateMapCapacity;
 import static com.sun.faces.util.Util.isEmpty;
 import static com.sun.faces.util.Util.loadClass;
 import static com.sun.faces.util.Util.notNull;
@@ -579,7 +578,7 @@ public class InstanceFactory {
     public void addDefaultValidatorId(String validatorId) {
         notNull("validatorId", validatorId);
 
-        Util.execAtomic(lock, () -> {
+        Util.execAtomically(lock, () -> {
             defaultValidatorInfo = null;
             defaultValidatorIds.add(validatorId);
         });
@@ -591,7 +590,7 @@ public class InstanceFactory {
     public Map<String, String> getDefaultValidatorInfo() {
 
         if (defaultValidatorInfo == null) {
-            Util.execAtomic(lock, () -> {
+            Util.execAtomically(lock, () -> {
                 if (defaultValidatorInfo == null) {
                     defaultValidatorInfo = new LinkedHashMap<>(Util.calculateMapCapacity(defaultValidatorIds.size()));
                     if (!defaultValidatorIds.isEmpty()) {

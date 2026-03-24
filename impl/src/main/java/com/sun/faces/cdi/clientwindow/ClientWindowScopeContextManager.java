@@ -199,7 +199,7 @@ public class ClientWindowScopeContextManager {
 
         final ReentrantLock lock = getMutex(session);
 
-        return Util.execAtomic(lock, () -> create ?
+        return Util.execAtomically(lock, () -> create ?
                 (Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>>) sessionMap.computeIfAbsent(CLIENT_WINDOW_CONTEXTS, k -> new ConcurrentLRUMap<>(getNumberOfClientWindows(externalContext))) :
                 (Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>>) sessionMap.get(CLIENT_WINDOW_CONTEXTS));
     }
