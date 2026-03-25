@@ -2,7 +2,9 @@ package com.sun.faces.util;
 
 import java.util.Locale;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -13,6 +15,18 @@ import jakarta.el.ELContext;
 import jakarta.faces.component.UIViewRoot;
 
 public class FacesLoggerTest {
+
+    private Locale previousDefaultLocale;
+
+    @BeforeEach
+    public void setUp() {
+        previousDefaultLocale = Locale.getDefault();
+    }
+
+    @AfterEach
+    public void tearDown() {
+        Locale.setDefault(previousDefaultLocale);
+    }
 
     @Test
     public void unresolvedNavigationUS() {

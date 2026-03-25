@@ -18,13 +18,13 @@
 
 /**
  @project Faces JavaScript Library
- @version 4.1
+ @version 4.1.7
  @description This is the standard implementation of the Faces JavaScript Library.
  */
 
 // Detect if this is already loaded, and if loaded, if it's a higher version
-if ( !( (window.faces && window.faces.specversion && window.faces.specversion >= 41000 )
-    && (window.faces.implversion && window.faces.implversion >= 4)) ) {
+if ( !( (window.faces && window.faces.specversion && window.faces.specversion >= 40100 )
+    && (window.faces.implversion && window.faces.implversion >= 7)) ) {
 
     // --- JS Lang --------------------------------------------------------------------
     const UDEF = "undefined";
@@ -83,6 +83,11 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
     const getFormInputElementByName = function(form, inputElementName) {
         return inputElementName in form ? form[inputElementName] : getElementByName(form,inputElementName);
     }
+
+    /**
+     * append a new pair of parameter=value to a query string
+     * @ignore
+     */
 
     /**
      * return true if one of the dom elements contains
@@ -686,6 +691,8 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         // enumerate additional boolean input attributes
         const inputElementBooleanProperties = [ 'checked', 'disabled', 'readOnly' ];
 
+        const TABLE_INNER_TAGS = ['td', 'th', 'tr', 'tbody', 'thead', 'tfoot'];
+
         /**
          * copy all attributes from one element to another - except id
          * @param target element to copy attributes to
@@ -857,8 +864,6 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             const fullHiddenStateFieldName = namingContainerPrefix ? namingContainerPrefix+hiddenStateFieldName : hiddenStateFieldName;
             return getFormInputElementByName( form , fullHiddenStateFieldName );
         };
-
-        const TABLE_INNER_TAGS = ['td', 'th', 'tr', 'tbody', 'thead', 'tfoot'];
 
         /**
          * Do update.
@@ -1131,7 +1136,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
          * Ajax Request Queue
          * @ignore
          */
-        const Queue = function Queue() {
+        const Queue = new function Queue() {
 
             // Create the internal queue
             let queue = [];
@@ -1229,7 +1234,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             req.method = null;             // GET or POST
             req.status = null;             // Response Status Code From Server
             req.fromQueue = false;         // Indicates if the request was taken off the queue before being sent. This prevents the request from entering the queue redundantly.
-            req.que = new Queue();         // the queue for requests
+            req.que = Queue;               // the shared queue for requests (singleton, per spec)
             req.xmlReq = new XMLHttpRequest(); // The real XMLHttpRequest Level2
 
             // Set up request/response state callbacks
@@ -1307,78 +1312,87 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
              * @ignore
              */
             req.sendRequest = function () {
-                // if there is already a request on the queue waiting to be processed..
-                // just queue this request
-                // TODO: add support for async ajax requests
-                // https://github.com/eclipse-ee4j/mojarra/issues/4946
-                if (!req.que.isEmpty()) {
+                if (isNotNull(req.xmlReq)) {
+                    // if there is already a request on the queue waiting to be processed..
+                    // just queue this request
+                    // TODO: add support for async ajax requests
+                    // https://github.com/eclipse-ee4j/mojarra/issues/4946
+                    if (!req.que.isEmpty()) {
+                        if (!req.fromQueue) {
+                            req.que.enqueue(req);
+                            return;
+                        }
+                    }
+                    // If the queue is empty, queue up this request and send
                     if (!req.fromQueue) {
                         req.que.enqueue(req);
-                        return;
                     }
+                    // Some logic to get the real request URL
+                    if (req.generateUniqueUrl && req.method === "GET") {
+                        req.parameters["AjaxRequestUniqueId"] = new Date().getTime() + EMPTY + req.requestIndex;
+                    }
+
+                    // is a multipart form data ?
+                    const isMultiPart = (req.method === "POST" && context.form.enctype === 'multipart/form-data');
+
+                    // If multipart prepare the FormData
+                    const formData = isMultiPart ? new FormData(context.form) : undefined;
+
+                    // Add parameters encoded or multipart
+                    const params = new URLSearchParams(req.queryString);
+                    for ( const i of Object.keys(req.parameters) ) {
+                        // if is multipart request -> add parameter to FormData
+                        if ( isMultiPart ) {
+                            formData.append(i,req.parameters[i]);
+                        }
+                        // else is a normal post request -> add to URLSearchParams for POST
+                        else {
+                            params.append(i, req.parameters[i]);
+                        }
+                    }
+                    req.queryString = params.toString();
+
+                    if (req.method === "GET") {
+                        if (req.queryString.length > 0) {
+                            req.url += ((req.url.indexOf("?") > -1) ? "&" : "?") + req.queryString;
+                        }
+                    }
+
+                    // Open Ajax request
+                    req.xmlReq.open(req.method, req.url, req.async);
+
+                    // note that we are including the charset=UTF-8 as part of the content type (even
+                    // if URLSearchParams encodes as UTF-8), because with some
+                    // browsers it will not be set in the request.  Some server implementations need to
+                    // determine the character encoding from the request header content type.
+                    if (req.method === "POST") {
+                        req.xmlReq.setRequestHeader('Faces-Request', 'partial/ajax');
+
+                        // file upload
+                        if ( isMultiPart ) formData.append('Faces-Request','partial/ajax');
+
+                        // GET or POST
+                        // req.xmlReq.setRequestHeader('Content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
+                        else req.xmlReq.setRequestHeader( 'Content-type' , context.form.enctype+';charset=UTF-8' );
+                    }
+
+                    // note that async == false is not a supported feature.  We may change it in ways
+                    // that break existing programs at any time, with no warning.
+                    if (!req.async) req.xmlReq.onreadystatechange = null; // no need for readystate change listening
+
+                    // Send begin event
+                    sendEvent(req.xmlReq, req.context, "begin");
+
+                    // IF multipart/form-data use FormData
+                    if (isMultiPart) req.xmlReq.send(formData);
+
+                    // ELSE use query string
+                    else req.xmlReq.send(req.queryString);
+
+                    // call OnComplete if not async
+                    if(!req.async) req.onComplete();
+
                 }
-                // If the queue is empty, queue up this request and send
-                if (!req.fromQueue) {
-                    req.que.enqueue(req);
-                }
-                // Some logic to get the real request URL
-                if (req.generateUniqueUrl && req.method === "GET") {
-                    req.parameters["AjaxRequestUniqueId"] = new Date().getTime() + EMPTY + req.requestIndex;
-                }
-
-                // is a multipart form data ?
-                const isMultiPart = (req.method === "POST" && context.form.enctype === "multipart/form-data");
-
-                // If multipart use FormData else use URLSearchParams
-                const requestData = isMultiPart ? new FormData(context.form) : new URLSearchParams(req.queryString);
-
-                // Add parameters
-                for ( const i of Object.keys(req.parameters) ) {
-                    requestData.append(i, req.parameters[i]);
-                }
-
-                // GET or POST but not multipart: encode the query params
-                if ( !isMultiPart && requestData.size > 0 ) {
-                    req.queryString = requestData.toString();
-                }
-
-                // GET Request: add query params to url if needed
-                if (req.method === "GET" && requestData.size > 0) {
-                    req.url += ((req.url.indexOf("?") > -1) ? "&" : "?") + req.queryString;
-                }
-
-                // Open Ajax request
-                req.xmlReq.open(req.method, req.url, req.async);
-
-                // note that we are including the charset=UTF-8 as part of the content type (even
-                // if encodeURIComponent encodes as UTF-8), because with some
-                // browsers it will not be set in the request.  Some server implementations need to
-                // determine the character encoding from the request header content type.
-                if (req.method === "POST") {
-                    req.xmlReq.setRequestHeader('Faces-Request', 'partial/ajax');
-
-                    // file upload
-                    if ( isMultiPart ) requestData.append('Faces-Request','partial/ajax');
-
-                    // GET or POST
-                    else req.xmlReq.setRequestHeader('Content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
-                }
-
-                // note that async == false is not a supported feature.  We may change it in ways
-                // that break existing programs at any time, with no warning.
-                if (!req.async) req.xmlReq.onreadystatechange = null; // no need for readystate change listening
-
-                // Send begin event
-                sendEvent(req.xmlReq, req.context, "begin");
-
-                // IF multipart/form-data use FormData
-                if (isMultiPart) req.xmlReq.send(requestData);
-
-                // ELSE use query string (must be null in case of GET request)
-                else req.xmlReq.send(req.queryString);
-
-                // call OnComplete if not async
-                if(!req.async) req.onComplete();
             };
 
             return req;
@@ -1445,12 +1459,32 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 sent = true;
             }
 
-            if (!sent && faces.getProjectStage() === "Development") {
-                if (status === "serverError") {
-                    alert("serverError: " + serverErrorName + SPACE + serverErrorMessage);
+            if (!sent) {
+                const errorMessage = status + ": "
+                    + (serverErrorName ? serverErrorName + " " : "")
+                    + data.description
+                    + (data.responseCode ? " (HTTP " + data.responseCode + ")" : "")
+                    + (data.source ? " [source: " + (data.source.id || data.source) + "]" : "");
+
+                // Example outputs:
+                // - httpError: There was an error communicating with the server, status: 404 (HTTP 404) [source: myButton]
+                // - serverError: java.lang.NullPointerException fieldName (HTTP 500) [source: myForm]
+                // - emptyResponse: An empty response was received from the server. Check server error logs. [source: myButton]
+
+                if (faces.getProjectStage() === "Development") {
+                    alert(errorMessage);
                 } else {
-                    alert(status + ": " + data.description);
+                    console.error(errorMessage);
                 }
+
+                const warnMessage = "No faces.ajax.addOnError handler registered to handle this error. Register one to customize error handling.";
+
+                if (window.onerror) {
+                    const onerrorMessage = errorMessage + " WARNING: " + warnMessage;
+                    window.onerror(onerrorMessage, "jakarta.faces:faces.js", 0, 0, new Error(onerrorMessage));
+                }
+
+                console.warn(warnMessage);
             }
         };
 
@@ -1855,9 +1889,8 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 const context = {};
 
                 if (isNull(source)) {
-                    throw new Error("faces.ajax.request: source must be a not null object or string");
+                    throw new Error("faces.ajax.request: source not set");
                 }
-
                 if(delayHandler) {
                     clearTimeout(delayHandler);
                     delayHandler = null;
@@ -2024,7 +2057,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 }
 
                 // encoded query string to process, eventually with partial submit logic enabled
-                const viewState = doPartialSubmit ? faces.getPartialViewState( form , options.execute ) : faces.getViewState(form);
+                const viewState = doPartialSubmit ? getPartialViewState( form , options.execute ) : faces.getViewState(form);
 
                 // copy all params to args
                 const params = options.params || {};
@@ -2442,26 +2475,20 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
     };
 
     /**
-     * <p>Collect and encode state for input controls associated
-     * with the specified <code>form</code> element.  This will include
-     * all input controls of type <code>hidden</code>.</p>
-     * <p><b>Usage:</b></p>
-     * <pre><code>
-     * var state = faces.getViewState(form);
-     * </pre></code>
+     * Collect and encode state for only those input controls within the
+     * specified form that belong to the execute component set (partial submit).
+     * ViewState and ClientWindow parameters are always included.
+     * Unlike faces.getViewState which serializes all form controls, this
+     * function limits serialization to controls that are children of or
+     * named by the execute IDs.
      *
-     * @param form The <code>form</code> element whose contained
-     * <code>input</code> controls will be collected and encoded.
-     * Only successful controls will be collected and encoded in
-     * accordance with: <a href="http://www.w3.org/TR/html401/interact/forms.html#h-17.13.2">
-     * Section 17.13.2 of the HTML Specification</a>.
-     *
-     * @param execute The option.execute string built inside faces.ajax.request
-     *
-     * @returns String The encoded state for the specified form's input controls.
+     * @param form The form element whose controls will be selectively encoded.
+     * @param execute Space-separated string of component IDs to include.
+     * @returns String The encoded state for the matching input controls.
+     * @ignore
      */
-    faces.getPartialViewState = function(form, execute) {
-        if (!form) throw new Error("faces.getPartialViewState:  form must be set");
+    const getPartialViewState = function(form, execute) {
+        if (!form) throw new Error("getPartialViewState:  form must be set");
 
         // if execute is defined, create an array of id
         // that have to be included in the query string
@@ -2470,20 +2497,21 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         // array of element id => array of existing dom element
         const partialExecuteDomElements = partialExecuteIds.map(getElemById).filter( elem => !!elem );
 
-        // the query string builder
-        const query = new URLSearchParams();
+        const params = new URLSearchParams();
 
         // if the partialExecuteIds does not include the form.id,
         // then add it because it's required by the spec to be always included!
         if ( partialExecuteIds && !partialExecuteIds.includes(form.id) ) {
-            query.append(form.id, form.id);
+            params.append(form.id, form.id);
         }
 
-        // Add the name=value param to the query only if there is a child element with his name
+        // add name=value to params.
+        // If partialExecuteIds is defined
+        // then add the field only if there is a child element with his name
         // inside one of the element identified with the id contained in "partialExecuteIds" array (partial submit)
-        const addField = (name, value) => {
+        const addField = function(name, value) {
             const add = !partialExecuteIds || partialExecuteIds.includes(name) || containsNamedChild(partialExecuteDomElements,name);
-            if (add) query.append(name,value);
+            if (add) params.append(name, value);
         };
 
         const els = form.elements;
@@ -2529,7 +2557,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             }
         }
 
-        return query.toString();
+        return params.toString();
     }
 
 
@@ -2555,11 +2583,10 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
     faces.getViewState = function(form) {
         if (!form) throw new Error("faces.getViewState:  form must be set");
 
-        // the query string
-        const query = new URLSearchParams();
-
-        // add encoded name=value string to query string parts array.
-        const addField = (name, value) => query.append(name, value);
+        const params = new URLSearchParams();
+        const addField = function(name, value) {
+            params.append(name, value);
+        };
 
         const els = form.elements;
         for (const el of els) {
@@ -2603,8 +2630,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 }
             }
         }
-
-        return query.toString();
+        return params.toString();
     };
 
     /**
@@ -2630,7 +2656,9 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
          * @ignore
          */
         const getWindowIdElement = function(form) {
-            return getFormInputElementByName(form,CLIENT_WINDOW_PARAM);
+            // Try exact name first, then fall back to namespaced name (e.g. "viewId:jakarta.faces.ClientWindow" in portlet environments)
+            return getFormInputElementByName(form, CLIENT_WINDOW_PARAM)
+                || form.querySelector("input[name$='" + faces.separatorchar + CLIENT_WINDOW_PARAM + "']");
         };
 
         const fetchWindowIdFromForms = function(forms) {
@@ -2827,6 +2855,11 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         self.init = function(clientId, url, channel, onopen, onmessage, onerror, onclose, behaviors, autoconnect) {
             onclose = resolveFunction(onclose);
 
+            if (!window.WebSocket) {
+                onclose(-1, clientId);
+                return;
+            }
+
             if (!sockets[clientId]) {
                 sockets[clientId] = new ReconnectingWebsocket(url, channel, resolveFunction(onopen), resolveFunction(onmessage), resolveFunction(onerror), onclose, behaviors);
             }
@@ -2953,7 +2986,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
      * minor release number, leftmost digits, major release number.
      * This number may only be incremented by a new release of the specification.</p>
      */
-    faces.specversion = 41000;
+    faces.specversion = 40100;
 
     /**
      * <p>An integer specifying the implementation version that this file implements.
@@ -2961,7 +2994,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
      * <code>faces.specversion</code>
      * This number is implementation dependent.</p>
      */
-    faces.implversion = 4;
+    faces.implversion = 7;
 
 
 } //end if version detection block

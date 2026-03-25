@@ -37,3 +37,4 @@ nb-configuration.xml
 Mojarra.iml
 *~
 .flattened-pom.xml
+node_modules/

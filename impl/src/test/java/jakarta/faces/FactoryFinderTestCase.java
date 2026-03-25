@@ -21,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +42,7 @@ import jakarta.faces.lifecycle.LifecycleFactory;
 
 public class FactoryFinderTestCase {
 
-    public static final String[][] FACTORIES = {
+    public static String FACTORIES[][] = {
         {FactoryFinder.APPLICATION_FACTORY,
             "com.sun.faces.mock.MockApplicationFactory"
         },
@@ -66,8 +68,15 @@ public class FactoryFinderTestCase {
         method.setAccessible(true);
         method.invoke(null, new Object[]{null});
 
-        for (String[] factory : FACTORIES) {
-            System.getProperties().remove(factory[0]);
+        // Also clear the threadInitContext map for the current thread, in case a previous test leaked an
+        // InitFacesContext entry. Without this, FacesContext.getCurrentInstance() falls through the ThreadLocal
+        // to the threadInitContext map and may return a stale InitFacesContext.
+        Field threadInitContext = FacesContext.class.getDeclaredField("threadInitContext");
+        threadInitContext.setAccessible(true);
+        ((Map<?, ?>) threadInitContext.get(null)).remove(Thread.currentThread());
+
+        for (int i = 0, len = FACTORIES.length; i < len; i++) {
+            System.getProperties().remove(FACTORIES[i][0]);
         }
     }
 
@@ -75,8 +84,8 @@ public class FactoryFinderTestCase {
     @AfterEach
     public void tearDown() throws Exception {
         FactoryFinder.releaseFactories();
-        for (String[] factory : FACTORIES) {
-            System.getProperties().remove(factory[0]);
+        for (int i = 0, len = FACTORIES.length; i < len; i++) {
+            System.getProperties().remove(FACTORIES[i][0]);
         }
     }
 
@@ -273,12 +282,4 @@ public class FactoryFinderTestCase {
         FactoryFinder.releaseFactories();
     }
 
-    // ------------------------------------------- helpers
-    public static void printRelevantSystemProperties() {
-        System.out.println("++++++Relevant System Properties: ");
-        for (int i = 0, len = FACTORIES.length; i < len; i++) {
-            System.out.println(FACTORIES[i][0] + ": "
-                    + System.getProperty(FACTORIES[i][0]));
-        }
-    }
 }

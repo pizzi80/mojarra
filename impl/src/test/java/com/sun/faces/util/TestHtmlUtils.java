@@ -141,11 +141,9 @@ public class TestHtmlUtils {
         char[] textBuffer = new char[1024];
         StringWriter xmlWriter = new StringWriter();
         HtmlUtils.writeURL(xmlWriter, urlToEncode, textBuffer, "UTF-8");
-        System.out.println("XML: " + xmlWriter.toString());
         assertEquals(xmlWriter.toString(), expectedXML);
         StringWriter htmlWriter = new StringWriter();
         HtmlUtils.writeURL(htmlWriter, urlToEncode, textBuffer, "UTF-8");
-        System.out.println("HTML: " + htmlWriter.toString());
         assertEquals(htmlWriter.toString(), expectedHTML);
     }
 }

@@ -3261,6 +3261,15 @@
             <required>false</required>
             <type>java.lang.String</type>
         </attribute>
+        <attribute>
+            <description>
+                <![CDATA[<p class="changed_added_2_3">
+                CSS style class to apply to each row.</p>]]>
+            </description>
+            <name>rowClass</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
     </tag>
     <tag>
         <description>
@@ -5495,6 +5504,17 @@
         </attribute>
         <attribute>
             <description>
+                <![CDATA[<span class="changed_added_2_0">
+                Flag indicating whether previously handled messages
+                are redisplayed or not. Default value is "true".
+                </span>]]>
+            </description>
+            <name>redisplay</name>
+            <required>false</required>
+            <type>java.lang.Boolean</type>
+        </attribute>
+        <attribute>
+            <description>
                 Flag indicating whether the detail portion of displayed messages
                 should be included. Default value is "true".
             </description>
@@ -5758,6 +5778,17 @@
         </attribute>
         <attribute>
             <description>
+                <![CDATA[<span class="changed_added_2_0">
+                Flag indicating whether previously handled messages
+                are redisplayed or not. Default value is "true".
+                </span>]]>
+            </description>
+            <name>redisplay</name>
+            <required>false</required>
+            <type>java.lang.Boolean</type>
+        </attribute>
+        <attribute>
+            <description>
                 Flag indicating whether the detail portion of displayed messages
                 should be included. Default value is "false".
             </description>
@@ -5922,6 +5953,27 @@
             <name>binding</name>
             <required>false</required>
             <type>jakarta.faces.component.UIComponent</type>
+        </attribute>
+        <attribute>
+            <description>
+                <![CDATA[<p class="changed_added_2_2">Per the WAI-ARIA spec and its
+                relationship to HTML5 (Section title ARIA Role Attriubute),
+                every HTML element may have a "role" attribute whose value
+                must be passed through unmodified on the element on which it
+                is declared in the final rendered markup.  The attribute, if
+                specified, must have a value that is a string literal that is,
+                or an EL Expression that evaluates to, a set of
+                space-separated tokens representing the various WAI-ARIA roles
+                that the element belongs to.
+                </p>
+
+                <p class="changed_added_2_2">It is the page author's
+                responsibility to ensure that the user agent is capable of
+                correctly interpreting the value of this attribute.</p>]]>
+            </description>
+            <name>role</name>
+            <required>false</required>
+            <type>java.lang.String</type>
         </attribute>
     </tag>
     <tag>
@@ -6877,6 +6929,14 @@
         </attribute>
         <attribute>
             <description>
+                The media type for this stylesheet. Default is "screen".
+            </description>
+            <name>media</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
                 The ValueExpression linking this component to a property in a
                 backing bean
             </description>
@@ -7745,6 +7805,15 @@
             <required>false</required>
             <type>java.lang.String</type>
         </attribute>
+        <attribute>
+            <description>
+                <![CDATA[<p class="changed_added_2_3">
+                CSS style class to apply to each row.</p>]]>
+            </description>
+            <name>rowClass</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
     </tag>
     <tag>
         <description>
@@ -7798,6 +7867,96 @@
                 be produced.
             </description>
             <name>layout</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a pointer button is
+                clicked over this element.
+            </description>
+            <name>onclick</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a pointer button is
+                double clicked over this element.
+            </description>
+            <name>ondblclick</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a key is
+                pressed down over this element.
+            </description>
+            <name>onkeydown</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a key is
+                pressed and released over this element.
+            </description>
+            <name>onkeypress</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a key is
+                released over this element.
+            </description>
+            <name>onkeyup</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a pointer button is
+                pressed down over this element.
+            </description>
+            <name>onmousedown</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a pointer button is
+                moved within this element.
+            </description>
+            <name>onmousemove</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a pointer button is
+                moved away from this element.
+            </description>
+            <name>onmouseout</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a pointer button is
+                moved onto this element.
+            </description>
+            <name>onmouseover</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Javascript code executed when a pointer button is
+                released over this element.
+            </description>
+            <name>onmouseup</name>
             <required>false</required>
             <type>java.lang.String</type>
         </attribute>
@@ -10932,6 +11091,18 @@
             <type>java.lang.String</type>
         </attribute>
         <attribute>
+            <description><![CDATA[<div class="changed_added_2_3">
+                Specifies the name of the radio button group.
+                When specified, then the <code>layout</code> and <code>border</code> attributes are ignored and the component renders a single radio button along with the label without additional markup.
+                Radio button components having the same group within a <code>UIForm</code> parent will share the same <code>value</code> attribute and <code>UISelectItem</code> children.
+                If the <code>value</code> attribute is absent on the current radio button component, then the one from first radio button component of the same group will be used.
+                If the <code>UISelectItem</code> child is absent on the current radio button component, then the one from first radio button component of the same group will be used, by same index as the current radio button component itself relative to other radio button components having the same group.
+            </div>]]></description>
+            <name>group</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
             <description>
                 &lt;p class="changed_modified_2_0"&gt;
                 Flag indicating that, if this component is activated by the
@@ -11427,6 +11598,15 @@
                 </p>]]>
             </description>
             <name>valueChangeListener</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+        <attribute>
+            <description>
+                Access key that, when pressed, transfers focus
+                to this element.
+            </description>
+            <name>accesskey</name>
             <required>false</required>
             <type>java.lang.String</type>
         </attribute>

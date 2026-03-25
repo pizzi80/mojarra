@@ -44,8 +44,6 @@ public class ParseXMLTestCase {
 
         String curDir = System.getProperty("user.dir");
         File baseDir = new File(curDir);
-        System.out.println("current dir = " + curDir);
-        System.out.flush();
         visitAllDirsAndFiles(new File(baseDir, xmlDir));
         for (Object file : list) {
             try {
@@ -54,15 +52,9 @@ public class ParseXMLTestCase {
                 factory.setValidating(true);
                 SAXParser saxParser = factory.newSAXParser();
 
-                System.out.println("XML file to be parsed : file://" + file.toString());
-                System.out.flush();
                 saxParser.parse(new InputSource(new FileInputStream(file.toString())), new XHTMLResolvingHandler());
-                System.out.println("parsing complete.");
-                System.out.flush();
             } catch (Exception e) {
-                System.out.println("Parse error for " + file.toString() + " " + e.toString());
-                System.out.flush();
-                fail();
+                fail("Parse error for " + file.toString() + ": " + e.toString());
             }
         }
 

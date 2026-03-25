@@ -16,6 +16,7 @@
 
 package jakarta.faces.convert;
 
+
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -23,9 +24,8 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Currency;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
-import jakarta.el.ValueExpression;
-import jakarta.faces.application.SharedUtils;
 import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
@@ -172,7 +172,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
      */
     public static final String STRING_ID = "jakarta.faces.converter.STRING";
 
-    private static final String NBSP = "\u00a0";
+    private static final Pattern FIXED_WIDTH_WHITESPACE = Pattern.compile("[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]");
+    private static final Pattern ZERO_WIDTH_WHITESPACE = Pattern.compile("[\u200b-\u200d\u2060\ufeff]");
 
     // ------------------------------------------------------ Instance Variables
 
@@ -481,11 +482,12 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
         try {
 
-            // strip (trim) the input if not blank, null otherwise
-            value = SharedUtils.trimToNull(value);
-
-            // If the specified value is null, return null
+            // If the specified value is null or zero-length, return null
             if (value == null) {
+                return null;
+            }
+            value = value.trim();
+            if (value.length() < 1) {
                 return null;
             }
 
@@ -494,63 +496,95 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
             // Create and configure the parser to be used
             parser = getNumberFormat(locale);
-            if (pattern != null && !pattern.isEmpty() || "currency".equals(type)) {
+            if (pattern != null && pattern.length() != 0 || "currency".equals(type)) {
                 configureCurrency(parser);
             }
             parser.setParseIntegerOnly(isIntegerOnly());
-            boolean groupSepChanged;
-            // BEGIN HACK 4510618
-            // This lovely bit of code is for a workaround in some
-            // oddities in the JDK's parsing code.
-            // See: https://bugs.java.com/bugdatabase/view_bug?bug_id=4510618
-            if (parser instanceof DecimalFormat decimalParser) {
+
+            // Normalize all fixed-width whitespace in the formatter's symbols, prefix,
+            // and suffix to regular spaces, and normalize the user input to match.
+            // This handles NBSP/NNBSP in grouping separators (e.g. fr-FR) and in
+            // currency prefixes/suffixes (e.g. Brazilian Real "R$\u00A0") at the same time.
+            // See: https://github.com/eclipse-ee4j/mojarra/issues/5399
+            if (parser instanceof DecimalFormat) {
+                var dParser = (DecimalFormat) parser;
 
                 // Take a small hit in performance to avoid a loss in
                 // precision due to DecimalFormat.parse() returning Double
-                ValueExpression ve = component.getValueExpression("value");
+                var ve = component.getValueExpression("value");
                 if (ve != null) {
-                    Class<?> expectedType = ve.getType(context.getELContext());
+                    var expectedType = ve.getType(context.getELContext());
                     if (expectedType != null && expectedType.isAssignableFrom(BigDecimal.class)) {
-                        decimalParser.setParseBigDecimal(true);
+                        dParser.setParseBigDecimal(true);
                     }
                 }
-                DecimalFormatSymbols symbols = decimalParser.getDecimalFormatSymbols();
-                if (symbols.getGroupingSeparator() == '\u00a0') {
-                    groupSepChanged = true;
-                    String valueWithoutNBSP = value.contains(NBSP) ? value.replace('\u00a0', ' ') : value;
-                    symbols.setGroupingSeparator(' ');
-                    decimalParser.setDecimalFormatSymbols(symbols);
+
+                var symbols = dParser.getDecimalFormatSymbols();
+                var origGroupingSep = symbols.getGroupingSeparator();
+                // TODO: uncomment in Faces 5.0: var origMonetaryGroupingSep = symbols.getMonetaryGroupingSeparator();
+                var origPrefix = dParser.getPositivePrefix();
+                var origSuffix = dParser.getPositiveSuffix();
+                var origNegPrefix = dParser.getNegativePrefix();
+                var origNegSuffix = dParser.getNegativeSuffix();
+
+                boolean hasFixedWidthWhitespace =
+                        FIXED_WIDTH_WHITESPACE.matcher(String.valueOf(origGroupingSep)).matches() ||
+                        // TODO: uncomment in Faces 5.0: FIXED_WIDTH_WHITESPACE.matcher(String.valueOf(origMonetaryGroupingSep)).matches() ||
+                        FIXED_WIDTH_WHITESPACE.matcher(origPrefix).find() ||
+                        FIXED_WIDTH_WHITESPACE.matcher(origSuffix).find() ||
+                        FIXED_WIDTH_WHITESPACE.matcher(origNegPrefix).find() ||
+                        FIXED_WIDTH_WHITESPACE.matcher(origNegSuffix).find();
+
+                if (hasFixedWidthWhitespace) {
+                    var normalizedValue = normalizeWhitespace(value);
+
+                    if (FIXED_WIDTH_WHITESPACE.matcher(String.valueOf(origGroupingSep)).matches()) {
+                        symbols.setGroupingSeparator(' ');
+                    }
+
+                    // TODO: uncomment in Faces 5.0:
+                    // if (FIXED_WIDTH_WHITESPACE.matcher(String.valueOf(origMonetaryGroupingSep)).matches()) {
+                    //     symbols.setMonetaryGroupingSeparator(' ');
+                    // }
+
+                    dParser.setDecimalFormatSymbols(symbols);
+                    dParser.setPositivePrefix(normalizeWhitespace(origPrefix));
+                    dParser.setPositiveSuffix(normalizeWhitespace(origSuffix));
+                    dParser.setNegativePrefix(normalizeWhitespace(origNegPrefix));
+                    dParser.setNegativeSuffix(normalizeWhitespace(origNegSuffix));
+
                     try {
-                        return decimalParser.parse(valueWithoutNBSP);
+                        return dParser.parse(normalizedValue);
                     }
                     catch (ParseException pe) {
-                        if (groupSepChanged) {
-                            symbols.setGroupingSeparator('\u00a0');
-                            decimalParser.setDecimalFormatSymbols(symbols);
-                        }
+                        // Restore original symbols and fall through to regular parsing
+                        symbols.setGroupingSeparator(origGroupingSep);
+                        // TODO: uncomment in Faces 5.0: symbols.setMonetaryGroupingSeparator(origMonetaryGroupingSep);
+                        dParser.setDecimalFormatSymbols(symbols);
+                        dParser.setPositivePrefix(origPrefix);
+                        dParser.setPositiveSuffix(origSuffix);
+                        dParser.setNegativePrefix(origNegPrefix);
+                        dParser.setNegativeSuffix(origNegSuffix);
                     }
                 }
             }
-            // END HACK 4510618
 
             // Perform the requested parsing
             returnValue = parser.parse(value);
-        }
-        catch (ParseException e) {
+        } catch (ParseException e) {
             if (pattern != null) {
                 throw new ConverterException(MessageFactory.getMessage(context, PATTERN_ID, value, "#,##0.0#", MessageFactory.getLabel(context, component)), e);
+            } else if (type.equals("currency")) {
+                throw new ConverterException(
+                        MessageFactory.getMessage(context, CURRENCY_ID, value, parser.format(99.99), MessageFactory.getLabel(context, component)), e);
+            } else if (type.equals("number")) {
+                throw new ConverterException(
+                        MessageFactory.getMessage(context, NUMBER_ID, value, parser.format(99), MessageFactory.getLabel(context, component)), e);
+            } else if (type.equals("percent")) {
+                throw new ConverterException(
+                        MessageFactory.getMessage(context, PERCENT_ID, value, parser.format(.75), MessageFactory.getLabel(context, component)), e);
             }
-            else if (type.equals("currency")) {
-                throw new ConverterException(MessageFactory.getMessage(context, CURRENCY_ID, value, parser.format(99.99), MessageFactory.getLabel(context, component)), e);
-            }
-            else if (type.equals("number")) {
-                throw new ConverterException(MessageFactory.getMessage(context, NUMBER_ID, value, parser.format(99), MessageFactory.getLabel(context, component)), e);
-            }
-            else if (type.equals("percent")) {
-                throw new ConverterException(MessageFactory.getMessage(context, PERCENT_ID, value, parser.format(.75), MessageFactory.getLabel(context, component)), e);
-            }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ConverterException(e);
         }
         return returnValue;
@@ -571,7 +605,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
             // If the specified value is null, return a zero-length String
             if (value == null) {
-                return SharedUtils.EMPTY_STRING;
+                return "";
             }
 
             // If the incoming value is still a string, play nice
@@ -585,7 +619,7 @@ public class NumberConverter implements Converter, PartialStateHolder {
 
             // Create and configure the formatter to be used
             NumberFormat formatter = getNumberFormat(locale);
-            if (pattern != null && !pattern.isEmpty() || "currency".equals(type)) {
+            if (pattern != null && pattern.length() != 0 || "currency".equals(type)) {
                 configureCurrency(formatter);
             }
             configureFormatter(formatter);
@@ -593,6 +627,8 @@ public class NumberConverter implements Converter, PartialStateHolder {
             // Perform the requested formatting
             return formatter.format(value);
 
+        } catch (ConverterException e) {
+            throw new ConverterException(MessageFactory.getMessage(context, STRING_ID, value, MessageFactory.getLabel(context, component)), e);
         } catch (Exception e) {
             throw new ConverterException(MessageFactory.getMessage(context, STRING_ID, value, MessageFactory.getLabel(context, component)), e);
         }
@@ -758,6 +794,11 @@ public class NumberConverter implements Converter, PartialStateHolder {
             throw new ConverterException(new IllegalArgumentException(type));
         }
 
+    }
+
+    private static String normalizeWhitespace(String text) {
+        String normalized = FIXED_WIDTH_WHITESPACE.matcher(text).replaceAll(" ");
+        return ZERO_WIDTH_WHITESPACE.matcher(normalized).replaceAll("");
     }
 
     // ----------------------------------------------------- StateHolder Methods

@@ -32,7 +32,9 @@ public class WebappLifecycleListenerTestCase extends JUnitFacesTestCaseBase {
 
         // This removes the InitFacesContext initialized in lifecycleListener.requestDestroyed(event).
         if (FacesContext.getCurrentInstance() instanceof InitFacesContext) {
-            ((InitFacesContext) FacesContext.getCurrentInstance()).removeInitContextEntryForCurrentThread();
+            InitFacesContext initFacesContext = (InitFacesContext) FacesContext.getCurrentInstance();
+            initFacesContext.removeInitContextEntryForCurrentThread();
+            initFacesContext.removeServletContextEntryForInitContext();
         }
 
         // To release ServletContextFacesContextFactory, which also keeps reference to InitFacesContext instance.

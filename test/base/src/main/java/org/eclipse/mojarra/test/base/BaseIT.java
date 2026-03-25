@@ -16,16 +16,22 @@
 package org.eclipse.mojarra.test.base;
 
 import static java.lang.System.getProperty;
+import static java.net.URI.create;
+import static java.net.http.HttpClient.newHttpClient;
+import static java.net.http.HttpRequest.newBuilder;
+import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static java.time.Duration.ofSeconds;
 import static org.jboss.shrinkwrap.api.ShrinkWrap.create;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.exception.UncheckedException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit5.ArquillianExtension;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -90,6 +96,19 @@ public abstract class BaseIT {
         browser.get(baseURL + resource);
     }
 
+    protected String getResponseBody(String resource) {
+        try {
+            return newHttpClient().send(newBuilder(create(baseURL + resource)).build(), ofString()).body();
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+        catch (IOException e) {
+            throw new UncheckedException(e);
+        }
+    }
+
     protected String getPageTitle() {
         return browser.getTitle();
     }
@@ -98,13 +117,17 @@ public abstract class BaseIT {
         return browser.getPageSource();
     }
 
+    protected String getContextPath() {
+        return baseURL.getPath().replaceAll("/$", "");
+    }
+
     protected String getHrefURI(WebElement link) {
         String uri = link.getAttribute("href").substring(baseURL.toExternalForm().length());
         String uriWithoutJsessionId = uri.split(";jsessionid=", 2)[0];
         String[] uriAndQueryString = uri.split(Pattern.quote("?"), 2);
 
         if (uriAndQueryString.length == 2) {
-            uriWithoutJsessionId += "?" + uriAndQueryString[1]; 
+            uriWithoutJsessionId += "?" + uriAndQueryString[1];
         }
 
         return uriWithoutJsessionId;

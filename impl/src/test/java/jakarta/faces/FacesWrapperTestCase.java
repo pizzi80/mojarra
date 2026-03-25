@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
  * <p>
  * A unit test to make sure all classes implementing {@link FacesWrapper} are
  * actually wrapping all public and protected methods of the wrapped class. This
- * should help to keep the wrapper classes in sync with the wrapped classes.
+ * should help to keep the wrapper classes in synch with the wrapped classes.
  * </p>
  */
 public class FacesWrapperTestCase {
@@ -52,7 +52,7 @@ public class FacesWrapperTestCase {
     public void setUp() throws Exception {
         if (wrapperClasses == null) {
             loadWrapperClasses();
-            methodsToIgnore = new ArrayList<>();
+            methodsToIgnore = new ArrayList<Method>();
             methodsToIgnore.add(Object.class.getMethod("toString", new Class[0]));
         }
     }
@@ -73,11 +73,8 @@ public class FacesWrapperTestCase {
     @Test
     public void testWrapperClassesImplementFacesWrapper() {
         assertNotNull(noWrapperClasses);
-        if (!noWrapperClasses.isEmpty()) {
-            System.out.println("Wrapper classes not implementing jakarta.faces.FacesWrapper:");
-            System.out.println(noWrapperClasses.toString());
-        }
-        assertTrue(noWrapperClasses.isEmpty());
+        assertTrue(noWrapperClasses.isEmpty(),
+                "Wrapper classes not implementing jakarta.faces.FacesWrapper: " + noWrapperClasses);
     }
 
     /**
@@ -94,14 +91,12 @@ public class FacesWrapperTestCase {
             List<Method> wrapperMethods = getPublicAndProtectedMethods(wrapper);
             List<Method> methodsToWrap = getPublicAndProtectedMethods(wrapper.getSuperclass());
 
-            System.out.println("verify " + wrapper.getName() + " is wrapping "
-                    + wrapper.getSuperclass().getName() + " well");
             String msg = wrapper.getCanonicalName() + " does not wrap method: ";
             for (Method m : methodsToWrap) {
                 if (isMethodContained(m, methodsToIgnore)) {
                     continue;
                 }
-                assertTrue(isMethodContained(m, wrapperMethods), msg + m);
+                assertTrue(isMethodContained(m, wrapperMethods), msg + m.toString());
             }
         }
     }
@@ -135,7 +130,7 @@ public class FacesWrapperTestCase {
      * @return list of found methods.
      */
     private List<Method> getPublicAndProtectedMethods(Class<?> wrapper) {
-        List<Method> mList = new ArrayList<>();
+        List<Method> mList = new ArrayList<Method>();
         if (Object.class == wrapper) {
             return mList;
         }
@@ -198,7 +193,8 @@ public class FacesWrapperTestCase {
      * @param f the File to analyse.
      * @throws Exception ClassLoader exceptions.
      */
-    private void addWrapperClassToWrapperClassesList(ClassLoader cl, String pkg, File f) throws Exception {
+    private void addWrapperClassToWrapperClassesList(ClassLoader cl, String pkg, File f)
+            throws Exception {
         String name = f.getName();
         if (!name.endsWith(".class")) {
             return;

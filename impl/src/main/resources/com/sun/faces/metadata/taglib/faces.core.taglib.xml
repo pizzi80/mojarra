@@ -1139,6 +1139,42 @@ for <code>@NamedEvent</code>.</p>
     </tag>
     <tag>
         <description><![CDATA[
+            <p class="changed_added_2_2">Reset specific input values.
+            Interpret the value of the <code>render</code> attribute as
+            a space separated list of client identifiers suitable for
+            passing directly to <code>UIViewRoot.resetValues()</code>.
+            The implementation must cause an <code>ActionListener</code>
+            to be attached to the <code>ActionSource</code> component
+            in which this tag is nested that calls
+            <code>UIViewRoot.resetValues()</code> passing the value of
+            the <code>render</code> attribute as the argument.</p>
+        ]]></description>
+        <tag-name>resetValues</tag-name>
+        <handler-class>com.sun.faces.facelets.tag.faces.core.ResetValuesHandler</handler-class>
+        <attribute>
+            <description><![CDATA[
+                <p>Evaluates to Collection&lt;String&gt;. The clientIds
+                of components that will be passed to
+                <code>UIViewRoot.resetValues()</code>. The identifiers
+                must be space delimited.</p>
+            ]]></description>
+            <name>render</name>
+            <required>true</required>
+            <type>java.util.Collection</type>
+        </attribute>
+        <attribute>
+            <description><![CDATA[
+                <p>If present, this attribute refers to the value of one
+                of the exposed attached objects within the composite
+                component inside of which this tag is nested.</p>
+            ]]></description>
+            <name>for</name>
+            <required>false</required>
+            <type>java.lang.String</type>
+        </attribute>
+    </tag>
+    <tag>
+        <description><![CDATA[
             <p>Add a child UISelectItem component to the UIComponent
             associated with the closest parent UIComponent <span class="changed_modified_4_0">tag</span>.</p>
         ]]></description>
@@ -2695,7 +2731,7 @@ public class BackingBean implements PasswordHolder, Cloneable {
         ]]></description>
         <tag-name>viewParam</tag-name>
         <component>
-            <component-type>jakarta.faces.Parameter</component-type>
+            <component-type>jakarta.faces.ViewParameter</component-type>
             <renderer-type/>
         </component>
         <attribute>
@@ -2843,15 +2879,6 @@ public class BackingBean implements PasswordHolder, Cloneable {
             <method-signature>void
                 valueChange(jakarta.faces.event.ValueChangeEvent)
             </method-signature>
-        </attribute>
-        <attribute>
-            <description><![CDATA[
-                The maximum number of characters that may
-                be entered in this field.
-            ]]></description>
-            <name>maxlength</name>
-            <required>false</required>
-            <type>int</type>
         </attribute>
     </tag>
 

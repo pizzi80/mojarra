@@ -60,8 +60,8 @@ public class RegexValidatorTestCase extends ValidatorTestCase {
             fail("Exception not thrown when tested " + checkme + " against " + patternStr);
         } catch (ValidatorException ve) {
             String detail = ve.getFacesMessage().getDetail();
-            System.out.println("Detail in test: " + detail);
-            assertTrue(detail.equalsIgnoreCase("Regex pattern of 't.*' not matched"));
+            assertTrue(detail.equalsIgnoreCase("Regex pattern of 't.*' not matched"),
+                    "Unexpected detail message: " + detail);
         }
     }
 }

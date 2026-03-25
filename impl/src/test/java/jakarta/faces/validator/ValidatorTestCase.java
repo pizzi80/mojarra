@@ -16,6 +16,9 @@
 
 package jakarta.faces.validator;
 
+import java.util.Locale;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,11 +36,14 @@ import jakarta.faces.render.RenderKitFactory;
  */
 public class ValidatorTestCase extends JUnitFacesTestCaseBase {
 
+    private Locale previousDefaultLocale;
+
     // ---------------------------------------------------- Overall Test Methods
     // Set up instance variables required by this test case.
     @Override
     @BeforeEach
     public void setUp() throws Exception {
+        previousDefaultLocale = Locale.getDefault();
         super.setUp();
         UIViewRoot root = facesContext.getApplication().getViewHandler().createView(facesContext, null);
         root.setViewId("/viewId");
@@ -50,6 +56,13 @@ public class ValidatorTestCase extends JUnitFacesTestCaseBase {
         } catch (IllegalArgumentException e) {
         }
 
+    }
+
+    @Override
+    @AfterEach
+    public void tearDown() throws Exception {
+        super.tearDown();
+        Locale.setDefault(previousDefaultLocale);
     }
 
     @Test

@@ -251,7 +251,6 @@ public abstract class DataModelTestCaseBase {
         Iterator<?> iterator = model.iterator();
         if (!(model instanceof ScalarDataModel)) {
             for (int i = 0; i < 5; i++) {
-                System.out.println("Index: " + i);
                 assertTrue(iterator.hasNext());
                 assertNotNull(iterator.next());
             }

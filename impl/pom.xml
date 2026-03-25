@@ -82,7 +82,7 @@
             <version>4.1.0</version>
             <scope>provided</scope>
         </dependency>
-
+        
         <dependency>
             <groupId>jakarta.enterprise</groupId>
             <artifactId>jakarta.enterprise.cdi-el-api</artifactId>
@@ -210,7 +210,7 @@
             </plugins>
         </pluginManagement>
         <plugins>
-            <!-- ###  C O M P R E S S  /  M I N I F Y   faces.js  ###   -->
+            <!-- Compress/minify faces.js -->
             <!-- https://blutorange.github.io/closure-compiler-maven-plugin/minify-mojo.html -->
             <plugin>
                 <groupId>com.github.blutorange</groupId>
@@ -248,7 +248,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.4.0</version> <!-- 3.5.0 requires maven 3.6.3 ... jitpack still uses 3.6.2 o_O -->
+                <version>3.5.0</version>
                 <executions>
                     <execution>
                         <id>generate-resources</id>
@@ -273,10 +273,55 @@
                 <configuration>
                     <trimStackTrace>false</trimStackTrace>
                     <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <systemPropertyVariables>
+                        <java.util.logging.config.file>${project.build.testOutputDirectory}/logging.properties</java.util.logging.config.file>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
-     
-            
+
+            <!-- Runs JavaScript unit tests via Jest -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.15.4</version>
+                <configuration>
+                    <workingDirectory>${project.basedir}/src/test/ts</workingDirectory>
+                    <installDirectory>${project.build.directory}/frontend</installDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v22.22.0</nodeVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-install</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>test</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Creates the OSGi MANIFEST.MF file -->
             <plugin>
                 <groupId>org.apache.felix</groupId>

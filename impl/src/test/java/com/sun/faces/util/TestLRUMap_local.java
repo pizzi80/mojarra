@@ -17,10 +17,6 @@
 package com.sun.faces.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
 /**
@@ -46,7 +42,6 @@ public class TestLRUMap_local {
         };
 
         int count = 3;
-        display(control.clone(), map);
         for (String s : map.keySet()) {
             assertEquals(control[--count], s);
         }
@@ -59,25 +54,8 @@ public class TestLRUMap_local {
             "six", "three", "five", "four", "two"
         };
         count = 5;
-        display(control.clone(), map);
         for (String s : map.keySet()) {
             assertEquals(control[--count], s);
         }
-    }
-
-    // --------------------------------------------------------- Private Methods
-    private static void display(String[] expected, LRUMap<String, String> actual) {
-        System.out.println("Expected order:");
-        List<String> revControl = Arrays.asList(expected);
-        Collections.reverse(revControl);
-        for (String s : revControl) {
-            System.out.print(s + ' ');
-        }
-        System.out.println('\n');
-        System.out.println("Actual order:");
-        for (String s : actual.keySet()) {
-            System.out.print(s + ' ');
-        }
-        System.out.println();
     }
 }
