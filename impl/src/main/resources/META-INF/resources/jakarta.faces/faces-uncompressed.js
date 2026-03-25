@@ -1891,16 +1891,24 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 if (isNull(source)) {
                     throw new Error("faces.ajax.request: source not set");
                 }
+
                 if(delayHandler) {
                     clearTimeout(delayHandler);
                     delayHandler = null;
                 }
 
                 // set up the element based on source
-                const element = getElemById(source);
+                let element;
+                if (typeof source === 'string') {
+                    element = document.getElementById(source);
+                } else if (typeof source === 'object') {
+                    element = source;
+                } else {
+                    throw new Error("faces.ajax.request: source must be object or string");
+                }
 
                 // validate the element
-                if ( !element ) throw new Error("faces.ajax.request: source element not found in the dom");
+                if ( !element ) throw new Error("faces.ajax.request: source not set");
 
                 // attempt to handle case of name unset
                 // this might be true in a badly written composite component
