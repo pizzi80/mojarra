@@ -2707,8 +2707,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
          * @ignore
          */
         const fetchWindowIdFromURL = function fetchWindowIdFromURL() {
-            const params = new URLSearchParams(document.location.search);
-            return params.get("windowId");
+            return new URLSearchParams(location.search).get("windowId");
         };
 
         //byId ($)
