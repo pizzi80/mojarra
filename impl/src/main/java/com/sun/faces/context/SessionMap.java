@@ -223,7 +223,7 @@ public class SessionMap extends BaseContextMap<Object> {
                 final ReentrantLock mutex = (ReentrantLock) httpSession.getAttribute(MUTEX);
                 // if the mutex was removed in the meantime -> return the shared_mutex...?
                 if ( mutex == null ) {
-                    LOGGER.fine("getMutex(session) is returning a shared mutex because the Mutex attribute was removed from session in the meantime");
+                    LOGGER.fine("getMutex(session) is returning a shared mutex because the Mutex attribute has been removed from session in the meantime");
                     return shared_mutex;
                 }
                 return mutex;
