@@ -20,7 +20,6 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Set;
 
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.ResponseStream;
@@ -155,10 +154,7 @@ public abstract class RenderKit {
      *
      */
     public Iterator<String> getComponentFamilies() {
-
-        Set<String> empty = Collections.emptySet();
-        return empty.iterator();
-
+        return Collections.emptyIterator();
     }
 
     /**
@@ -183,10 +179,7 @@ public abstract class RenderKit {
      *
      */
     public Iterator<String> getRendererTypes(String componentFamily) {
-
-        Set<String> empty = Collections.emptySet();
-        return empty.iterator();
-
+        return Collections.emptyIterator();
     }
 
     /**
