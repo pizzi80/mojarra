@@ -173,10 +173,10 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             const formsToUpdate = new Set();
 
             // return true if the passed element is a form
-            const isFormElement = (element) => element.nodeName && element.nodeName.toLowerCase() === FORM;
+            const isFormElement = (element) => element instanceof HTMLFormElement;
 
             // return true if the passed form needs the view state hidden field
-            const isValidForm = (form) => form.method === "post" && form.id && form.elements && form.id.startsWith(context.namingContainerPrefix);
+            const isValidForm = (form) => form.id && form.elements && form.method === "post" && form.id.startsWith(context.namingContainerPrefix);
 
             // if the passed DOM element is a form and is valid,
             // then add to the forms to update,
@@ -187,8 +187,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                         formsToUpdate.add(element);
                     }
                     else {
-                        const forms = element.getElementsByTagName(FORM);
-                        for ( const form of forms )
+                        for (const form of document.forms)
                             add(form);
                     }
                 }
@@ -215,9 +214,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
 
             // second pass: we have to include all the updated forms using PartialViewContext from Java
             if ( ! isRenderAll ) { // performance bonus: only if we aren't in @all case
-                const allForms = document.getElementsByTagName(FORM);
-
-                for (const form of allForms) {
+                for (const form of document.forms) {
                     if (!formsToUpdate.has(form)
                         && isValidForm(form)
                         && isNull(getHiddenStateField(form, hiddenStateFieldName, context.namingContainerPrefix))) {
@@ -1136,7 +1133,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
          * Ajax Request Queue
          * @ignore
          */
-        const Queue = new function Queue() {
+        const Queue = function Queue() {
 
             // Create the internal queue
             let queue = [];
@@ -1182,7 +1179,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
              * @ignore
              */
             this.dequeue = function dequeue() {
-                // initialise the element to return to be undefined
+                // initialize the element to return to be undefined
                 let element = undefined;
 
                 // check whether the queue is empty
@@ -1213,6 +1210,11 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             };
         };
 
+        /**
+         * Faces Ajax shared request queue
+         * (singleton, per spec)
+         */
+        const FACES_AJAX_QUEUE = new Queue();
 
         /**
          * AjaxEngine handles Ajax implementation details.
@@ -1234,7 +1236,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             req.method = null;             // GET or POST
             req.status = null;             // Response Status Code From Server
             req.fromQueue = false;         // Indicates if the request was taken off the queue before being sent. This prevents the request from entering the queue redundantly.
-            req.que = Queue;               // the shared queue for requests (singleton, per spec)
+            req.que = FACES_AJAX_QUEUE;    // the shared queue for requests (singleton, per spec)
             req.xmlReq = new XMLHttpRequest(); // The real XMLHttpRequest Level2
 
             // Set up request/response state callbacks
