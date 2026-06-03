@@ -50,6 +50,7 @@ import java.util.logging.Logger;
 
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.MojarraVersion;
 import com.sun.faces.util.Util;
 
 import jakarta.faces.application.ProjectStage;
@@ -129,12 +130,15 @@ public class ResourceImpl extends Resource implements Externalizable {
 
     @Override
     public boolean equals(Object o) {
+
         if (this == o) {
             return true;
         }
-        if ( ! (o instanceof ResourceImpl resource) ) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
+
+        ResourceImpl resource = (ResourceImpl) o;
 
         return resourceInfo.equals(resource.resourceInfo);
     }
@@ -293,7 +297,11 @@ public class ResourceImpl extends Resource implements Externalizable {
             version += resourceInfo.getVersion().toString();
         }
 
-        if (!version.isEmpty()) {
+        if (version.isEmpty() && FACES_SCRIPT_LIBRARY_NAME.equals(getLibraryName()) && MojarraVersion.IMPLEMENTATION_VERSION != null) {
+            version = MojarraVersion.IMPLEMENTATION_VERSION;
+        }
+
+        if (version.length() > 0) {
             uri += (queryStarted ? "&v=" : "?v=") + version;
             queryStarted = true;
         }

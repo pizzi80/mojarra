@@ -131,6 +131,7 @@ function createForm(formId = "testForm"): HTMLFormElement {
 
 describe("mojarra namespace", () => {
     const EXPECTED_MEMBERS: Record<string, string> = {
+        ael: "function",
         dpf: "function",
         apf: "function",
         cljs: "function",
@@ -687,7 +688,7 @@ describe("mojarra.l", () => {
 
         (moj().l as Function)(callback);
 
-        expect(spy).toHaveBeenCalledWith("load", callback, false);
+        expect(spy).toHaveBeenCalledWith("load", callback);
 
         spy.mockRestore();
         if (originalReadyState) {

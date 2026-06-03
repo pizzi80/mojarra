@@ -18,13 +18,13 @@
 
 /**
  @project Faces JavaScript Library
- @version 4.1.7
+ @version ${project.version}
  @description This is the standard implementation of the Faces JavaScript Library.
  */
 
 // Detect if this is already loaded, and if loaded, if it's a higher version
-if ( !( (window.faces && window.faces.specversion && window.faces.specversion >= 40100 )
-    && (window.faces.implversion && window.faces.implversion >= 7)) ) {
+if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{applicationScope["com.sun.faces.mojarraVersion"].specversion}', 10)) &&
+      (faces.implversion && faces.implversion >= parseInt('#{applicationScope["com.sun.faces.mojarraVersion"].implversion}', 10)))) {
 
     // --- JS Lang --------------------------------------------------------------------
     const UDEF = "undefined";
@@ -33,6 +33,42 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
     const FORM = "form";
     const isNull = (value) => (typeof value === UDEF || (typeof value === "object" && !value));
     const isNotNull = (value) => !isNull(value);
+
+    /**
+     * Get the head from document.
+     * @ignore
+     */
+    const getHead = () => {
+        return document.head || document.getElementsByTagName('head')[0] || document.documentElement;
+    };
+
+    /**
+     * Get the nonce from faces.js script for CSP support.
+     * Captured at load time via document.currentScript for robustness, with DOM query fallback.
+     * @ignore
+     */
+    const getNonce = (() => {
+        const loadTimeNonce = document.currentScript ? document.currentScript.nonce : undefined;
+        return () => {
+            if (loadTimeNonce) {
+                return loadTimeNonce;
+            }
+            const thisScript = document.querySelector("script[src*='jakarta.faces.resource/faces.js']");
+            return isNotNull(thisScript) ? thisScript.nonce : undefined;
+        };
+    })();
+
+    /**
+     * Execute script with nonce for CSP support.
+     * @ignore
+     */
+    const executeScriptWithNonce = (head, script, nonce) => {
+        const scriptNode = document.createElement('script'); // create script node
+        scriptNode.nonce = nonce;
+        scriptNode.text = script; // add the code to the script node
+        head.appendChild(scriptNode); // add it to the head
+        head.removeChild(scriptNode); // then remove it
+    };
 
     // --- Faces constants ------------------------------------------------------------
     const VIEW_STATE_PARAM = "jakarta.faces.ViewState";
@@ -84,10 +120,6 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         return inputElementName in form ? form[inputElementName] : getElementByName(form,inputElementName);
     }
 
-    /**
-     * append a new pair of parameter=value to a query string
-     * @ignore
-     */
 
     /**
      * return true if one of the dom elements contains
@@ -321,12 +353,19 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         };
 
         /**
-         * Remove all the portion of code matching the script pattern from the passed string
+         * Remove all the portion of code matching the script pattern from the passed string,
+         * preserving scripts whose type is set to something other than text/javascript.
          * @param html a String containing a portion of html
          * @ignore
          */
         const removeScripts = function removeScripts(html) {
-            return html.replace(/<script[^>]*type="text\/javascript"[^>]*>([\S\s]*?)<\/script>/igm, EMPTY);
+            return html.replace(/<script[^>]*>([\S\s]*?)<\/script>/igm, (match) => {
+                const type = match.match(TAG_ATTRIBUTE_TYPE_REGEX);
+                if (!!type && type[1] !== "text/javascript") {
+                    return match; // keep non-text/javascript scripts
+                }
+                return EMPTY;
+            });
         };
 
         /**
@@ -347,7 +386,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 if (url) loadedScriptUrls.push(url);
             }
 
-            const head = document.head || document.getElementsByTagName('head')[0] || document.documentElement;
+            const head = getHead();
             runScript(head, loadedScriptUrls, scripts, 0);
         };
 
@@ -375,6 +414,8 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             const src = scriptStr[1].match(findsrc);
             let scriptLoadedViaUrl = false;
 
+            const nonce = getNonce();
+
             if (!!src && src[1]) {
                 // if this is a file, load it
                 const url = unescapeHTML(src[1]);
@@ -387,7 +428,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                     parserElement.innerHTML = scriptStr[0];
                     cloneAttributes(scriptNode, parserElement.firstChild);
                     deleteNode(parserElement);
-                    //scriptNode.type = 'text/javascript';
+                    scriptNode.nonce = nonce;
                     scriptNode.src = url; // add the src to the script node
                     scriptNode.onload = scriptNode.onreadystatechange = function(_, abort) {
                         if (abort || !scriptNode.readyState || scriptLoadedStates.includes(scriptNode.readyState) ) {
@@ -403,12 +444,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
                 const script = scriptStr[2].replace(stripStart, EMPTY);
 
                 if (!!script) {
-                    // create script node
-                    const scriptNode = document.createElement('script');
-                    // scriptNode.type = 'text/javascript';
-                    scriptNode.text = script; // add the code to the script node
-                    head.appendChild(scriptNode); // add it to the head
-                    head.removeChild(scriptNode); // then remove it
+                    executeScriptWithNonce(head, script, nonce);
                 }
             }
 
@@ -432,7 +468,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
             const findhref = /href="([\S]*?)"/im;
 
             // the head of the document, note that document.head do not always work
-            const head = document.head || document.getElementsByTagName('head')[0] || document.documentElement;
+            const head = getHead();
 
             let loadedStylesheetUrls = null;
             let parserElement = null;
@@ -1123,8 +1159,8 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
          */
         const doEval = function doEval(element) {
             (() => { //
-                const src = element ? element.textContent : undefined;
-                if (src) window.eval.call(window, src);
+                const script = element ? element.textContent : undefined;
+                if (script) runScripts([[null, '', script]]);
                 else console.warn('called doEval with no source code');
             })();
         };
@@ -2963,13 +2999,31 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
         // RELEASE_PENDING rogerk - shouldn't this be getElementById instead of null
         const thisArg = (typeof source === 'object') ? source : null;
 
+        const head = getHead();
+        const nonce = getNonce();
+
         // Call back any scripts that were passed in
         for (let i = 2; i < arguments.length; i++) {
+            const facesChainThis = '__facesChainThis' + i;
+            const facesChainEvent = '__facesChainEvent' + i;
+            const facesChainResult = '__facesChainResult' + i;
 
-            const f = new Function("event", arguments[i]);
-            const returnValue = f.call(thisArg, event);
+            let result = undefined;
 
-            if (returnValue === false) {
+            try {
+                window[facesChainThis] = thisArg;
+                window[facesChainEvent] = event;
+                const script = 'window.' + facesChainResult + ' = (function(event) { ' + arguments[i] + ' }).call(window.' + facesChainThis + ', window.' + facesChainEvent + ');';
+                executeScriptWithNonce(head, script, nonce);
+                result = window[facesChainResult];
+            }
+            finally {
+                delete window[facesChainThis];
+                delete window[facesChainEvent];
+                delete window[facesChainResult];
+            }
+
+            if (result === false) {
                 return false;
             }
         }
@@ -2995,7 +3049,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
      * minor release number, leftmost digits, major release number.
      * This number may only be incremented by a new release of the specification.</p>
      */
-    faces.specversion = 40100;
+    faces.specversion = parseInt('#{applicationScope["com.sun.faces.mojarraVersion"].specversion}', 10);
 
     /**
      * <p>An integer specifying the implementation version that this file implements.
@@ -3003,7 +3057,7 @@ if ( !( (window.faces && window.faces.specversion && window.faces.specversion >=
      * <code>faces.specversion</code>
      * This number is implementation dependent.</p>
      */
-    faces.implversion = 7;
+    faces.implversion = parseInt('#{applicationScope["com.sun.faces.mojarraVersion"].implversion}', 10);
 
 
 } //end if version detection block
@@ -3155,16 +3209,19 @@ mojarra.l = function l(l) {
     if (document.readyState === "complete") {
         setTimeout(l);
     }
-    else if (window.addEventListener) {
-        window.addEventListener("load", l, false);
-    }
-    else if (typeof window.onload === "function") {
-        const oldListener = window.onload;
-        window.onload = function() { oldListener(); l(); };
-    }
     else {
-        window.onload = l;
+        window.addEventListener("load", l);
     }
+};
 
+/**
+ * Add event listener.
+ *
+ * @param id element id
+ * @param ev event name
+ * @param fn function
+ */
+mojarra.ael = function ael(id, ev, fn) {
+    document.getElementById(id).addEventListener(ev, fn);
 };
 

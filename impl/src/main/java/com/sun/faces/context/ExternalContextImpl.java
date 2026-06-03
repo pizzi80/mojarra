@@ -23,6 +23,7 @@ import static com.sun.faces.context.UrlBuilder.PROTOCOL_SEPARATOR;
 import static com.sun.faces.context.UrlBuilder.WEBSOCKET_PROTOCOL;
 import static com.sun.faces.util.Util.isEmpty;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -85,6 +86,12 @@ public class ExternalContextImpl extends ExternalContext {
     private ServletContext servletContext;
     private ServletRequest request;
     private ServletResponse response;
+    // Cached response writer (lazily created). A BufferedWriter so the many small render-time writes --
+    // and any writes by render-view listeners that obtain this same writer -- coalesce into larger chunks
+    // before the container's writer (some servlet writers, e.g. undertow, pay a per-write encode cost).
+    // Caching means every caller shares one buffer, preserving write order; flushed in release() and
+    // responseFlushBuffer().
+    private Writer responseOutputWriter;
     private ClientWindow clientWindow = null;
 
     private Map<String, Object> applicationMap = null;
@@ -768,7 +775,7 @@ public class ExternalContextImpl extends ExternalContext {
         HttpServletResponse res = (HttpServletResponse) response;
 
         Cookie cookie = new Cookie(name, value);
-        if (properties != null && !properties.isEmpty() ) {
+        if (properties != null && !properties.isEmpty()) {
             for (Map.Entry<String, Object> entry : properties.entrySet()) {
                 String key = entry.getKey();
                 PREDEFINED_COOKIE_PROPERTIES p = PREDEFINED_COOKIE_PROPERTIES.of(key);
@@ -812,7 +819,20 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public Writer getResponseOutputWriter() throws IOException {
-        return response.getWriter();
+        if (responseOutputWriter == null) {
+            responseOutputWriter = new BufferedWriter(response.getWriter());
+        }
+        return responseOutputWriter;
+    }
+
+    /**
+     * Drop the cached {@link BufferedWriter} without flushing it. Both {@code response.reset()} and
+     * {@code response.sendError()} only clear the container buffer, so output still buffered in the wrapping
+     * writer would survive and get flushed at {@link #release()}, re-committing the aborted response and
+     * defeating the container's error page. A subsequent write lazily re-creates a fresh writer.
+     */
+    private void discardResponseOutputWriter() {
+        responseOutputWriter = null;
     }
 
     /**
@@ -868,11 +888,7 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public void setResponseBufferSize(int size) {
-        if ( isResponseCommitted() ) {
-            LOGGER.warning("Response set buffer size called after is already committed: \n"+Util.getStackTraceString(new RuntimeException()));
-        } else {
-            response.setBufferSize(size);
-        }
+        response.setBufferSize(size);
     }
 
     /**
@@ -888,11 +904,8 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public void responseReset() {
-        if ( isResponseCommitted() ) {
-            LOGGER.warning("Response reset called after is already committed: \n"+Util.getStackTraceString(new RuntimeException()));
-        } else {
-            response.reset();
-        }
+        discardResponseOutputWriter();
+        response.reset();
     }
 
     /**
@@ -900,6 +913,7 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public void responseSendError(int statusCode, String message) throws IOException {
+        discardResponseOutputWriter();
         if (message == null) {
             ((HttpServletResponse) response).sendError(statusCode);
         } else {
@@ -923,6 +937,10 @@ public class ExternalContextImpl extends ExternalContext {
         FacesContext facesContext = FacesContext.getCurrentInstance();
         if (facesContext != null) {
             doLastPhaseActions(facesContext, false);
+        }
+
+        if (responseOutputWriter != null) {
+            responseOutputWriter.flush();
         }
 
         response.flushBuffer();
@@ -1023,6 +1041,18 @@ public class ExternalContextImpl extends ExternalContext {
 
     @Override
     public void release() {
+        // Flush buffered render output to the container's writer before discarding the response. This is
+        // the guaranteed end-of-request hook (FacesContext.release runs in the FacesServlet finally), so it
+        // covers output written after renderView -- e.g. by PostRenderViewEvent listeners.
+        if (responseOutputWriter != null) {
+            try {
+                responseOutputWriter.flush();
+            } catch (IOException ignored) {
+                // Best-effort at teardown; a genuine write failure surfaces via the container.
+            }
+            responseOutputWriter = null;
+        }
+
         servletContext = null;
         request = null;
         response = null;
@@ -1084,6 +1114,7 @@ public class ExternalContextImpl extends ExternalContext {
         } finally {
             attrs.remove(ELFlash.ACT_AS_DO_LAST_PHASE_ACTIONS);
         }
+
     }
 
     // --------------------------------------------------------- Private Methods

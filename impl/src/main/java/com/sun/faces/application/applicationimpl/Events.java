@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -47,11 +48,6 @@ import jakarta.faces.event.SystemEvent;
 import jakarta.faces.event.SystemEventListener;
 import jakarta.faces.event.SystemEventListenerHolder;
 
-/**
- * This class encapsulates the behavior to prevent infinite loops when the publishing of one event leads to the queueing
- * of another event of the same type. Special provision is made to allow the case where this guarding mechanisms happens
- * on a per-FacesContext, per-SystemEvent.class type basis.
- */
 public class Events {
 
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
@@ -63,6 +59,18 @@ public class Events {
 
     private final SystemEventHelper systemEventHelper = new SystemEventHelper();
     private final ComponentSystemEventHelper compSysEventHelper = new ComponentSystemEventHelper();
+
+    // Application-level (global) listener subscriptions, by event class. Lets publishEvent skip the
+    // global listener lookup for events nobody subscribed to globally (the common case for the
+    // per-component Pre/PostValidateEvent, PreRenderComponentEvent, etc.). Over-approximating: classes
+    // are never removed on unsubscribe, so a stale entry only costs an empty lookup, never a missed event.
+    private final Set<Class<? extends SystemEvent>> globallySubscribedEventClasses = ConcurrentHashMap.newKeySet();
+
+    /*
+     * This class encapsulates the behavior to prevent infinite loops when the publishing of one event leads to the queueing
+     * of another event of the same type. Special provision is made to allow the case where this guaring mechanims happens
+     * on a per-FacesContext, per-SystemEvent.class type basis.
+     */
 
     private final ReentrantLisneterInvocationGuard listenerInvocationGuard = new ReentrantLisneterInvocationGuard();
 
@@ -101,13 +109,16 @@ public class Events {
             // Look for and invoke any 'view' listeners
             event = invokeViewListenersFor(context, systemEventClass, event, source);
 
-            // Look for and invoke any listeners stored on the application using source type.
-            event = invokeListenersFor(systemEventClass, event, source, sourceBaseType, true);
+            // Look for and invoke any application-level listeners. Skip the lookup entirely when no
+            // global listener was ever registered for this event class (the common case).
+            if (globallySubscribedEventClasses.contains(systemEventClass)) {
+                // Look for and invoke any listeners stored on the application using source type.
+                event = invokeListenersFor(systemEventClass, event, source, sourceBaseType, true);
 
-            // Look for and invoke any listeners not specific to the source class
-            invokeListenersFor(systemEventClass, event, source, null, false);
-        }
-        catch (AbortProcessingException ape) {
+                // Look for and invoke any listeners not specific to the source class
+                invokeListenersFor(systemEventClass, event, source, null, false);
+            }
+        } catch (AbortProcessingException ape) {
             context.getApplication().publishEvent(context, ExceptionQueuedEvent.class, new ExceptionQueuedEventContext(context, ape));
         }
     }
@@ -126,8 +137,8 @@ public class Events {
         notNull(SYSTEM_EVENT_CLASS, systemEventClass);
         notNull(LISTENER, listener);
 
-        // listeners can't be null
         getListeners(systemEventClass, sourceClass).add(listener);
+        globallySubscribedEventClasses.add(systemEventClass);
     }
 
     /**
@@ -137,17 +148,29 @@ public class Events {
         notNull(SYSTEM_EVENT_CLASS, systemEventClass);
         notNull(LISTENER, listener);
 
-        // listeners can't be null
-        getListeners(systemEventClass, sourceClass).remove(listener);
+        Set<SystemEventListener> listeners = getListeners(systemEventClass, sourceClass);
+        if (listeners != null) {
+            listeners.remove(listener);
+        }
     }
 
     /**
      * @return the SystemEventListeners that should be used for the provided combination of SystemEvent and source.
      */
     private Set<SystemEventListener> getListeners(Class<? extends SystemEvent> systemEvent, Class<?> sourceClass) {
-        EventInfo sourceInfo = systemEventHelper.getEventInfo(systemEvent, sourceClass);    // can't be null
-        Set<SystemEventListener> listeners = sourceInfo.getListeners();                     // can't be null
+
+        Set<SystemEventListener> listeners = null;
+        EventInfo sourceInfo = systemEventHelper.getEventInfo(systemEvent, sourceClass);
+        if (sourceInfo != null) {
+            listeners = sourceInfo.getListeners();
+        }
+
         return listeners;
+
+    }
+
+    private boolean needsProcessing(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
+        return context.isProcessingEvents() || ExceptionQueuedEvent.class.isAssignableFrom(systemEventClass);
     }
 
     /**
@@ -156,9 +179,9 @@ public class Events {
      */
     private SystemEvent invokeComponentListenersFor(Class<? extends SystemEvent> systemEventClass, Object source) {
 
-        if (source instanceof SystemEventListenerHolder systemEventListenerHolder) {
+        if (source instanceof SystemEventListenerHolder) {
 
-            List<SystemEventListener> listeners = systemEventListenerHolder.getListenersForEventClass(systemEventClass);
+            List<SystemEventListener> listeners = ((SystemEventListenerHolder) source).getListenersForEventClass(systemEventClass);
             if (null == listeners) {
                 return null;
             }
@@ -170,30 +193,28 @@ public class Events {
     }
 
     private SystemEvent invokeViewListenersFor(FacesContext ctx, Class<? extends SystemEvent> systemEventClass, SystemEvent event, Object source) {
-        SystemEvent result = event;
+        UIViewRoot root = ctx.getViewRoot();
+        if (root == null) {
+            return event;
+        }
+
+        // Resolve the view listeners before touching the reentrancy guard: the common case has none,
+        // and the guard's bookkeeping (a per-request map) is only needed while actually invoking them.
+        List<SystemEventListener> listeners = root.getViewListenersForEventClass(systemEventClass);
+        if (null == listeners) {
+            return null;
+        }
 
         if (listenerInvocationGuard.isGuardSet(ctx, systemEventClass)) {
-            return result;
+            return event;
         }
         listenerInvocationGuard.setGuard(ctx, systemEventClass);
-
-        UIViewRoot root = ctx.getViewRoot();
         try {
-            if (root != null) {
-                List<SystemEventListener> listeners = root.getViewListenersForEventClass(systemEventClass);
-                if (null == listeners) {
-                    return null;
-                }
-
-                EventInfo rootEventInfo = systemEventHelper.getEventInfo(systemEventClass, UIViewRoot.class);
-                // process view listeners
-                result = processListenersAccountingForAdds(listeners, event, source, rootEventInfo);
-            }
+            EventInfo rootEventInfo = systemEventHelper.getEventInfo(systemEventClass, UIViewRoot.class);
+            return processListenersAccountingForAdds(listeners, event, source, rootEventInfo);
         } finally {
             listenerInvocationGuard.clearGuard(ctx, systemEventClass);
         }
-        return result;
-
     }
 
     /**

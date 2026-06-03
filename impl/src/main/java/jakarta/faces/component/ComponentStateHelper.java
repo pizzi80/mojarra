@@ -16,10 +16,6 @@
 
 package jakarta.faces.component;
 
-import static com.sun.faces.facelets.tag.faces.ComponentSupport.MARK_CREATED;
-import static com.sun.faces.facelets.tag.faces.ComponentSupport.addToDescendantMarkIdCache;
-import static com.sun.faces.util.Util.coalesce;
-import static com.sun.faces.util.Util.isEmpty;
 import static jakarta.faces.component.UIComponentBase.restoreAttachedState;
 import static jakarta.faces.component.UIComponentBase.saveAttachedState;
 
@@ -47,7 +43,12 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
 
     private final UIComponent component;
     private boolean isTransient;
-    private final Map<Serializable, Object> deltaMap;
+    /**
+     * Tracks state mutations after {@code component.initialStateMarked()} flips true.
+     * Lazily allocated on the first write through {@link #deltaMap()}; reads treat
+     * {@code null} as an empty map.
+     */
+    private Map<Serializable, Object> deltaMap;
     private final Map<Serializable, Object> defaultMap;
     private Map<Object, Object> transientState;
 
@@ -55,9 +56,20 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
 
     public ComponentStateHelper(UIComponent component) {
         this.component = component;
-        deltaMap = new HashMap<>();
         defaultMap = new HashMap<>();
         transientState = null;
+    }
+
+    /**
+     * Returns the delta map, allocating it on first access. All write sites must route
+     * through this accessor; read-only sites should treat {@code deltaMap == null} as
+     * an empty map to avoid spurious allocation.
+     */
+    private Map<Serializable, Object> deltaMap() {
+        if (deltaMap == null) {
+            deltaMap = new HashMap<>(2);
+        }
+        return deltaMap;
     }
 
     // ------------------------------------------------ Methods from StateHelper
@@ -73,7 +85,7 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
     public Object put(Serializable key, Object value) {
 
         if (component.initialStateMarked() || value instanceof PartialStateHolder) {
-            Object retVal = deltaMap.put(key, value);
+            Object retVal = deltaMap().put(key, value);
 
             if (retVal == null) {
                 return defaultMap.put(key, value);
@@ -96,7 +108,7 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
     @Override
     public Object remove(Serializable key) {
         if (component.initialStateMarked()) {
-            Object retVal = deltaMap.remove(key);
+            Object retVal = deltaMap == null ? null : deltaMap.remove(key);
 
             if (retVal == null) {
                 return defaultMap.remove(key);
@@ -116,18 +128,9 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
     public Object put(Serializable key, String mapKey, Object value) {
         initMap(key);
 
-        if (MARK_CREATED.equals(mapKey)) {
-            if (PropertyKeys.attributes.equals(key)) {
-                UIComponent parent = component.getParent();
-                if (parent != null) {
-                    // remember this component by its mark id
-                    addToDescendantMarkIdCache(parent, component);
-                }
-            }
-        }
-
         Object ret = null;
         if (component.initialStateMarked()) {
+            // initMap above already populated deltaMap for this key
             Map<String, Object> dMap = (Map<String, Object>) deltaMap.get(key);
             ret = dMap.put(mapKey, value);
         }
@@ -143,10 +146,19 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
 
     private void initMap(Serializable key) {
         if (component.initialStateMarked()) {
-            deltaMap.computeIfAbsent(key, $->new HashMap<>(5));
+            Map<Serializable, Object> dm = deltaMap();
+            Map<String, Object> dMap = (Map<String, Object>) dm.get(key);
+            if (dMap == null) {
+                dMap = new HashMap<>(5);
+                dm.put(key, dMap);
+            }
         }
 
-        defaultMap.computeIfAbsent(key, $->new HashMap<>(8));
+        Map<String, Object> map = (Map<String, Object>) get(key);
+        if (map == null) {
+            map = new HashMap<>(8);
+            defaultMap.put(key, map);
+        }
     }
 
     /**
@@ -180,9 +192,10 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
             if (valueExpression != null) {
                 retVal = valueExpression.getValue(component.getFacesContext().getELContext());
             }
+
         }
 
-        return coalesce(retVal, defaultValue);
+        return retVal != null ? retVal : defaultValue;
     }
 
     /**
@@ -216,23 +229,17 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
         initList(key);
 
         if (component.initialStateMarked()) {
-            getDeltaList(key).add(value);
+            // initList above already populated deltaMap for this key
+            ((List<Object>) deltaMap.get(key)).add(value);
         }
 
-        getList(key).add(value);
-    }
-
-    private List<Object> getList(Serializable key) {
-        return (List<Object>)defaultMap.get(key);
-    }
-
-    private List<Object> getDeltaList(Serializable key) {
-        return (List<Object>)deltaMap.get(key);
+        List<Object> items = (List<Object>) get(key);
+        items.add(value);
     }
 
     private void initList(Serializable key) {
         if (component.initialStateMarked()) {
-            deltaMap.computeIfAbsent(key, e -> new ArrayList<>(4));
+            deltaMap().computeIfAbsent(key, e -> new ArrayList<>(4));
         }
 
         if (get(key) == null) {
@@ -274,6 +281,10 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
         }
 
         if (component.initialStateMarked()) {
+            if (deltaMap == null) {
+                // No deltas accrued post-mark; no state to save.
+                return null;
+            }
             return saveMap(context, deltaMap);
         }
 
@@ -299,7 +310,7 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
 
         if (!component.initialStateMarked() && !defaultMap.isEmpty()) {
             defaultMap.clear();
-            if (!isEmpty(deltaMap)) {
+            if (deltaMap != null && !deltaMap.isEmpty()) {
                 deltaMap.clear();
             }
         }
@@ -327,13 +338,14 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
                 for (Map.Entry<String, Object> entry : ((Map<String, Object>) value).entrySet()) {
                     put(serializable, entry.getKey(), entry.getValue());
                 }
-            } else if (value instanceof List<?> values) {
+            } else if (value instanceof List) {
                 defaultMap.remove(serializable);
-                deltaMap.remove(serializable);
-
-                for (Object v : values) {
-                    add(serializable, v);
+                if (deltaMap != null) {
+                    deltaMap.remove(serializable);
                 }
+
+                List<?> values = (List<?>) value;
+                values.stream().forEach(o -> add(serializable, o));
             } else {
                 put(serializable, value);
                 handleAttribute(serializable.toString(), value);
@@ -406,7 +418,7 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
     private Object removeFromList(Serializable key, Object value) {
         Object ret = null;
         if (component.initialStateMarked() || value instanceof PartialStateHolder) {
-            Collection<Object> deltaList = (Collection<Object>) deltaMap.get(key);
+            Collection<Object> deltaList = deltaMap == null ? null : (Collection<Object>) deltaMap.get(key);
             if (deltaList != null) {
                 ret = deltaList.remove(value);
                 if (deltaList.isEmpty()) {
@@ -434,7 +446,7 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
     private Object removeFromMap(Serializable key, String mapKey) {
         Object ret = null;
         if (component.initialStateMarked()) {
-            Map<String, Object> dMap = (Map<String, Object>) deltaMap.get(key);
+            Map<String, Object> dMap = deltaMap == null ? null : (Map<String, Object>) deltaMap.get(key);
             if (dMap != null) {
                 ret = dMap.remove(mapKey);
                 if (dMap.isEmpty()) {
@@ -455,7 +467,7 @@ class ComponentStateHelper implements StateHelper, TransientStateHelper {
             }
         }
 
-        if (ret != null && !component.initialStateMarked()) {
+        if (ret != null && !component.initialStateMarked() && deltaMap != null) {
             deltaMap.remove(key);
         }
 

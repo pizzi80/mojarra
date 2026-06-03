@@ -430,7 +430,7 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
             return null;
         }
 
-        Util.checkIdUniqueness(context, viewRoot, new HashSet<>(viewRoot.getChildCount() << 1));
+        Util.checkIdUniqueness(context, viewRoot, new HashSet<>(64));
 
         final Map<String, Object> stateMap = new HashMap<>();
         final StateContext stateContext = StateContext.getStateContext(context);

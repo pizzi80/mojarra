@@ -18,17 +18,18 @@ package com.sun.faces.renderkit.html_basic;
 
 import java.io.IOException;
 
+import com.sun.faces.application.resource.ResourceHandlerImpl;
+import jakarta.faces.application.NavigationCase;
+import jakarta.faces.component.UIComponent;
+import jakarta.faces.context.FacesContext;
+import jakarta.faces.context.ResponseWriter;
+
 import com.sun.faces.RIConstants;
 import com.sun.faces.renderkit.Attribute;
 import com.sun.faces.renderkit.AttributeManager;
 import com.sun.faces.renderkit.RenderKitUtils;
 import com.sun.faces.util.MessageUtils;
 import com.sun.faces.util.Util;
-
-import jakarta.faces.application.NavigationCase;
-import jakarta.faces.component.UIComponent;
-import jakarta.faces.context.FacesContext;
-import jakarta.faces.context.ResponseWriter;
 
 public class OutcomeTargetButtonRenderer extends OutcomeTargetRenderer {
 
@@ -76,9 +77,11 @@ public class OutcomeTargetButtonRenderer extends OutcomeTargetRenderer {
                 label += MessageUtils.getExceptionMessageString(MessageUtils.OUTCOME_TARGET_BUTTON_NO_MATCH);
                 writer.writeAttribute("disabled", "true", "disabled");
             } else {
-                String hrefVal = getEncodedTargetURL(context, component, navCase);
-                hrefVal += getFragment(component);
-                writer.writeAttribute("onclick", getOnclick(component, hrefVal), "onclick");
+                if (ResourceHandlerImpl.resolveCurrentNonce(context) == null) {
+                    String hrefVal = getEncodedTargetURL(context, component, navCase)
+                            + getFragment(component);
+                    writer.writeAttribute("onclick", getOnclick(component, hrefVal), "onclick");
+                }
             }
         }
 
@@ -91,11 +94,6 @@ public class OutcomeTargetButtonRenderer extends OutcomeTargetRenderer {
         }
 
         renderPassThruAttributes(context, writer, component, ATTRIBUTES, null);
-
-        if (component.getChildCount() == 0) {
-            writer.endElement("input");
-        }
-
     }
 
     @Override
@@ -107,6 +105,19 @@ public class OutcomeTargetButtonRenderer extends OutcomeTargetRenderer {
             context.getResponseWriter().endElement("input");
         }
 
+        RenderKitUtils.flushPendingBehaviorEventListeners(context, component, null);
+
+        if (!Util.componentIsDisabled(component)) {
+            NavigationCase navCase = getNavigationCase(context, component);
+
+            if (navCase != null) {
+                if (ResourceHandlerImpl.resolveCurrentNonce(context) != null) {
+                    String hrefVal = getEncodedTargetURL(context, component, navCase);
+                    hrefVal += getFragment(component);
+                    RenderKitUtils.addEventListener(context, component, null, "click", getOnclick(component, hrefVal));
+                }
+            }
+        }
     }
 
     // ------------------------------------------------------- Protected Methods

@@ -182,6 +182,13 @@
             <version>8.0.1.Final</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.jboss.weld.se</groupId>
+            <artifactId>weld-se-core</artifactId>
+            <version>5.1.2.Final</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
    <build>
@@ -194,14 +201,18 @@
                 </includes>
                 <excludes>
                     <exclude>**/LogStrings*.properties</exclude>
+                    <exclude>**/mojarra.properties</exclude>
+                    <exclude>**/faces-uncompressed.js</exclude>
                 </excludes>
             </resource>
-            <!-- Sets the Main Faces version into the log strings -->
+            <!-- Sets the Mojarra version into the log strings, mojarra.properties (read by MojarraVersion at runtime), and the @version JSDoc tag of faces-uncompressed.js. -->
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
                     <include>**/LogStrings*.properties</include>
+                    <include>**/mojarra.properties</include>
+                    <include>**/faces-uncompressed.js</include>
                 </includes>
             </resource>
         </resources>
@@ -220,15 +231,15 @@
                     <!-- Process all files in the "includes" directory individually-->
                     <execution>
                         <id>minify-faces-js</id>
-                        <phase>generate-sources</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>minify</goal>
                         </goals>
                         <configuration>
                             <encoding>UTF-8</encoding>
-                            <!-- Base configuration for all executions (bundles) -->
-                            <baseSourceDir>${project.basedir}/src/main/resources/META-INF/resources/</baseSourceDir>
-                            <baseTargetDir>${project.build.directory}/generated-resources/minified/META-INF/resources/</baseTargetDir>
+                            <!-- Read from the filtered (process-resources) output so EL-resolved specversion/implversion are picked up. -->
+                            <baseSourceDir>${project.build.outputDirectory}/META-INF/resources/</baseSourceDir>
+                            <baseTargetDir>${project.build.outputDirectory}/META-INF/resources/</baseTargetDir>
                             <sourceDir>jakarta.faces</sourceDir>
                             <targetDir>jakarta.faces</targetDir>
                             <includes>
@@ -236,32 +247,10 @@
                             </includes>
                             <outputFilename>#{path}/faces.js</outputFilename>
                             <skipMerge>true</skipMerge>
-                            <closureLanguageOut>NO_TRANSPILE</closureLanguageOut>
+                            <!-- Transpile down to ES5 so the minified faces.js parses on HtmlUnit's bundled Rhino as used in 4.x TCK.
+                                 Rhino's effective compatibility is ES5-ish. This config is no longer used in 5.0 branch. -->
+                            <closureLanguageOut>ECMASCRIPT5</closureLanguageOut>
                             <closureEmitUseStrict>false</closureEmitUseStrict>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            
-            <!-- Adds the paths where the source and resources generated above was stored -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.5.0</version>
-                <executions>
-                    <execution>
-                        <id>generate-resources</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>add-resource</goal>
-                        </goals>
-                        <configuration>
-                            <resources>
-                                <resource>
-                                    <directory>${project.build.directory}/generated-resources/minified</directory>
-                                </resource>
-                            </resources>
                         </configuration>
                     </execution>
                 </executions>

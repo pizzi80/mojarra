@@ -1434,9 +1434,13 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
 
         if (getRendersChildren()) {
             encodeChildren(context);
-        } else if (getChildCount() > 0) {
-            for (UIComponent kid : getChildren()) {
-                kid.encodeAll(context);
+        } else {
+            int childCount = getChildCount();
+            if (childCount > 0) {
+                List<UIComponent> children = getChildren();
+                for (int i = 0; i < childCount; i++) {
+                    children.get(i).encodeAll(context);
+                }
             }
         }
 
@@ -1445,7 +1449,17 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
 
     @SuppressWarnings("unchecked")
     private static ArrayDeque<UIComponent> _getComponentELStack(String keyName, Map<Object, Object> contextAttributes) {
-        return (ArrayDeque<UIComponent>) contextAttributes.computeIfAbsent(keyName, e -> new ArrayDeque<>());
+        // Plain get + lazy put rather than computeIfAbsent: the stack is created once per request and present on
+        // every subsequent push/pop/getCurrentComponent, and this method is one of the hottest paths in the
+        // lifecycle (pushed/popped per component per phase). Avoiding the computeIfAbsent lambda keeps the hot
+        // path a single HashMap.get.
+        @SuppressWarnings("unchecked")
+        ArrayDeque<UIComponent> componentELStack = (ArrayDeque<UIComponent>) contextAttributes.get(keyName);
+        if (componentELStack == null) {
+            componentELStack = new ArrayDeque<>();
+            contextAttributes.put(keyName, componentELStack);
+        }
+        return componentELStack;
     }
 
     /**

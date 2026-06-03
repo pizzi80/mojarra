@@ -18,26 +18,23 @@
 
 package com.sun.faces.renderkit.html_basic;
 
-import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.BEHAVIOR_SOURCE_PARAM;
-
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import com.sun.faces.RIConstants;
-import com.sun.faces.renderkit.Attribute;
-import com.sun.faces.renderkit.AttributeManager;
-import com.sun.faces.renderkit.RenderKitUtils;
-
 import jakarta.faces.component.UICommand;
 import jakarta.faces.component.UIComponent;
-import jakarta.faces.component.behavior.ClientBehavior;
 import jakarta.faces.component.behavior.ClientBehaviorContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
 import jakarta.faces.event.ActionEvent;
+
+import com.sun.faces.RIConstants;
+import com.sun.faces.application.resource.ResourceHandlerImpl;
+import com.sun.faces.renderkit.Attribute;
+import com.sun.faces.renderkit.AttributeManager;
+import com.sun.faces.renderkit.RenderKitUtils;
 
 /**
  * <B>ButtonRenderer</B> is a class that renders the current value of <code>UICommand</code> as a Button.
@@ -98,11 +95,6 @@ public class ButtonRenderer extends HtmlBasicRenderer {
          * when we decide how to do script injection.
          */
 
-        Collection<ClientBehaviorContext.Parameter> params = getBehaviorParameters(component);
-        if (!params.isEmpty() && (type.equals("submit") || type.equals("button"))) {
-            RenderKitUtils.renderFacesJsIfNecessary(context);
-        }
-
         String imageSrc = (String) component.getAttributes().get("image");
         writer.startElement("input", component);
         writeIdAttributeIfNecessary(context, writer, component);
@@ -125,7 +117,7 @@ public class ButtonRenderer extends HtmlBasicRenderer {
             writer.writeAttribute("value", label, "value");
         }
 
-        RenderKitUtils.renderPassThruAttributes(context, writer, component, ATTRIBUTES, getNonOnClickBehaviors(component));
+        RenderKitUtils.renderPassThruAttributes(context, writer, component, null, false, ATTRIBUTES, "click", "action");
 
         RenderKitUtils.renderXHTMLStyleBooleanAttributes(writer, component);
 
@@ -134,7 +126,9 @@ public class ButtonRenderer extends HtmlBasicRenderer {
             writer.writeAttribute("class", styleClass, "styleClass");
         }
 
-        RenderKitUtils.renderOnclick(context, component, params, null, false);
+        if (ResourceHandlerImpl.resolveCurrentNonce(context) == null) {
+            RenderKitUtils.renderOnclickEventListener(context, component, getBehaviorParameters(component), null, false);
+        }
 
         // PENDING(edburns): Prior to i_spec_1111, this element
         // was rendered unconditionally
@@ -154,6 +148,17 @@ public class ButtonRenderer extends HtmlBasicRenderer {
 
         if (component.getChildCount() > 0) {
             context.getResponseWriter().endElement("input");
+        }
+
+        String type = getButtonType(component);
+        Collection<ClientBehaviorContext.Parameter> params = getBehaviorParameters(component);
+
+        if (!params.isEmpty() && (type.equals("submit") || type.equals("button"))) {
+            RenderKitUtils.renderFacesJsIfNecessary(context);
+        }
+
+        if (ResourceHandlerImpl.resolveCurrentNonce(context) != null) {
+            RenderKitUtils.renderOnclickEventListener(context, component, params, null, false);
         }
     }
 
@@ -226,17 +231,6 @@ public class ButtonRenderer extends HtmlBasicRenderer {
         }
         return type;
 
-    }
-
-    // Returns the Behaviors map, but only if it contains some entry other
-    // than those handled by renderOnclick(). This helps us optimize
-    // renderPassThruAttributes() in the very common case where the
-    // button only contains an "action" (or "click") Behavior. In that
-    // we pass a null Behaviors map into renderPassThruAttributes(),
-    // which allows us to take a more optimized code path.
-    private static Map<String, List<ClientBehavior>> getNonOnClickBehaviors(UIComponent component) {
-
-        return getPassThruBehaviors(component, "click", "action");
     }
 
 } // end of class ButtonRenderer

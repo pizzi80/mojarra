@@ -219,6 +219,7 @@ public class MessagesRenderer extends HtmlBasicRenderer {
             writer.endElement("ul");
         }
 
+        RenderKitUtils.flushPendingBehaviorEventListeners(context, component, null);
     }
 
 } // end of class MessagesRenderer

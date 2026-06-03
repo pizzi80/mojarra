@@ -26,11 +26,14 @@ import static org.jboss.shrinkwrap.api.ShrinkWrap.create;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import io.github.bonigarcia.wdm.WebDriverManager;
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit5.ArquillianExtension;
@@ -42,15 +45,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.WebDriverWait;
-
-import io.github.bonigarcia.wdm.WebDriverManager;
 
 @ExtendWith(ArquillianExtension.class)
 @TestInstance(Lifecycle.PER_CLASS)
@@ -59,7 +62,7 @@ public abstract class BaseIT {
     protected WebDriver browser;
 
     @ArquillianResource
-    private URL baseURL;
+    protected URL baseURL;
 
     @Deployment(testable = false)
     public static WebArchive createDeployment() {
@@ -144,6 +147,39 @@ public abstract class BaseIT {
         executeScript("window.$ajax = true; faces.ajax.addOnEvent(data => { if (data.status == 'complete') window.$ajax = '" + uuid + "'; })");
         action.run();
         waitUntil(() -> executeScript("return window.$ajax == '" + uuid + "' || (!window.$ajax && document.readyState == 'complete');"));
+    }
+
+
+    protected String getNonce() {
+        try {
+            return browser.findElement(By.cssSelector("script[src*='jakarta.faces.resource/faces.js']")).getAttribute("nonce");
+        } catch (NoSuchElementException e) {
+            return "";
+        }
+    }
+
+    protected WebElement getBehaviorScriptElement(WebElement input) {
+        var elements = getBehaviorScriptElements(input);
+        return elements.isEmpty() ? null : elements.get(0);
+    }
+
+    protected List<WebElement> getBehaviorScriptElements(WebElement input) {
+        var id = input.getAttribute("id");
+        var elements = new ArrayList<WebElement>();
+
+        for (var script : browser.findElements(By.tagName("script"))) {
+            var src = script.getAttribute("src");
+            if (src == null || src.isEmpty()) {
+                var content = script.getDomProperty("textContent");
+
+                if (content != null &&
+                        (content.contains("'" + id + "'") || content.contains("\"" + id + "\""))) {
+                    elements.add(script);
+                }
+            }
+        }
+
+        return elements;
     }
 
     @SuppressWarnings("unchecked")

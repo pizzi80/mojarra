@@ -47,6 +47,7 @@ import com.sun.faces.util.Util;
 
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.component.NamingContainer;
+import jakarta.faces.component.UICommand;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIInput;
 import jakarta.faces.component.UIParameter;
@@ -468,7 +469,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
     private static final Set<SearchExpressionHint> EXPRESSION_HINTS = EnumSet.of(SearchExpressionHint.IGNORE_NO_RESULT,
             SearchExpressionHint.RESOLVE_SINGLE_COMPONENT);
 
-    protected static Iterator<FacesMessage> getMessageIter(FacesContext context, String forComponent, UIComponent component) {
+    protected Iterator<FacesMessage> getMessageIter(FacesContext context, String forComponent, UIComponent component) {
         // no "for" expression - return all messages
         if (forComponent == null) {
             return context.getMessages();
@@ -496,13 +497,14 @@ public abstract class HtmlBasicRenderer extends Renderer {
      *
      * @return an array of parameters
      */
-    protected static Param[] getParamList(UIComponent command) {
+    protected Param[] getParamList(UIComponent command) {
 
         if (command.getChildCount() > 0) {
             ArrayList<Param> parameterList = new ArrayList<>();
 
             for (UIComponent kid : command.getChildren()) {
-                if (kid instanceof UIParameter uiParam) {
+                if (kid instanceof UIParameter) {
+                    UIParameter uiParam = (UIParameter) kid;
                     if (!uiParam.isDisable()) {
                         Object value = uiParam.getValue();
                         Param param = new Param(uiParam.getName(), value == null ? null : value.toString());
@@ -525,7 +527,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
      *
      * @return a collection of ClientBehaviorContext.Parameter instances.
      */
-    protected static Collection<ClientBehaviorContext.Parameter> getBehaviorParameters(UIComponent command) {
+    protected Collection<ClientBehaviorContext.Parameter> getBehaviorParameters(UIComponent command) {
 
         List<ClientBehaviorContext.Parameter> params = null;
         int childCount = command.getChildCount();
@@ -533,7 +535,8 @@ public abstract class HtmlBasicRenderer extends Renderer {
         if (childCount > 0) {
 
             for (UIComponent kid : command.getChildren()) {
-                if (kid instanceof UIParameter uiParam) {
+                if (kid instanceof UIParameter) {
+                    UIParameter uiParam = (UIParameter) kid;
                     String name = uiParam.getName();
                     Object value = uiParam.getValue();
 
@@ -573,22 +576,25 @@ public abstract class HtmlBasicRenderer extends Renderer {
      *
      * @return true if this renderer should render an id attribute.
      */
-    protected static boolean shouldWriteIdAttribute(UIComponent component) {
+    protected boolean shouldWriteIdAttribute(UIComponent component) {
 
         // By default we only write the id attribute if:
         //
         // - We have a non-auto-generated id, or...
-        // - We have client behaviors.
+        // - We have client behaviors, or...
+        // - The component is a UICommand (its CSP-style click listener is attached
+        //   via mojarra.ael(clientId, ...) which needs the id on the rendered element).
         //
         // We assume that if client behaviors are present, they
         // may need access to the id (AjaxBehavior certainly does).
 
-        final String id = component.getId();
-        return id != null && (!id.startsWith(UIViewRoot.UNIQUE_ID_PREFIX)
-                || component instanceof ClientBehaviorHolder clientBehaviorHolder && !clientBehaviorHolder.getClientBehaviors().isEmpty());
+        String id;
+        return null != (id = component.getId()) && (!id.startsWith(UIViewRoot.UNIQUE_ID_PREFIX)
+                || component instanceof UICommand
+                || component instanceof ClientBehaviorHolder && !((ClientBehaviorHolder) component).getClientBehaviors().isEmpty());
     }
 
-    protected static String writeIdAttributeIfNecessary(FacesContext context, ResponseWriter writer, UIComponent component) {
+    protected String writeIdAttributeIfNecessary(FacesContext context, ResponseWriter writer, UIComponent component) {
 
         String id = null;
         if (shouldWriteIdAttribute(component)) {
@@ -604,12 +610,12 @@ public abstract class HtmlBasicRenderer extends Renderer {
         return id;
     }
 
-    protected static void rendererParamsNotNull(FacesContext context, UIComponent component) {
+    protected void rendererParamsNotNull(FacesContext context, UIComponent component) {
         notNull("context", context);
         notNull("component", component);
     }
 
-    protected static boolean shouldEncode(UIComponent component) {
+    protected boolean shouldEncode(UIComponent component) {
 
         // Suppress rendering if "rendered" property on the component is false.
         if (!component.isRendered()) {
@@ -622,7 +628,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
         return true;
     }
 
-    protected static boolean shouldDecode(UIComponent component) {
+    protected boolean shouldDecode(UIComponent component) {
 
         if (componentIsDisabledOrReadonly(component)) {
             if (logger.isLoggable(FINE)) {
@@ -634,7 +640,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
         return true;
     }
 
-    protected static boolean shouldEncodeChildren(UIComponent component) {
+    protected boolean shouldEncodeChildren(UIComponent component) {
 
         // Suppress rendering if "rendered" property on the component is false.
         if (!component.isRendered()) {
@@ -645,48 +651,6 @@ public abstract class HtmlBasicRenderer extends Renderer {
         }
 
         return true;
-    }
-
-    /**
-     * When rendering pass thru attributes, we need to take any attached Behaviors into account. The presence of a non-empty
-     * Behaviors map can cause us to switch from optimized pass thru attribute rendering to the unoptimized code path.
-     * However, in two very common cases - attaching action behaviors to commands and attaching value change behaviors to
-     * editable value holders - the behaviors map is populated with behaviors that are not handled by the pass thru
-     * attribute code - ie. the behaviors are handled locally by the renderer.
-     *
-     * In order to optimize such cases, we check to see whether the component's behaviors map actually contains behaviors
-     * only for these non-pass thru attributes. If so, we can pass a null behavior map into renderPassThruAttributes(), thus
-     * ensuring that we can take advantage of the optimized pass thru rendering logic.
-     *
-     * Note that in all cases where we use this method, we actually have two behavior events that we want to check for - a
-     * low-level/dom event (eg. "click", or "change") plus a high-level component event (eg. "action", or "valueChange").
-     *
-     * @param component the component that we are rendering
-     * @param domEventName the name of the dom-level event
-     * @param componentEventName the name of the component-level event
-     */
-    protected static Map<String, List<ClientBehavior>> getPassThruBehaviors(UIComponent component, String domEventName, String componentEventName) {
-
-        if (!(component instanceof ClientBehaviorHolder clientBehaviorHolder)) {
-            return null;
-        }
-
-        Map<String, List<ClientBehavior>> behaviors = clientBehaviorHolder.getClientBehaviors();
-
-        int size = behaviors.size();
-
-        if (size == 1 || size == 2) {
-            boolean hasDomBehavior = behaviors.containsKey(domEventName);
-            boolean hasComponentBehavior = behaviors.containsKey(componentEventName);
-
-            // If the behavior map only contains behaviors for non-pass
-            // thru attributes, return null.
-            if (size == 1 && (hasDomBehavior || hasComponentBehavior) || size == 2 && hasDomBehavior && hasComponentBehavior) {
-                return null;
-            }
-        }
-
-        return behaviors;
     }
 
     // --------------------------------------------------------- Private Methods
@@ -707,7 +671,9 @@ public abstract class HtmlBasicRenderer extends Renderer {
         UIComponent retComp = null;
         if (startPoint.getChildCount() > 0) {
             List<UIComponent> children = startPoint.getChildren();
-            for (UIComponent comp : children) {
+            for (int i = 0, size = children.size(); i < size; i++) {
+                UIComponent comp = children.get(i);
+
                 if (comp instanceof NamingContainer) {
                     try {
                         retComp = comp.findComponent(forComponent);

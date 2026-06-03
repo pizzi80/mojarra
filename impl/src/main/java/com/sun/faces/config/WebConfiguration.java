@@ -66,10 +66,12 @@ import jakarta.faces.webapp.FacesServlet;
 import jakarta.servlet.ServletContext;
 
 import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.application.resource.ResourceHandlerImpl;
 import com.sun.faces.application.view.FaceletViewHandlingStrategy;
 import com.sun.faces.facelets.util.Classpath;
 import com.sun.faces.lifecycle.HttpMethodRestrictionsPhaseListener;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.MojarraVersion;
 import com.sun.faces.util.Util;
 
 import com.sun.faces.RIConstants;
@@ -122,8 +124,6 @@ public class WebConfiguration {
     private FaceletsConfiguration faceletsConfig;
 
     private boolean hasFlows;
-    
-    private final String specificationVersion;
 
     // ------------------------------------------------------------ Constructors
 
@@ -145,8 +145,6 @@ public class WebConfiguration {
         getOptionValue(appMap,WebContextInitParameter.ResourceExcludes, " ");
         getOptionValue(appMap,WebContextInitParameter.FaceletsViewMappings, ";");
         getOptionValue(appMap,WebContextInitParameter.FaceletsSuffix, " ");
-        
-        specificationVersion = getClass().getPackage().getSpecificationVersion();
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -214,7 +212,7 @@ public class WebConfiguration {
     }
 
     public String getSpecificationVersion() {
-        return specificationVersion;
+        return MojarraVersion.SPECIFICATION_VERSION;
     }
 
     /**
@@ -794,6 +792,7 @@ public class WebConfiguration {
         ResourceUpdateCheckPeriod("com.sun.faces.resourceUpdateCheckPeriod", "5"), // in minutes
         CompressableMimeTypes("com.sun.faces.compressableMimeTypes", ""),
         DisableUnicodeEscaping("com.sun.faces.disableUnicodeEscaping", "auto"),
+        DisableIdUniquenessCheck("com.sun.faces.disableIdUniquenessCheck", "false"), // true|false|auto; default false (always check), opt-in auto skips it in Production
         FaceletsDefaultRefreshPeriod(ViewHandler.FACELETS_REFRESH_PERIOD_PARAM_NAME, "0"), // this is default for non-prod; default for prod is set in WebConfiguration
         FaceletsViewMappings(ViewHandler.FACELETS_VIEW_MAPPINGS_PARAM_NAME, ""),
         FaceletsLibraries(ViewHandler.FACELETS_LIBRARIES_PARAM_NAME, ""),
@@ -807,6 +806,7 @@ public class WebConfiguration {
         WebAppResourcesDirectory(ResourceHandler.WEBAPP_RESOURCES_DIRECTORY_PARAM_NAME, "/resources"),
         WebAppContractsDirectory(ResourceHandler.WEBAPP_CONTRACTS_DIRECTORY_PARAM_NAME, "/contracts"),
         ExceptionTypesToIgnoreInLogging("com.sun.faces.exceptionTypesToIgnoreInLogging", ""),
+        CspPolicy(ResourceHandlerImpl.CSP_POLICY_PARAM_NAME, ResourceHandlerImpl.DEFAULT_CSP_POLICY),
         ;
 
         private final String defaultValue;
@@ -903,7 +903,7 @@ public class WebConfiguration {
         CacheResourceModificationTimestamp("com.sun.faces.cacheResourceModificationTimestamp", false),
         EnableDistributable("com.sun.faces.enableDistributable", false),
         EnableMissingResourceLibraryDetection("com.sun.faces.enableMissingResourceLibraryDetection", false),
-        DisableIdUniquenessCheck("com.sun.faces.disableIdUniquenessCheck", false),
+        CspNonceEnabled(ResourceHandlerImpl.ENABLE_CSP_NONCE_PARAM_NAME, false),
         EnableTransitionTimeNoOpFlash("com.sun.faces.enableTransitionTimeNoOpFlash", false),
         ForceAlwaysWriteFlashCookie("com.sun.faces.forceAlwaysWriteFlashCookie", false),
         ViewRootPhaseListenerQueuesException(UIViewRoot.VIEWROOT_PHASE_LISTENER_QUEUES_EXCEPTIONS_PARAM_NAME, false),

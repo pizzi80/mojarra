@@ -102,6 +102,7 @@ import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIData;
 import jakarta.faces.component.UINamingContainer;
 import jakarta.faces.component.UIViewRoot;
+import jakarta.faces.component.search.UntargetableComponent;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.convert.Converter;
@@ -204,8 +205,8 @@ public class Util {
 
     public static Optional<ServletRegistration> getFacesServletRegistration(FacesContext context) {
         Object unKnownContext = context.getExternalContext().getContext();
-        if (unKnownContext instanceof ServletContext servletContext) {
-            return Optional.of((ServletRegistration) servletContext.getAttribute(FACES_SERVLET_REGISTRATION));
+        if (unKnownContext instanceof ServletContext) {
+            return Optional.ofNullable((ServletRegistration) ((ServletContext) unKnownContext).getAttribute(FACES_SERVLET_REGISTRATION));
         }
 
         return Optional.empty();
@@ -282,7 +283,7 @@ public class Util {
         return unitTestModeEnabled;
     }
 
-    public interface ThrowingBiConsumer<T, U> {
+    public static interface ThrowingBiConsumer<T, U> {
         void accept(T t, U u) throws Exception;
     }
 
@@ -379,7 +380,7 @@ public class Util {
 
     public static Class loadClass(String name, Object fallbackClass) throws ClassNotFoundException {
         // Primitive Type
-        Class<?> primitiveType = primitiveTypes.get(name);
+        Class primitiveType = primitiveTypes.get(name);
         if (primitiveType != null) return primitiveType;
 
         // Class.forName
@@ -410,13 +411,10 @@ public class Util {
     }
 
     public static ClassLoader getCurrentLoader(Object fallbackClass) {
-        final Class<?> clazz = fallbackClass != null ? fallbackClass.getClass() : null;
-        return getCurrentLoader(clazz);
-    }
-
-    public static ClassLoader getCurrentLoader(Class<?> fallbackClass) {
         ClassLoader loader = getContextClassLoader();
-        if (loader == null && fallbackClass != null) loader = fallbackClass.getClassLoader();
+        if (loader == null) {
+            loader = fallbackClass.getClass().getClassLoader();
+        }
         return loader;
     }
 
@@ -913,7 +911,7 @@ public class Util {
         else if (type.indexOf('.') == -1) {
             type = "java.lang." + type;
         }
-
+        
         Class<?> result = loadClass(type, Void.TYPE);
         return result;
     }
@@ -1172,8 +1170,8 @@ public class Util {
      */
     public static boolean isResourceExactMappedToFacesServlet(ExternalContext externalContext, String resource) {
         Object context = externalContext.getContext();
-        if (context instanceof ServletContext servletContext) {
-            return getFacesServletMappings(servletContext).contains(resource);
+        if (context instanceof ServletContext) {
+            return getFacesServletMappings((ServletContext) context).contains(resource);
         }
 
         return false;
@@ -1182,37 +1180,53 @@ public class Util {
     public static HttpServletMapping getFirstWildCardMappingToFacesServlet(ExternalContext externalContext) {
         // If needed, cache this after initialization of Faces
         Object context = externalContext.getContext();
-        if (context instanceof ServletContext servletContext) {
-            return getFacesServletMappings(servletContext)
-                    .stream()
-                    .filter(mapping -> mapping.contains("*"))
-                    .map(mapping -> new HttpServletMapping() {
+        if (context instanceof ServletContext) {
+            HttpServletMapping pathMapping = null;
 
-                        @Override
-                        public String getServletName() {
-                            return NO_VALUE;
-                        }
+            for (String mapping : getFacesServletMappings((ServletContext) context)) {
+                if (!mapping.contains("*")) {
+                    continue;
+                }
 
-                        @Override
-                        public String getPattern() {
-                            return mapping;
-                        }
+                HttpServletMapping wildcardMapping = toWildcardMapping(mapping);
+                if (wildcardMapping.getMappingMatch() == MappingMatch.EXTENSION) {
+                    return wildcardMapping;
+                }
 
-                        @Override
-                        public String getMatchValue() {
-                            return null;
-                        }
+                if (pathMapping == null) {
+                    pathMapping = wildcardMapping;
+                }
+            }
 
-                        @Override
-                        public MappingMatch getMappingMatch() {
-                            return isPrefixMapped(mapping)? MappingMatch.PATH : MappingMatch.EXTENSION;
-                        }
-                    })
-                    .findFirst()
-                    .orElse(null);
+            return pathMapping;
         }
 
         return null;
+    }
+
+    private static HttpServletMapping toWildcardMapping(String mapping) {
+        return new HttpServletMapping() {
+
+            @Override
+            public String getServletName() {
+                return "";
+            }
+
+            @Override
+            public String getPattern() {
+                return mapping;
+            }
+
+            @Override
+            public String getMatchValue() {
+                return null;
+            }
+
+            @Override
+            public MappingMatch getMappingMatch() {
+                return isPrefixMapped(mapping) ? MappingMatch.PATH : MappingMatch.EXTENSION;
+            }
+        };
     }
 
     /**
@@ -1263,36 +1277,51 @@ public class Util {
      * Utility method to validate ID uniqueness for the tree represented by <code>component</code>.
      */
     public static void checkIdUniqueness(FacesContext context, UIComponent component, Set<String> componentIds) {
-
-        boolean uniquenessCheckDisabled = false;
-
-        if (context.isProjectStage(ProjectStage.Production)) {
-            WebConfiguration config = WebConfiguration.getInstance(context.getExternalContext());
-            uniquenessCheckDisabled = config.isOptionEnabled(WebConfiguration.BooleanWebContextInitParameter.DisableIdUniquenessCheck);
+        if (!isIdUniquenessCheckDisabled(context)) {
+            doCheckIdUniqueness(context, component, componentIds);
         }
+    }
 
-        if (!uniquenessCheckDisabled) {
+    // com.sun.faces.disableIdUniquenessCheck is true|false|auto (default false: always run the check).
+    // Opt-in auto skips the whole-tree duplicate-id walk in Production only (a duplicate id would already
+    // have surfaced in Development). The default keeps the check on; the skip stays opt-in.
+    private static boolean isIdUniquenessCheckDisabled(FacesContext context) {
+        String value = WebConfiguration.getInstance(context.getExternalContext())
+                .getOptionValue(WebConfiguration.WebContextInitParameter.DisableIdUniquenessCheck);
+        if (value == null || "auto".equals(value)) {
+            return context.isProjectStage(ProjectStage.Production);
+        }
+        return Boolean.parseBoolean(value);
+    }
 
-            // deal with children/facets that are marked transient.
-            for (Iterator<UIComponent> kids = component.getFacetsAndChildren(); kids.hasNext();) {
+    private static void doCheckIdUniqueness(FacesContext context, UIComponent component, Set<String> componentIds) {
+        // deal with children/facets that are marked transient.
+        for (Iterator<UIComponent> kids = component.getFacetsAndChildren(); kids.hasNext();) {
 
-                UIComponent kid = kids.next();
-                // check for id uniqueness
-                String id = kid.getClientId(context);
-                if (componentIds.add(id)) {
-                    checkIdUniqueness(context, kid, componentIds);
-                } else {
-                    if (LOGGER.isLoggable(Level.SEVERE)) {
-                        LOGGER.log(Level.SEVERE, "faces.duplicate_component_id_error", id);
+            UIComponent kid = kids.next();
+            // Skip UntargetableComponent descendants (e.g. Facelets-compiler-generated
+            // UILeaf wrappers for static text/whitespace). They have auto-generated ids
+            // that cannot collide via user-authored templates, and they have no
+            // user-targetable descendants -- checking them is wasted work on every
+            // save-view.
+            if (kid instanceof UntargetableComponent) {
+                continue;
+            }
+            // check for id uniqueness
+            String id = kid.getClientId(context);
+            if (componentIds.add(id)) {
+                doCheckIdUniqueness(context, kid, componentIds);
+            } else {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LOGGER.log(Level.SEVERE, "faces.duplicate_component_id_error", id);
 
-                        FastStringWriter writer = new FastStringWriter(128);
-                        DebugUtil.simplePrintTree(context.getViewRoot(), id, writer);
-                        LOGGER.severe(writer.toString());
-                    }
-
-                    String message = MessageUtils.getExceptionMessageString(MessageUtils.DUPLICATE_COMPONENT_ID_ERROR_ID, id);
-                    throw new IllegalStateException(message);
+                    FastStringWriter writer = new FastStringWriter(128);
+                    DebugUtil.simplePrintTree(context.getViewRoot(), id, writer);
+                    LOGGER.severe(writer.toString());
                 }
+
+                String message = MessageUtils.getExceptionMessageString(MessageUtils.DUPLICATE_COMPONENT_ID_ERROR_ID, id);
+                throw new IllegalStateException(message);
             }
         }
     }
@@ -1431,11 +1460,12 @@ public class Util {
         try {
             conn = url.openConnection();
 
-            if (conn instanceof JarURLConnection jarUrlConnection) {
+            if (conn instanceof JarURLConnection) {
                 /*
                  * Note this is a work around for JarURLConnection since the getLastModified method is buggy. See JAVASERVERFACES-2725
                  * and JAVASERVERFACES-2734.
                  */
+                JarURLConnection jarUrlConnection = (JarURLConnection) conn;
                 URL jarFileUrl = jarUrlConnection.getJarFileURL();
                 URLConnection jarFileConnection = jarFileUrl.openConnection();
                 lastModified = jarFileConnection.getLastModified();

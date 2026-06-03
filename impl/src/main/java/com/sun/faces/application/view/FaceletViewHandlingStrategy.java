@@ -43,7 +43,7 @@ import static jakarta.faces.FactoryFinder.VIEW_DECLARATION_LANGUAGE_FACTORY;
 import static jakarta.faces.application.ProjectStage.Development;
 import static jakarta.faces.application.Resource.COMPONENT_RESOURCE_KEY;
 import static jakarta.faces.application.StateManager.IS_BUILDING_INITIAL_STATE;
-import static jakarta.faces.application.StateManager.STATE_SAVING_METHOD_SERVER;
+import static jakarta.faces.application.StateManager.STATE_SAVING_METHOD_CLIENT;
 import static jakarta.faces.application.ViewHandler.CHARACTER_ENCODING_KEY;
 import static jakarta.faces.application.ViewHandler.DEFAULT_FACELETS_SUFFIX;
 import static jakarta.faces.application.ViewVisitOption.RETURN_AS_MINIMAL_IMPLICIT_OUTCOME;
@@ -64,9 +64,12 @@ import java.beans.BeanInfo;
 import java.beans.PropertyDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -75,26 +78,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
-
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.context.StateContext;
-import com.sun.faces.facelets.compiler.FaceletDoctype;
-import com.sun.faces.facelets.el.ContextualCompositeMethodExpression;
-import com.sun.faces.facelets.el.VariableMapperWrapper;
-import com.sun.faces.facelets.impl.DefaultFaceletFactory;
-import com.sun.faces.facelets.impl.XMLFrontMatterSaver;
-import com.sun.faces.facelets.tag.composite.CompositeComponentBeanInfo;
-import com.sun.faces.facelets.tag.faces.CompositeComponentTagHandler;
-import com.sun.faces.facelets.tag.ui.UIDebug;
-import com.sun.faces.renderkit.RenderKitUtils;
-import com.sun.faces.renderkit.html_basic.DoctypeRenderer;
-import com.sun.faces.util.Cache;
-import com.sun.faces.util.ComponentStruct;
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.HtmlUtils;
-import com.sun.faces.util.RequestStateManager;
-import com.sun.faces.util.Util;
 
 import jakarta.el.ELContext;
 import jakarta.el.ExpressionFactory;
@@ -110,10 +93,12 @@ import jakarta.faces.component.ActionSource;
 import jakarta.faces.component.Doctype;
 import jakarta.faces.component.EditableValueHolder;
 import jakarta.faces.component.UIComponent;
+import jakarta.faces.component.UIForm;
 import jakarta.faces.component.UIPanel;
 import jakarta.faces.component.UIViewRoot;
 import jakarta.faces.component.html.HtmlDoctype;
 import jakarta.faces.component.visit.VisitContext;
+import jakarta.faces.component.visit.VisitHint;
 import jakarta.faces.component.visit.VisitResult;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
@@ -143,6 +128,27 @@ import jakarta.faces.view.facelets.Facelet;
 import jakarta.faces.view.facelets.FaceletContext;
 import jakarta.servlet.http.HttpSession;
 
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.application.resource.ResourceHandlerImpl;
+import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.context.StateContext;
+import com.sun.faces.facelets.compiler.FaceletDoctype;
+import com.sun.faces.facelets.el.ContextualCompositeMethodExpression;
+import com.sun.faces.facelets.el.VariableMapperWrapper;
+import com.sun.faces.facelets.impl.DefaultFaceletFactory;
+import com.sun.faces.facelets.impl.XMLFrontMatterSaver;
+import com.sun.faces.facelets.tag.composite.CompositeComponentBeanInfo;
+import com.sun.faces.facelets.tag.faces.CompositeComponentTagHandler;
+import com.sun.faces.facelets.tag.ui.UIDebug;
+import com.sun.faces.renderkit.RenderKitUtils;
+import com.sun.faces.renderkit.html_basic.DoctypeRenderer;
+import com.sun.faces.util.Cache;
+import com.sun.faces.util.ComponentStruct;
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.HtmlUtils;
+import com.sun.faces.util.RequestStateManager;
+import com.sun.faces.util.Util;
+
 /**
  * This {@link ViewHandlingStrategy} handles Facelets/PDL-based views.
  */
@@ -171,6 +177,10 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
 
     private Cache<Resource, BeanInfo> metadataCache;
     private Map<String, List<String>> contractMappings;
+
+    private static final String NONCE_EXPRESSION = "#{nonce}";
+    private String cspHeader;
+    private boolean dynamicCspHeader;
 
     // ------------------------------------------------------------ Constructors
 
@@ -330,7 +340,8 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             stateCtx.setTrackViewModifications(false);
             facelet.apply(ctx, view);
 
-            if (facelet instanceof XMLFrontMatterSaver frontMatterSaver) {
+            if (facelet instanceof XMLFrontMatterSaver) {
+                XMLFrontMatterSaver frontMatterSaver = (XMLFrontMatterSaver) facelet;
 
                 Doctype doctype = frontMatterSaver.getSavedDoctype();
                 if (doctype != null) {
@@ -405,7 +416,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
              *
              * Note if you flag a view as transient then we won't acquire the session as you are stating it does not need one.
              */
-            if (isServerStateSaving() && !viewToRender.isTransient()) {
+            if (!viewToRender.isTransient() && extContext.getSession(false) == null && isServerStateSaving() && hasForm(ctx, viewToRender)) {
                 getSession(ctx);
             }
 
@@ -422,6 +433,12 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             } else {
                 if (ctx.isProjectStage(Development)) {
                     FormOmittedChecker.check(ctx);
+                }
+
+                // Add CSP header if necessary
+                String nonce = ResourceHandlerImpl.resolveCurrentNonce(ctx);
+                if (nonce != null) {
+                    ctx.getExternalContext().addResponseHeader("Content-Security-Policy", evaluateCspHeader(ctx, nonce));
                 }
 
                 // Render the XML declaration to the response
@@ -911,11 +928,11 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         // See also ViewHandler#apply().
         String defaultContentType = (String) context.getAttributes().get("facelets.ContentType");
 
-        // Get the <f:view encoding> or otherwise Facelets default encoding of UTF-8 as default encoding.
+        // Get the <f:view encoding> or otherwise Facelets default encoding of UTF-8 as default encoding. 
         // See also SAXCompiler#doCompile() and EncodingHandler#apply().
         String defaultEncoding = (String) context.getAttributes().get(FACELETS_ENCODING_KEY);
 
-        // Create a dummy ResponseWriter with a bogus writer, so we can figure out what
+        // Create a dummy ResponseWriter with a bogus writer, so we can figure out what 
         // content type and default encoding the ResponseWriter is ultimately going to need.
         ResponseWriter initWriter = renderKit.createResponseWriter(NullWriter.INSTANCE, defaultContentType, defaultEncoding);
 
@@ -923,10 +940,9 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         String encoding = Util.getResponseEncoding(context, initWriter.getCharacterEncoding());
 
         // apply them to the response
-        char[] buffer = new char[1028];
-        HtmlUtils.writeTextForXML(initWriter, contentType, buffer);
-        String str = String.valueOf(buffer).trim();
-        extContext.setResponseContentType(str);
+        StringWriter contentTypeWriter = new StringWriter();
+        HtmlUtils.writeTextForXML(contentTypeWriter, contentType);
+        extContext.setResponseContentType(contentTypeWriter.toString().trim());
         extContext.setResponseCharacterEncoding(encoding);
 
         // Save encoding in UIViewRoot for faster consult when Util#getResponseEncoding() is invoked again elsewhere.
@@ -1399,7 +1415,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
 
             protected static final Class<?>[] NO_ARGS = new Class[0];
 
-        }
+        } // END AbstractRetargetHandler
 
         /**
          * This handler is responsible for creating/retargeting MethodExpressions defined associated with the
@@ -1428,7 +1444,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return ACTION;
             }
 
-        }
+        } // END ActionRegargetHandler
 
         /**
          * This handler is responsible for creating/retargeting MethodExpressions defined associated with the
@@ -1460,7 +1476,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return ACTION_LISTENER;
             }
 
-        }
+        } // END ActionListenerRegargetHandler
 
         /**
          * This handler is responsible for creating/retargeting MethodExpressions defined associated with the
@@ -1489,7 +1505,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return VALIDATOR;
             }
 
-        }
+        } // END ValidatorRegargetHandler
 
         /**
          * This handler is responsible for creating/retargeting MethodExpressions defined associated with the
@@ -1522,7 +1538,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return VALUE_CHANGE_LISTENER;
             }
 
-        }
+        } // END ValueChangeListenerRegargetHandler
 
         /**
          * This handler is responsible for creating/retargeting MethodExpressions defined using arbitrary attribute names.
@@ -1618,9 +1634,9 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                 return null;
             }
 
-        }
+        } // END ArbitraryMethodRegargetHandler
 
-    }
+    } // END MethodRegargetHandlerManager
 
     /**
      * Implementations of this interface provide the <code>strategy</code> to properly retarget a method expression for a
@@ -1819,7 +1835,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
      * @return true if we are, false otherwise.
      */
     private boolean isServerStateSaving() {
-        return STATE_SAVING_METHOD_SERVER.equals(webConfig.getOptionValue(StateSavingMethod));
+        return !STATE_SAVING_METHOD_CLIENT.equalsIgnoreCase(webConfig.getOptionValue(StateSavingMethod));
     }
 
     /**
@@ -1835,6 +1851,26 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         }
 
         return null;
+    }
+
+    /**
+     * @return true if the view contains at least one {@link UIForm}, in which case state will be written and a session
+     * is needed under server-side state saving.
+     */
+    private static boolean hasForm(FacesContext context, UIViewRoot viewRoot) {
+        if (viewRoot == null || viewRoot.getChildCount() == 0) {
+            return false;
+        }
+        boolean[] found = { false };
+        VisitContext visitContext = VisitContext.createVisitContext(context, null, EnumSet.of(VisitHint.SKIP_ITERATION));
+        viewRoot.visitTree(visitContext, (vc, target) -> {
+            if (target instanceof UIForm) {
+                found[0] = true;
+                return VisitResult.COMPLETE;
+            }
+            return VisitResult.ACCEPT;
+        });
+        return found[0];
     }
 
     /**
@@ -1970,4 +2006,23 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         }
     }
 
+    private String evaluateCspHeader(FacesContext context, String nonce) {
+        if (cspHeader == null) {
+            cspHeader = WebConfiguration.getInstance(context.getExternalContext()).getOptionValue(WebConfiguration.WebContextInitParameter.CspPolicy);
+
+            if (!cspHeader.contains(NONCE_EXPRESSION)) {
+                throw new IllegalArgumentException("The context parameter " + WebConfiguration.WebContextInitParameter.CspPolicy.name() + " must include the expression '" + NONCE_EXPRESSION + "'");
+            }
+
+            dynamicCspHeader = cspHeader.replace(NONCE_EXPRESSION, "").contains("#{");
+        }
+
+        var header = cspHeader.replace(NONCE_EXPRESSION, nonce);
+
+        if (dynamicCspHeader) {
+            header = context.getApplication().evaluateExpressionGet(context, header, String.class);
+        }
+
+        return header;
+    }
 }

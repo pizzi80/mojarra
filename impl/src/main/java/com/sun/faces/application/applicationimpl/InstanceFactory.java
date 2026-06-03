@@ -39,6 +39,7 @@ import java.beans.BeanInfo;
 import java.beans.PropertyDescriptor;
 import java.beans.PropertyEditor;
 import java.beans.PropertyEditorManager;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
@@ -53,6 +54,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,6 +67,7 @@ import jakarta.faces.application.Application;
 import jakarta.faces.application.Resource;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.behavior.Behavior;
+import jakarta.faces.component.behavior.FacesBehavior;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.convert.BooleanConverter;
 import jakarta.faces.convert.ByteConverter;
@@ -72,6 +75,7 @@ import jakarta.faces.convert.CharacterConverter;
 import jakarta.faces.convert.Converter;
 import jakarta.faces.convert.DateTimeConverter;
 import jakarta.faces.convert.DoubleConverter;
+import jakarta.faces.convert.FacesConverter;
 import jakarta.faces.convert.FloatConverter;
 import jakarta.faces.convert.IntegerConverter;
 import jakarta.faces.convert.LongConverter;
@@ -79,6 +83,7 @@ import jakarta.faces.convert.ShortConverter;
 import jakarta.faces.convert.UUIDConverter;
 import jakarta.faces.render.RenderKit;
 import jakarta.faces.render.Renderer;
+import jakarta.faces.validator.FacesValidator;
 import jakarta.faces.validator.Validator;
 import jakarta.faces.view.ViewDeclarationLanguage;
 
@@ -104,6 +109,7 @@ public class InstanceFactory {
 
     private static final Map<String, Class<?>[]> STANDARD_CONV_ID_TO_TYPE_MAP = new HashMap<>(8, 1.0f);
     private static final Map<Class<?>, String> STANDARD_TYPE_TO_CONV_ID_MAP = new HashMap<>(16, 1.0f);
+
     static {
         STANDARD_CONV_ID_TO_TYPE_MAP.put(ByteConverter.CONVERTER_ID, new Class<?>[] { Byte.TYPE, Byte.class });
         STANDARD_CONV_ID_TO_TYPE_MAP.put(BooleanConverter.CONVERTER_ID, new Class<?>[] { Boolean.TYPE, Boolean.class });
@@ -139,30 +145,25 @@ public class InstanceFactory {
     // These four maps store store "identifier" | "class name"
     // mappings.
     //
-    private final ViewMemberInstanceFactoryMetadataMap componentMap;
-    private final ViewMemberInstanceFactoryMetadataMap behaviorMap;
-    private final ViewMemberInstanceFactoryMetadataMap converterIdMap;
-    private final ViewMemberInstanceFactoryMetadataMap validatorMap;
+    private final ViewMemberInstanceFactoryMetadataMap<String, Object> componentMap;
+    private final ViewMemberInstanceFactoryMetadataMap<String, Object> behaviorMap;
+    private final ViewMemberInstanceFactoryMetadataMap<String, Object> converterIdMap;
+    private final ViewMemberInstanceFactoryMetadataMap<String, Object> validatorMap;
 
     private final Set<String> defaultValidatorIds;
     private volatile Map<String, String> defaultValidatorInfo;
 
     private final ApplicationAssociate associate;
 
-    /**
-     * Stores the bean manager.
-     */
-    private BeanManager beanManager;
-
     public InstanceFactory(ApplicationAssociate applicationAssociate) {
         associate = applicationAssociate;
 
-        componentMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
-        converterIdMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
+        componentMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
+        converterIdMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
         converterTypeMap = new ConcurrentHashMap<>();
-        validatorMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
+        validatorMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
         defaultValidatorIds = new LinkedHashSet<>();
-        behaviorMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
+        behaviorMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
 
         WebConfiguration webConfig = WebConfiguration.getInstance(FacesContext.getCurrentInstance().getExternalContext());
         registerPropertyEditors = webConfig.isOptionEnabled(RegisterConverterPropertyEditors);
@@ -346,6 +347,7 @@ public class InstanceFactory {
         behavior = newThing(behaviorId, behaviorMap);
 
         notNullNamedObject(behavior, behaviorId, "faces.cannot_instantiate_behavior_error");
+        assertCdiResolved(behavior, behaviorId, FacesBehavior.class, FacesBehavior::managed);
 
         if (LOGGER.isLoggable(FINE)) {
             LOGGER.fine(MessageFormat.format("created behavior of type ''{0}''", behaviorId));
@@ -419,16 +421,15 @@ public class InstanceFactory {
     public Converter<?> createConverter(String converterId) {
         notNull("converterId", converterId);
 
-        // --- CDI ----------------------------------------------
         Converter<?> converter = createCDIConverter(converterId);
         if (converter != null) {
             return converter;
         }
 
-        // --- Class --------------------------------------------
         converter = newThing(converterId, converterIdMap);
 
         notNullNamedObject(converter, converterId, "faces.cannot_instantiate_converter_error");
+        assertCdiResolved(converter, converterId, FacesConverter.class, FacesConverter::managed);
 
         if (LOGGER.isLoggable(FINE)) {
             LOGGER.fine(MessageFormat.format("created converter of type ''{0}''", converterId));
@@ -446,18 +447,36 @@ public class InstanceFactory {
     /*
      * @see jakarta.faces.application.Application#createConverter(Class)
      */
-    public Converter<?> createConverter(Class<?> targetClass) {
+    public Converter createConverter(Class<?> targetClass) {
         notNull("targetClass", targetClass);
-        Converter<?> returnVal;
 
-        BeanManager beanManager = getBeanManager();
-        returnVal = CdiUtils.createConverter(beanManager, targetClass);
+        Converter returnVal = CdiUtils.createConverter(getBeanManager(), targetClass);
         if (returnVal != null) {
             return returnVal;
         }
 
-        returnVal = (Converter<?>) newConverter(targetClass, converterTypeMap, targetClass);
+        returnVal = (Converter) newConverter(targetClass, converterTypeMap, targetClass);
+
+        // Search for converters registered to interfaces implemented by targetClass
+        if (returnVal == null) {
+            for (Class<?> iface : targetClass.getInterfaces()) {
+                returnVal = createConverterBasedOnClass(iface, targetClass);
+                if (returnVal != null) {
+                    break;
+                }
+            }
+        }
+
+        // Search for converters registered to superclasses of targetClass
+        if (returnVal == null) {
+            Class<?> superclass = targetClass.getSuperclass();
+            if (superclass != null) {
+                returnVal = createConverterBasedOnClass(superclass, targetClass);
+            }
+        }
+
         if (returnVal != null) {
+            assertCdiResolved(returnVal, targetClass.getName(), FacesConverter.class, FacesConverter::managed);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
             }
@@ -465,40 +484,6 @@ public class InstanceFactory {
                 ((DateTimeConverter) returnVal).setTimeZone(systemTimeZone);
             }
             associate.getAnnotationManager().applyConverterAnnotations(FacesContext.getCurrentInstance(), returnVal);
-            return returnVal;
-        }
-
-        // Search for converters registered to interfaces implemented by
-        // targetClass
-        Class<?>[] interfaces = targetClass.getInterfaces();
-        for (Class<?> anInterface : interfaces) {
-            returnVal = createConverterBasedOnClass(anInterface, targetClass);
-            if (returnVal != null) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
-                }
-                if (passDefaultTimeZone && returnVal instanceof DateTimeConverter) {
-                    ((DateTimeConverter) returnVal).setTimeZone(systemTimeZone);
-                }
-                associate.getAnnotationManager().applyConverterAnnotations(FacesContext.getCurrentInstance(), returnVal);
-                return returnVal;
-            }
-        }
-
-        // Search for converters registered to superclasses of targetClass
-        Class<?> superclass = targetClass.getSuperclass();
-        if (superclass != null) {
-            returnVal = createConverterBasedOnClass(superclass, targetClass);
-            if (returnVal != null) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
-                }
-                if (passDefaultTimeZone && returnVal instanceof DateTimeConverter) {
-                    ((DateTimeConverter) returnVal).setTimeZone(systemTimeZone);
-                }
-                associate.getAnnotationManager().applyConverterAnnotations(FacesContext.getCurrentInstance(), returnVal);
-                return returnVal;
-            }
         }
 
         return returnVal;
@@ -553,6 +538,7 @@ public class InstanceFactory {
         validator = newThing(validatorId, validatorMap);
 
         notNullNamedObject(validator, validatorId, "faces.cannot_instantiate_validator_error");
+        assertCdiResolved(validator, validatorId, FacesValidator.class, FacesValidator::managed);
 
         if (LOGGER.isLoggable(FINE)) {
             LOGGER.fine(MessageFormat.format("created validator of type ''{0}''", validatorId));
@@ -597,9 +583,9 @@ public class InstanceFactory {
                         for (String id : defaultValidatorIds) {
                             String validatorClass;
                             Object result = validatorMap.get(id);
-                            if (result != null) {
-                                if (result instanceof Class<?> clazz) {
-                                    validatorClass = clazz.getName();
+                            if (null != result) {
+                                if (result instanceof Class) {
+                                    validatorClass = ((Class<?>) result).getName();
                                 } else {
                                     validatorClass = result.toString();
                                 }
@@ -763,7 +749,7 @@ public class InstanceFactory {
      * @return The new object instance.
      */
     @SuppressWarnings("unchecked")
-    private <T> T newThing(String key, ViewMemberInstanceFactoryMetadataMap map) {
+    private <T> T newThing(String key, ViewMemberInstanceFactoryMetadataMap<String, Object> map) {
 
         Object result;
         Class<?> clazz;
@@ -884,9 +870,9 @@ public class InstanceFactory {
         }
     }
 
-    private Converter<?> createConverterBasedOnClass(Class<?> targetClass, Class<?> baseClass) {
+    private Converter createConverterBasedOnClass(Class<?> targetClass, Class<?> baseClass) {
 
-        Converter<?> returnVal = (Converter<?>) newConverter(targetClass, converterTypeMap, baseClass);
+        Converter returnVal = (Converter) newConverter(targetClass, converterTypeMap, baseClass);
         if (returnVal != null) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
@@ -897,13 +883,15 @@ public class InstanceFactory {
         // Search for converters registered to interfaces implemented by
         // targetClass
         Class<?>[] interfaces = targetClass.getInterfaces();
-        for (Class<?> anInterface : interfaces) {
-            returnVal = createConverterBasedOnClass(anInterface, null);
-            if (returnVal != null) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
+        if (interfaces != null) {
+            for (int i = 0; i < interfaces.length; i++) {
+                returnVal = createConverterBasedOnClass(interfaces[i], null);
+                if (returnVal != null) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.fine(MessageFormat.format("Created converter of type ''{0}''", returnVal.getClass().getName()));
+                    }
+                    return returnVal;
                 }
-                return returnVal;
             }
         }
 
@@ -973,7 +961,7 @@ public class InstanceFactory {
             clazz = (Class<?>) value;
         }
 
-        Constructor<?> ctor = ReflectionUtils.lookupConstructor(clazz, Class.class);
+        Constructor ctor = ReflectionUtils.lookupConstructor(clazz, Class.class);
         Throwable cause = null;
         if (ctor != null) {
             try {
@@ -999,18 +987,39 @@ public class InstanceFactory {
     /**
      * Get the bean manager.
      *
+     * <p>
+     * Resolved per call rather than cached, so that a transient/incomplete BeanManager observed during
+     * application bootstrap (e.g. before all CDI extensions have published their beans into JNDI) cannot
+     * permanently bind this factory to the wrong instance. {@link Util#getCdiBeanManager(FacesContext)}
+     * already caches the resolved BeanManager into the application map, so the cost is one map lookup.
+     *
      * @return the bean manager.
      */
     private BeanManager getBeanManager() {
-        if (beanManager == null) {
-            FacesContext facesContext = FacesContext.getCurrentInstance();
-            beanManager = Util.getCdiBeanManager(facesContext);
-        }
-        return beanManager;
+        return Util.getCdiBeanManager(FacesContext.getCurrentInstance());
     }
 
     private Behavior createCDIBehavior(String behaviorId) {
         return CdiUtils.createBehavior(getBeanManager(), behaviorId);
+    }
+
+    /**
+     * Issue #5708: when a Faces artifact is annotated with {@code managed=true} it must be resolved via CDI;
+     * if we get here it was instantiated by reflection (no {@code @Inject} support), which produces an NPE
+     * on first use of any injected field. This typically points at a CDI bootstrap/timing problem (e.g. the
+     * {@link BeanManager} seen by Faces does not (yet) have the bean registered). Fail loudly rather than
+     * returning a half-initialized instance.
+     */
+    private static <A extends Annotation> void assertCdiResolved(Object instance, String identifier,
+            Class<A> annotationType, Predicate<A> isManaged) {
+        A annotation = instance.getClass().getAnnotation(annotationType);
+        if (annotation != null && isManaged.test(annotation)) {
+            throw new FacesException("@" + annotationType.getSimpleName() + "(\"" + identifier
+                    + "\", managed=true) on " + instance.getClass().getName()
+                    + " could not be resolved by CDI. Check that beans.xml is present and that the"
+                    + " BeanManager is fully initialized before " + annotationType.getSimpleName()
+                    + " instances are created.");
+        }
     }
 
     private Converter<?> createCDIConverter(String converterId) {

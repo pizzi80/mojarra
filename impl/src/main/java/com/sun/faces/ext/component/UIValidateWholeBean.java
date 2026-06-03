@@ -39,13 +39,14 @@ import jakarta.validation.groups.Default;
 
 public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
 
+    // Precompiled form of EMPTY_VALIDATION_GROUPS_PATTERN; setValidationGroups runs per postback, so avoid recompiling.
+    private static final Pattern EMPTY_VALIDATION_GROUPS = Pattern.compile(EMPTY_VALIDATION_GROUPS_PATTERN);
+
     private static final String ERROR_MISSING_FORM = "f:validateWholeBean must be nested directly in an UIForm.";
 
     private static final String ERROR_MISPLACED_COMPONENT = "f:validateWholeBean must be placed at the end of UIForm.";
 
     public static final String FAMILY = "com.sun.faces.ext.validateWholeBean";
-
-    private static final Pattern EMPTY_VALIDATION_GROUPS_PATTERN_PATTERN = Pattern.compile(EMPTY_VALIDATION_GROUPS_PATTERN);
 
     private transient Class<?>[] cachedValidationGroups;
     private transient String validationGroups = "";
@@ -84,7 +85,7 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
         String newValidationGroups = validationGroups;
 
         // Treat empty list as null
-        if (newValidationGroups != null && EMPTY_VALIDATION_GROUPS_PATTERN_PATTERN.matcher(newValidationGroups).matches()) {
+        if (newValidationGroups != null && EMPTY_VALIDATION_GROUPS.matcher(newValidationGroups).matches()) {
             newValidationGroups = null;
         }
         // Only clear cache of validation group classes if value is changing
