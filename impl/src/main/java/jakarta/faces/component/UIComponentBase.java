@@ -17,6 +17,12 @@
 
 package jakarta.faces.component;
 
+import static com.sun.faces.facelets.tag.faces.ComponentSupport.MARK_CHILDREN_MODIFIED;
+import static com.sun.faces.facelets.tag.faces.ComponentSupport.MARK_CREATED;
+import static com.sun.faces.facelets.tag.faces.ComponentSupport.MARK_DELETED;
+import static com.sun.faces.facelets.tag.faces.ComponentSupport.REMOVED_CHILDREN;
+import static com.sun.faces.RIConstants.DYNAMIC_COMPONENT;
+import static com.sun.faces.facelets.tag.faces.core.FacetHandler.KEY;
 import static com.sun.faces.util.Util.isAllNull;
 import static com.sun.faces.util.Util.isEmpty;
 import static com.sun.faces.util.Util.notNullArgs;
@@ -25,10 +31,8 @@ import static java.lang.Boolean.TRUE;
 import static java.lang.Character.isDigit;
 import static java.lang.Character.isLetter;
 import static java.lang.Thread.currentThread;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableList;
-import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.FINE;
 
 import java.beans.BeanInfo;
@@ -37,7 +41,6 @@ import java.beans.PropertyDescriptor;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serial;
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
@@ -47,7 +50,6 @@ import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,7 +59,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -114,8 +115,6 @@ public abstract class UIComponentBase extends UIComponent {
     private static final int MY_STATE = 0;
     private static final int CHILD_STATE = 1;
 
-    private static final String FACES_COMPONENT_DESCRIPTORS_MAP_NAME = "com.sun.faces.component.COMPONENT_DESCRIPTORS_MAP";
-
     /**
      * <p>
      * Each entry is an map of <code>PropertyDescriptor</code>s describing the properties of a concrete {@link UIComponent}
@@ -146,6 +145,17 @@ public abstract class UIComponentBase extends UIComponent {
      * </p>
      */
     private AttributesMap attributes;
+
+    // Facelets framework markers, read per component on every Facelets refresh (findChildByTagId, deletion
+    // marking, facet-name and child-modified checks). Cached on fields so AttributesMap.get/containsKey skip
+    // the per-read state-map lookup; writes still flow through the attributes map (AttributesMap.put/remove),
+    // so saved/restored state is unchanged. See markerGet/markerContains/markerPut/markerRemove.
+    private String markCreated;            // ComponentSupport.MARK_CREATED (tag id)
+    private String facetName;              // FacetHandler.KEY
+    private Object removedChildren;        // ComponentSupport.REMOVED_CHILDREN (Collection)
+    private Object dynamicComponent;       // RIConstants.DYNAMIC_COMPONENT (Integer index)
+    private boolean markDeleted;           // ComponentSupport.MARK_DELETED
+    private boolean markChildrenModified;  // ComponentSupport.MARK_CHILDREN_MODIFIED
 
     /**
      * <p>
@@ -504,7 +514,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void broadcast(FacesEvent event) throws AbortProcessingException {
-        requireNonNull(event);
+
+        if (event == null) {
+            throw new NullPointerException();
+        }
 
         if (event instanceof BehaviorEvent) {
             BehaviorEvent behaviorEvent = (BehaviorEvent) event;
@@ -528,7 +541,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void decode(FacesContext context) {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         String rendererType = getRendererType();
         if (rendererType != null) {
@@ -548,7 +564,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void encodeBegin(FacesContext context) throws IOException {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         pushComponentToEL(context, null);
 
@@ -576,7 +595,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void encodeChildren(FacesContext context) throws IOException {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         if (!isRendered()) {
             return;
@@ -601,7 +623,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void encodeEnd(FacesContext context) throws IOException {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         if (!isRendered()) {
             popComponentFromEL(context);
@@ -663,7 +688,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     protected void addFacesListener(FacesListener listener) {
-        requireNonNull(listener);
+
+        if (listener == null) {
+            throw new NullPointerException();
+        }
 
         if (listeners == null) {
             listeners = new AttachedObjectListHolder<>();
@@ -715,7 +743,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     protected void removeFacesListener(FacesListener listener) {
-        requireNonNull(listener);
+
+        if (listener == null) {
+            throw new NullPointerException();
+        }
 
         if (listeners != null) {
             listeners.remove(listener);
@@ -728,7 +759,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void queueEvent(FacesEvent event) {
-        requireNonNull(event);
+
+        if (event == null) {
+            throw new NullPointerException();
+        }
 
         UIComponent parent = getParent();
 
@@ -758,8 +792,8 @@ public abstract class UIComponentBase extends UIComponent {
      * </p>
      *
      * @param eventClass the <code>Class</code> of event for which <code>listener</code> must be fired.
-     * @param componentListener the implementation of {@link ComponentSystemEventListener} whose
-     * {@link ComponentSystemEventListener#processEvent} method must be called when events of type
+     * @param componentListener the implementation of {@link jakarta.faces.event.ComponentSystemEventListener} whose
+     * {@link jakarta.faces.event.ComponentSystemEventListener#processEvent} method must be called when events of type
      * <code>facesEventClass</code> are fired.
      *
      * @throws NullPointerException if any of the arguments are <code>null</code>.
@@ -838,13 +872,16 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public List<SystemEventListener> getListenersForEventClass(Class<? extends SystemEvent> eventClass) {
-        requireNonNull(eventClass);
 
-        if (listenersByEventClass != null) {
-            return listenersByEventClass.getOrDefault(eventClass, emptyList());
+        if (eventClass == null) {
+            throw new NullPointerException();
         }
 
-        return emptyList();
+        if (listenersByEventClass != null) {
+            return listenersByEventClass.getOrDefault(eventClass, Collections.emptyList());
+        }
+
+        return Collections.emptyList();
     }
 
     // ------------------------------------------------ Lifecycle Phase Handlers
@@ -854,7 +891,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void processDecodes(FacesContext context) {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         // Skip processing if our rendered flag is false
         if (!isRendered()) {
@@ -895,7 +935,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void processValidators(FacesContext context) {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         // Skip processing if our rendered flag is false
         if (!isRendered()) {
@@ -933,7 +976,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void processUpdates(FacesContext context) {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         // Skip processing if our rendered flag is false
         if (!isRendered()) {
@@ -966,7 +1012,10 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public Object processSaveState(FacesContext context) {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         if (isTransient()) {
             return null;
@@ -1011,7 +1060,9 @@ public abstract class UIComponentBase extends UIComponent {
      */
     @Override
     public void processRestoreState(FacesContext context, Object state) {
-        requireNonNull(context);
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         pushComponentToEL(context, null);
 
@@ -1025,7 +1076,7 @@ public abstract class UIComponentBase extends UIComponent {
             // Process all the children of this component
             int i = restoreChildState(context, childState);
 
-            // Process all the facets of this component
+            // Process all of the facets of this component
             restoreFacetsState(context, childState, i);
 
         } finally {
@@ -1146,7 +1197,12 @@ public abstract class UIComponentBase extends UIComponent {
 
     @Override
     public Object saveState(FacesContext context) {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
+
+        Object[] values = null;
 
         if (initialStateMarked()) {
             Object savedFacesListeners = listeners != null ? listeners.saveState(context) : null;
@@ -1167,7 +1223,9 @@ public abstract class UIComponentBase extends UIComponent {
                 return null;
             }
 
-            Object[] values = new Object[5];
+            if (values == null || values.length != 5) {
+                values = new Object[5];
+            }
 
             // Since we're saving partial state, skip id and clientId
             // as this will be reconstructed from the template execution
@@ -1180,9 +1238,10 @@ public abstract class UIComponentBase extends UIComponent {
 
             return values;
 
-        }
-        else {
-            Object[] values = new Object[6];
+        } else {
+            if (values == null || values.length != 6) {
+                values = new Object[6];
+            }
 
             values[0] = listeners != null ? listeners.saveState(context) : null;
             values[1] = saveSystemEventListeners(context);
@@ -1204,7 +1263,10 @@ public abstract class UIComponentBase extends UIComponent {
 
     @Override
     public void restoreState(FacesContext context, Object state) {
-        requireNonNull(context);
+
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         if (state == null) {
             return;
@@ -1246,6 +1308,9 @@ public abstract class UIComponentBase extends UIComponent {
             if (values[5] != null) {
                 id = (String) values[5];
             }
+            // Full-state restore does not re-run buildView, so sync the field-backed markers from the
+            // restored attributes map (partial-state restore re-establishes them via buildView).
+            restoreMarkersFromState();
         }
 
         // StateHelper.restoreState may rewrite rendererType without going through
@@ -1287,7 +1352,7 @@ public abstract class UIComponentBase extends UIComponent {
      *
      * @param context the {@link FacesContext} for this request.
      * @param attachedObject the object, which may be a <code>List</code> instance, or an Object. The
-     * <code>attachedObject</code> (or the elements that comprise <code>attachedObject</code> may implement)
+     * <code>attachedObject</code> (or the elements that comprise <code>attachedObject</code> may implement
      * {@link StateHolder}.
      *
      * @return The state object to be saved.
@@ -1295,7 +1360,9 @@ public abstract class UIComponentBase extends UIComponent {
      */
 
     public static Object saveAttachedState(FacesContext context, Object attachedObject) {
-        requireNonNull(context);
+        if (context == null) {
+            throw new NullPointerException();
+        }
 
         if (attachedObject == null) {
             return null;
@@ -1333,7 +1400,7 @@ public abstract class UIComponentBase extends UIComponent {
             List<StateHolderSaver> resultList = new ArrayList<>(attachedMap.size() * 2 + 1);
             resultList.add(new StateHolderSaver(context, mapOrCollectionClass));
             Object key, value;
-            for (Entry<Object, Object> entry : attachedMap.entrySet()) {
+            for (Map.Entry<Object, Object> entry : attachedMap.entrySet()) {
                 key = entry.getKey();
                 if (key instanceof StateHolder && ((StateHolder) key).isTransient()) {
                     continue;
@@ -1373,8 +1440,9 @@ public abstract class UIComponentBase extends UIComponent {
      */
 
     public static Object restoreAttachedState(FacesContext context, Object stateObj) throws IllegalStateException {
-        requireNonNull(context);
-
+        if (null == context) {
+            throw new NullPointerException();
+        }
         if (null == stateObj) {
             return null;
         }
@@ -1518,6 +1586,88 @@ public abstract class UIComponentBase extends UIComponent {
         return propertyDescriptorMap;
     }
 
+    // ---- Field-backed Facelets markers (authoritative cache for AttributesMap) ----
+    // The marker fields are the single source of truth: AttributesMap.put/remove keep them in sync, and
+    // AttributesMap.get/containsKey read them WITHOUT touching the state map -- so the per-component
+    // "is this deleted / a facet / dynamically added?" checks during Facelets refresh (which are almost
+    // always negative on a stable tree) are field reads, not HashMap lookups. Partial-state restore (the
+    // default) is self-correcting: fresh component instances start absent and buildView re-puts the present
+    // markers. Full-state restore deserializes without buildView, so it repopulates the fields from the
+    // restored attributes map (see restoreMarkersFromState). markerGet returns NOT_MARKER for non-marker
+    // keys, telling AttributesMap to fall through to its normal property/attribute resolution.
+
+    private static final Object NOT_MARKER = new Object();
+
+    private Object markerGet(Object key) {
+        if (MARK_CREATED.equals(key)) {
+            return markCreated;
+        }
+        if (KEY.equals(key)) {
+            return facetName;
+        }
+        if (REMOVED_CHILDREN.equals(key)) {
+            return removedChildren;
+        }
+        if (DYNAMIC_COMPONENT.equals(key)) {
+            return dynamicComponent;
+        }
+        if (MARK_DELETED.equals(key)) {
+            return markDeleted ? Boolean.TRUE : null;
+        }
+        if (MARK_CHILDREN_MODIFIED.equals(key)) {
+            return markChildrenModified ? Boolean.TRUE : null;
+        }
+        return NOT_MARKER;
+    }
+
+    private void markerPut(Object key, Object value) {
+        if (MARK_CREATED.equals(key)) {
+            markCreated = (String) value;
+        } else if (KEY.equals(key)) {
+            facetName = (String) value;
+        } else if (REMOVED_CHILDREN.equals(key)) {
+            removedChildren = value;
+        } else if (DYNAMIC_COMPONENT.equals(key)) {
+            dynamicComponent = value;
+        } else if (MARK_DELETED.equals(key)) {
+            markDeleted = Boolean.TRUE.equals(value);
+        } else if (MARK_CHILDREN_MODIFIED.equals(key)) {
+            markChildrenModified = Boolean.TRUE.equals(value);
+        }
+    }
+
+    private void markerRemove(Object key) {
+        if (MARK_CREATED.equals(key)) {
+            markCreated = null;
+        } else if (KEY.equals(key)) {
+            facetName = null;
+        } else if (REMOVED_CHILDREN.equals(key)) {
+            removedChildren = null;
+        } else if (DYNAMIC_COMPONENT.equals(key)) {
+            dynamicComponent = null;
+        } else if (MARK_DELETED.equals(key)) {
+            markDeleted = false;
+        } else if (MARK_CHILDREN_MODIFIED.equals(key)) {
+            markChildrenModified = false;
+        }
+    }
+
+    // Full-state restore deserializes the tree without re-running buildView, so the marker fields are synced
+    // from the restored attributes map here. Partial-state restore re-puts them via buildView instead.
+    @SuppressWarnings("unchecked")
+    private void restoreMarkersFromState() {
+        Map<String, Object> attrs = (Map<String, Object>) getStateHelper().get(PropertyKeys.attributes);
+        if (attrs == null || attrs.isEmpty()) {
+            return;
+        }
+        markCreated = (String) attrs.get(MARK_CREATED);
+        facetName = (String) attrs.get(KEY);
+        removedChildren = attrs.get(REMOVED_CHILDREN);
+        dynamicComponent = attrs.get(DYNAMIC_COMPONENT);
+        markDeleted = Boolean.TRUE.equals(attrs.get(MARK_DELETED));
+        markChildrenModified = Boolean.TRUE.equals(attrs.get(MARK_CHILDREN_MODIFIED));
+    }
+
     private void doPostAddProcessing(FacesContext context, UIComponent added) {
 
         if (parent.isInView()) {
@@ -1543,17 +1693,17 @@ public abstract class UIComponentBase extends UIComponent {
 
     /**
      * <p class="changed_added_2_0">
-     * This is a default implementation of {@link ClientBehaviorHolder#addClientBehavior}.
-     * <code>UIComponent</code> does not implement the {@link ClientBehaviorHolder}
+     * This is a default implementation of {@link jakarta.faces.component.behavior.ClientBehaviorHolder#addClientBehavior}.
+     * <code>UIComponent</code> does not implement the {@link jakarta.faces.component.behavior.ClientBehaviorHolder}
      * interface, but provides default implementations for the methods defined by
-     * {@link ClientBehaviorHolder} to simplify subclass implementations. Subclasses that
-     * wish to support the {@link ClientBehaviorHolder} contract must declare that the
-     * subclass implements {@link ClientBehaviorHolder}, and must provide an implementation
-     * of {@link ClientBehaviorHolder#getEventNames}.
+     * {@link jakarta.faces.component.behavior.ClientBehaviorHolder} to simplify subclass implementations. Subclasses that
+     * wish to support the {@link jakarta.faces.component.behavior.ClientBehaviorHolder} contract must declare that the
+     * subclass implements {@link jakarta.faces.component.behavior.ClientBehaviorHolder}, and must provide an implementation
+     * of {@link jakarta.faces.component.behavior.ClientBehaviorHolder#getEventNames}.
      * </p>
      *
      * @param eventName the logical name of the client-side event to attach the behavior to.
-     * @param behavior the {@link Behavior} instance to attach for the specified event
+     * @param behavior the {@link jakarta.faces.component.behavior.Behavior} instance to attach for the specified event
      * name.
      *
      * @since 2.0
@@ -1614,12 +1764,12 @@ public abstract class UIComponentBase extends UIComponent {
 
     /**
      * <p class="changed_added_2_0">
-     * This is a default implementation of {@link ClientBehaviorHolder#getEventNames}.
-     * <code>UIComponent</code> does not implement the {@link ClientBehaviorHolder}
+     * This is a default implementation of {@link jakarta.faces.component.behavior.ClientBehaviorHolder#getEventNames}.
+     * <code>UIComponent</code> does not implement the {@link jakarta.faces.component.behavior.ClientBehaviorHolder}
      * interface, but provides default implementations for the methods defined by
-     * {@link ClientBehaviorHolder} to simplify subclass implementations. Subclasses that
-     * wish to support the {@link ClientBehaviorHolder} contract must declare that the
-     * subclass implements {@link ClientBehaviorHolder}, and must override this method to
+     * {@link jakarta.faces.component.behavior.ClientBehaviorHolder} to simplify subclass implementations. Subclasses that
+     * wish to support the {@link jakarta.faces.component.behavior.ClientBehaviorHolder} contract must declare that the
+     * subclass implements {@link jakarta.faces.component.behavior.ClientBehaviorHolder}, and must override this method to
      * return a non-Empty <code>Collection</code> of the client event names that the component supports.
      * </p>
      *
@@ -1638,13 +1788,13 @@ public abstract class UIComponentBase extends UIComponent {
 
     /**
      * <p class="changed_added_2_0">
-     * This is a default implementation of {@link ClientBehaviorHolder#getClientBehaviors}.
-     * <code>UIComponent</code> does not implement the {@link ClientBehaviorHolder}
+     * This is a default implementation of {@link jakarta.faces.component.behavior.ClientBehaviorHolder#getClientBehaviors}.
+     * <code>UIComponent</code> does not implement the {@link jakarta.faces.component.behavior.ClientBehaviorHolder}
      * interface, but provides default implementations for the methods defined by
-     * {@link ClientBehaviorHolder} to simplify subclass implementations. Subclasses that
-     * wish to support the {@link ClientBehaviorHolder} contract must declare that the
-     * subclass implements {@link ClientBehaviorHolder}, and must add an implementation of
-     * {@link ClientBehaviorHolder#getEventNames}.
+     * {@link jakarta.faces.component.behavior.ClientBehaviorHolder} to simplify subclass implementations. Subclasses that
+     * wish to support the {@link jakarta.faces.component.behavior.ClientBehaviorHolder} contract must declare that the
+     * subclass implements {@link jakarta.faces.component.behavior.ClientBehaviorHolder}, and must add an implementation of
+     * {@link jakarta.faces.component.behavior.ClientBehaviorHolder#getEventNames}.
      * </p>
      *
      * @return behaviors associated with this component.
@@ -1661,13 +1811,13 @@ public abstract class UIComponentBase extends UIComponent {
     /**
      * <p class="changed_added_2_0">
      * This is a default implementation of
-     * {@link ClientBehaviorHolder#getDefaultEventName}. <code>UIComponent</code> does not
-     * implement the {@link ClientBehaviorHolder} interface, but provides default
-     * implementations for the methods defined by {@link ClientBehaviorHolder} to simplify
+     * {@link jakarta.faces.component.behavior.ClientBehaviorHolder#getDefaultEventName}. <code>UIComponent</code> does not
+     * implement the {@link jakarta.faces.component.behavior.ClientBehaviorHolder} interface, but provides default
+     * implementations for the methods defined by {@link jakarta.faces.component.behavior.ClientBehaviorHolder} to simplify
      * subclass implementations. Subclasses that wish to support the
-     * {@link ClientBehaviorHolder} contract must declare that the subclass implements
-     * {@link ClientBehaviorHolder}, and must provide an implementation of
-     * {@link ClientBehaviorHolder#getEventNames}.
+     * {@link jakarta.faces.component.behavior.ClientBehaviorHolder} contract must declare that the subclass implements
+     * {@link jakarta.faces.component.behavior.ClientBehaviorHolder}, and must provide an implementation of
+     * {@link jakarta.faces.component.behavior.ClientBehaviorHolder#getEventNames}.
      * </p>
      *
      * @return the default event name.
@@ -1872,7 +2022,6 @@ public abstract class UIComponentBase extends UIComponent {
     // private 'attributes' map directly to the state saving process.
     private static class AttributesMap implements Map<String, Object>, Serializable {
 
-        @Serial
         private static final long serialVersionUID = -6773035086539772945L;
 
         // this KEY is special to the AttributesMap - this allows the implementation
@@ -1880,19 +2029,23 @@ public abstract class UIComponentBase extends UIComponent {
         private static final String ATTRIBUTES_THAT_ARE_SET_KEY = UIComponentBase.class.getName() + ".attributesThatAreSet";
 
         // private Map<String, Object> attributes;
-        private transient UIComponent component;
-        private final transient Map<String, PropertyDescriptor> pdMap;
+        private transient Map<String, PropertyDescriptor> pdMap;
         private transient ConcurrentMap<String, Method> readMap;
+        private transient UIComponentBase component;
 
         // -------------------------------------------------------- Constructors
 
         private AttributesMap(UIComponent component) {
-            this.component = component;
-            this.pdMap = ((UIComponentBase) component).getDescriptorMap();
+            this.component = (UIComponentBase) component;
+            pdMap = this.component.getDescriptorMap();
         }
 
         @Override
         public boolean containsKey(Object keyObj) {
+            Object marker = component.markerGet(keyObj);
+            if (marker != NOT_MARKER) {
+                return marker != null;
+            }
             if (ATTRIBUTES_THAT_ARE_SET_KEY.equals(keyObj)) {
                 return true;
             }
@@ -1917,6 +2070,10 @@ public abstract class UIComponentBase extends UIComponent {
             Object result = null;
             if (key == null) {
                 throw new NullPointerException();
+            }
+            Object marker = component.markerGet(key);
+            if (marker != NOT_MARKER) {
+                return marker;
             }
             if (ATTRIBUTES_THAT_ARE_SET_KEY.equals(key)) {
                 result = component.getStateHelper().get(UIComponent.PropertyKeysPrivate.attributesThatAreSet);
@@ -2001,6 +2158,9 @@ public abstract class UIComponentBase extends UIComponent {
                 throw new NullPointerException();
             }
 
+            // Keep the field cache in sync; the value is still stored in the attributes map below.
+            component.markerPut(keyValue, value);
+
             if (ATTRIBUTES_THAT_ARE_SET_KEY.equals(keyValue)) {
                 if (component.attributesThatAreSet == null) {
                     if (value instanceof List) {
@@ -2052,7 +2212,7 @@ public abstract class UIComponentBase extends UIComponent {
                 throw new NullPointerException();
             }
 
-            for (Entry<? extends String, ?> entry : map.entrySet()) {
+            for (Map.Entry<? extends String, ?> entry : map.entrySet()) {
                 put(entry.getKey(), entry.getValue());
             }
         }
@@ -2063,6 +2223,7 @@ public abstract class UIComponentBase extends UIComponent {
             if (key == null) {
                 throw new NullPointerException();
             }
+            component.markerRemove(key);
             if (ATTRIBUTES_THAT_ARE_SET_KEY.equals(key)) {
                 return null;
             }
@@ -2072,7 +2233,7 @@ public abstract class UIComponentBase extends UIComponent {
             } else {
                 Map<String, Object> attributes = getAttributes();
                 if (attributes != null) {
-                    component.getStateHelper().remove(PropertyKeysPrivate.attributesThatAreSet, key);
+                    component.getStateHelper().remove(UIComponent.PropertyKeysPrivate.attributesThatAreSet, key);
                     return component.getStateHelper().remove(PropertyKeys.attributes, key);
                 } else {
                     return null;
@@ -2082,19 +2243,19 @@ public abstract class UIComponentBase extends UIComponent {
 
         @Override
         public int size() {
-            Map<String, Object> attributes = getAttributes();
+            Map attributes = getAttributes();
             return attributes != null ? attributes.size() : 0;
         }
 
         @Override
         public boolean isEmpty() {
-            Map<String, Object> attributes = getAttributes();
+            Map attributes = getAttributes();
             return attributes == null || attributes.isEmpty();
         }
 
         @Override
-        public boolean containsValue(Object value) {
-            Map<String, Object> attributes = getAttributes();
+        public boolean containsValue(java.lang.Object value) {
+            Map attributes = getAttributes();
             return attributes != null && attributes.containsValue(value);
         }
 
@@ -2117,9 +2278,9 @@ public abstract class UIComponentBase extends UIComponent {
         public Collection<Object> values() {
             Map<String, Object> attributes = getAttributes();
             if (attributes != null) {
-                return unmodifiableCollection(attributes.values());
+                return Collections.unmodifiableCollection(attributes.values());
             }
-            return emptyList();
+            return Collections.emptyList();
         }
 
         @Override
@@ -2228,7 +2389,7 @@ public abstract class UIComponentBase extends UIComponent {
             // noinspection unchecked
             Class<?> clazz = (Class<?>) in.readObject();
             try {
-                component = (UIComponent) clazz.getDeclaredConstructor().newInstance();
+                component = (UIComponentBase) clazz.getDeclaredConstructor().newInstance();
             } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException e) {
                 throw new RuntimeException(e);
             }
@@ -3016,18 +3177,13 @@ public abstract class UIComponentBase extends UIComponent {
     private static class FacetsMapValuesIterator implements Iterator<UIComponent> {
 
         private final FacetsMap map;
-        private final Iterator<String> iterator;
-        private String last = null;
+        private final Iterator<Map.Entry<String, UIComponent>> iterator;
+        private Map.Entry<String, UIComponent> last = null;
 
         public FacetsMapValuesIterator(FacetsMap map) {
             this.map = map;
-            this.iterator = map.keySetIterator();
-            iterator = map.entrySetIterator();
+            this.iterator = map.entrySetIterator();
         }
-
-        private FacetsMap map = null;
-        private Iterator<Map.Entry<String, UIComponent>> iterator = null;
-        private Map.Entry<String, UIComponent> last = null;
 
         @Override
         public boolean hasNext() {
@@ -3196,12 +3352,37 @@ public abstract class UIComponentBase extends UIComponent {
         return context.getViewRoot().createUniqueId();
     }
 
+    /**
+     * Overridden to reuse the memoized {@link #getNamingContainerAncestor()} cache instead of the default
+     * uncached parent-chain walk, which is hot during view build (assignUniqueId / clientId resolution).
+     * Same result: this component if it is a {@link NamingContainer}, else its first NamingContainer ancestor.
+     */
+    @Override
+    public UIComponent getNamingContainer() {
+        if (this instanceof NamingContainer) {
+            return this;
+        }
+        return getNamingContainerAncestor();
+    }
+
     private UIComponent getNamingContainerAncestor() {
         if (namingContainerAncestor != null) {
             return namingContainerAncestor;
         }
 
-        for (UIComponent ancestor = getParent(); ancestor != null; ancestor = ancestor.getParent()) {
+        // Resolve via the parent's (memoized) ancestor rather than walking the whole chain: each level is
+        // cached, so building/visiting the tree is O(n) instead of an O(depth) walk per component. The value
+        // is identical to the walk, with the same invalidation point (setParent clears the field).
+        UIComponent parent = getParent();
+        if (parent instanceof NamingContainer) {
+            return namingContainerAncestor = parent;
+        }
+        if (parent instanceof UIComponentBase) {
+            return namingContainerAncestor = ((UIComponentBase) parent).getNamingContainerAncestor();
+        }
+
+        // Rare: a non-UIComponentBase parent has no memoized ancestor, so fall back to the chain walk.
+        for (UIComponent ancestor = parent; ancestor != null; ancestor = ancestor.getParent()) {
             if (ancestor instanceof NamingContainer) {
                 return namingContainerAncestor = ancestor;
             }
