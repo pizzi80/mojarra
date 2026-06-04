@@ -16,7 +16,8 @@
 
 package com.sun.faces.util;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -36,8 +37,9 @@ public class Cache<K, V> {
         @Override
         default V apply(K key) {
             try {
-                return newInstance( key );
-            } catch (InterruptedException e) {
+                return newInstance(key);
+            }
+            catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -54,9 +56,8 @@ public class Cache<K, V> {
      *
      * @param factory a factory to create or retrieve the element that need to be cached
      */
-    public Cache(Factory<K,V> factory) {
-
-        this.factory = factory;
+    public Cache(final Factory<K,V> factory) {
+        this.factory = requireNonNull(factory);
     }
 
     // ------------------------------------------------------ Public Methods
@@ -72,14 +73,11 @@ public class Cache<K, V> {
      * @return the value for the specified key, if any
      */
     public V get(final K key) {
-        Objects.requireNonNull(key);
-
-        return cache.computeIfAbsent( key , factory );
+        return cache.computeIfAbsent(requireNonNull(key), factory);
     }
 
     public V remove(final K key) {
         return cache.remove(key);
-
     }
 
 }

@@ -8,7 +8,6 @@ import java.io.ObjectOutputStream;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -22,8 +21,10 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
- * A simple {@link ConcurrentMap} with LRU policy backed by a {@link Collections#synchronizedMap} over a {@link LRUMap}
- * (which is in turn backed by a {@link java.util.LinkedHashMap} with access order and fixed capacity.
+ * A {@link ConcurrentMap} with LRU eviction policy backed by an {@link LRUMap}
+ * All the access method are synchronized using an internal {@link ReentrantLock}
+ * and custom internal data structures to iterate over keys and values without the need
+ * of external locking
  * <br>
  * Note that a {@link ConcurrentMap} should not contains null keys and values, so we enforced null checks.
  *
@@ -58,14 +59,14 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
     /**
      * Lock the access
      */
-    public void lock() {
+    protected void lock() {
         lock.lock();
     }
 
     /**
      * Unlock the access
      */
-    public void unlock() {
+    protected void unlock() {
         lock.unlock();
     }
 
@@ -117,7 +118,7 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
         } catch (Exception ignored){}
         // skip if empty (this is the case when there was only null key or values)
         if ( m.isEmpty() ) return;
-        // putAll non null key/values
+        // putAll non-null key/values
         execAtomically( lock , () -> lru.putAll(m) );
     }
 
@@ -184,11 +185,11 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
     public static class SynchronizedCollection<E> implements Collection<E>, Serializable {
 
-        @java.io.Serial
+        @Serial
         private static final long serialVersionUID = -7885887913249312765L;
 
         final Collection<E> c;          // Backing Collection
-        final ReentrantLock mutex;      // Object on which to synchronize (Serializable)
+        final ReentrantLock mutex;      // Lock on which to synchronize (Serializable)
 
         SynchronizedCollection(Collection<E> c, ReentrantLock mutex) {
             this.c = requireNonNull(c);
@@ -299,7 +300,7 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
         // serialization ----------------------------------------------------
 
-        @java.io.Serial
+        @Serial
         private void writeObject(ObjectOutputStream s) throws IOException {
             execAtomically(mutex, s::defaultWriteObject);
         }
@@ -308,11 +309,11 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
     public static class SynchronizedSet<E> extends SynchronizedCollection<E> implements Set<E> {
 
-        @java.io.Serial
+        @Serial
         private static final long serialVersionUID = -2374533697256931095L;
 
-        SynchronizedSet(Collection<E> c, ReentrantLock mutex) {
-            super(c, mutex);
+        SynchronizedSet(Collection<E> c, ReentrantLock lock) {
+            super(c, lock);
         }
 
         @Override
@@ -330,11 +331,11 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
     public static class SynchronizedIterator<E> implements Iterator<E>, Serializable {
 
-        @java.io.Serial
+        @Serial
         private static final long serialVersionUID = 7441796146522523309L;
 
-        final Iterator<E> i;
-        final ReentrantLock lock;
+        private final Iterator<E> i;
+        private final ReentrantLock lock;
 
         SynchronizedIterator(Iterator<E> i, ReentrantLock lock) {
             this.i = requireNonNull(i);

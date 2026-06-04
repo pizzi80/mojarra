@@ -27,12 +27,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 import com.sun.faces.application.applicationimpl.events.ComponentSystemEventHelper;
 import com.sun.faces.application.applicationimpl.events.EventInfo;
-import com.sun.faces.application.applicationimpl.events.ReentrantLisneterInvocationGuard;
+import com.sun.faces.application.applicationimpl.events.ReentrantListenerInvocationGuard;
 import com.sun.faces.application.applicationimpl.events.SystemEventHelper;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.Util;
@@ -65,14 +64,6 @@ public class Events {
     // per-component Pre/PostValidateEvent, PreRenderComponentEvent, etc.). Over-approximating: classes
     // are never removed on unsubscribe, so a stale entry only costs an empty lookup, never a missed event.
     private final Set<Class<? extends SystemEvent>> globallySubscribedEventClasses = ConcurrentHashMap.newKeySet();
-
-    /*
-     * This class encapsulates the behavior to prevent infinite loops when the publishing of one event leads to the queueing
-     * of another event of the same type. Special provision is made to allow the case where this guaring mechanims happens
-     * on a per-FacesContext, per-SystemEvent.class type basis.
-     */
-
-    private final ReentrantLisneterInvocationGuard listenerInvocationGuard = new ReentrantLisneterInvocationGuard();
 
     /**
      * @see jakarta.faces.application.Application#publishEvent(FacesContext, Class, Class, Object)
@@ -169,10 +160,6 @@ public class Events {
 
     }
 
-    private boolean needsProcessing(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
-        return context.isProcessingEvents() || ExceptionQueuedEvent.class.isAssignableFrom(systemEventClass);
-    }
-
     /**
      * @return process any listeners for the specified SystemEventListenerHolder and return any SystemEvent that may have
      * been created as a side-effect of processing the listeners.
@@ -192,8 +179,8 @@ public class Events {
 
     }
 
-    private SystemEvent invokeViewListenersFor(FacesContext ctx, Class<? extends SystemEvent> systemEventClass, SystemEvent event, Object source) {
-        UIViewRoot root = ctx.getViewRoot();
+    private SystemEvent invokeViewListenersFor(FacesContext context, Class<? extends SystemEvent> systemEventClass, SystemEvent event, Object source) {
+        UIViewRoot root = context.getViewRoot();
         if (root == null) {
             return event;
         }
@@ -205,15 +192,15 @@ public class Events {
             return null;
         }
 
-        if (listenerInvocationGuard.isGuardSet(ctx, systemEventClass)) {
+        if (ReentrantListenerInvocationGuard.isGuardSet(context, systemEventClass)) {
             return event;
         }
-        listenerInvocationGuard.setGuard(ctx, systemEventClass);
+        ReentrantListenerInvocationGuard.setGuard(context, systemEventClass);
         try {
             EventInfo rootEventInfo = systemEventHelper.getEventInfo(systemEventClass, UIViewRoot.class);
             return processListenersAccountingForAdds(listeners, event, source, rootEventInfo);
         } finally {
-            listenerInvocationGuard.clearGuard(ctx, systemEventClass);
+            ReentrantListenerInvocationGuard.clearGuard(context, systemEventClass);
         }
     }
 
@@ -330,10 +317,14 @@ public class Events {
     }
 
     private static SystemEventListener[] copyListWithExclusions(Collection<SystemEventListener> original, Set<SystemEventListener> excludes) {
-
-        return original.stream()
-                       .filter(Predicate.not(excludes::contains))
-                       .toArray(SystemEventListener[]::new);
+        int expectedSize = original.size()-excludes.size();
+        List<SystemEventListener> list = new ArrayList<>(expectedSize);
+        for (SystemEventListener systemEventListener : original) {
+            if (!excludes.contains(systemEventListener)) {
+                list.add(systemEventListener);
+            }
+        }
+        return list.toArray(new SystemEventListener[list.size()]); // real size
     }
 
 }

@@ -398,7 +398,7 @@ public final class HtmlUtils {
     static public void writeURL(Writer out, char[] textBuff, int start, int len, String queryEncoding) throws IOException, UnsupportedEncodingException {
         int end = start + len;
         int runStart = start;
-        MyByteArrayOutputStream buf = null;
+        InternalByteArrayOutputStream buf = null;
         OutputStreamWriter writer = null;
         char[] charArray = null;
 
@@ -424,7 +424,7 @@ public final class HtmlUtils {
                 continue;
             }
             if (buf == null) {
-                buf = new MyByteArrayOutputStream(MAX_BYTES_PER_CHAR);
+                buf = new InternalByteArrayOutputStream(MAX_BYTES_PER_CHAR);
                 writer = new OutputStreamWriter(buf, "UTF-8");
                 charArray = new char[1];
             }
@@ -472,14 +472,14 @@ public final class HtmlUtils {
      *   <li>Anything else -- percent-encode through the requested external encoding.</li>
      * </ul>
      *
-     * <p>The {@link MyByteArrayOutputStream}/{@link OutputStreamWriter} pair used for non-ASCII
+     * <p>The {@link InternalByteArrayOutputStream}/{@link OutputStreamWriter} pair used for non-ASCII
      * percent-encoding is lazily allocated on first need and shared across all encode calls in
      * a single invocation -- matching the original allocation amortization.
      */
     static private void encodeURIString(Writer out, char[] textBuff, String encoding, int start, int end) throws IOException {
         int runStart = start;
         boolean fragment = false;
-        MyByteArrayOutputStream buf = null;
+        InternalByteArrayOutputStream buf = null;
         OutputStreamWriter writer = null;
         char[] charArray = null;
 
@@ -513,7 +513,7 @@ public final class HtmlUtils {
             }
 
             if (buf == null) {
-                buf = new MyByteArrayOutputStream(MAX_BYTES_PER_CHAR);
+                buf = new InternalByteArrayOutputStream(MAX_BYTES_PER_CHAR);
                 writer = new OutputStreamWriter(buf, encoding != null ? encoding : RIConstants.CHAR_ENCODING);
                 charArray = new char[1];
             }
@@ -531,7 +531,7 @@ public final class HtmlUtils {
      * {@code buf}/{@code writer}/{@code charArray} are reused across calls in the same enclosing
      * encode loop.
      */
-    static private void encodeCharPercentBytes(Writer out, char ch, MyByteArrayOutputStream buf,
+    static private void encodeCharPercentBytes(Writer out, char ch, InternalByteArrayOutputStream buf,
             OutputStreamWriter writer, char[] charArray) throws IOException {
         try {
             // OutputStreamWriter#write(char) always allocates a one-element char array; we reuse our own.
@@ -542,7 +542,7 @@ public final class HtmlUtils {
             buf.reset();
             return;
         }
-        byte[] ba = buf.getBuf();
+        byte[] ba = buf.getBuffer();
         for (int j = 0, size = buf.size(); j < size; j++) {
             writeURIDoubleHex(out, ba[j] + 256);
         }

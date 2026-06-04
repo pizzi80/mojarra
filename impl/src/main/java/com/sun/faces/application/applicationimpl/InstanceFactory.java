@@ -145,10 +145,10 @@ public class InstanceFactory {
     // These four maps store store "identifier" | "class name"
     // mappings.
     //
-    private final ViewMemberInstanceFactoryMetadataMap<String, Object> componentMap;
-    private final ViewMemberInstanceFactoryMetadataMap<String, Object> behaviorMap;
-    private final ViewMemberInstanceFactoryMetadataMap<String, Object> converterIdMap;
-    private final ViewMemberInstanceFactoryMetadataMap<String, Object> validatorMap;
+    private final ViewMemberInstanceFactoryMetadataMap componentMap;
+    private final ViewMemberInstanceFactoryMetadataMap behaviorMap;
+    private final ViewMemberInstanceFactoryMetadataMap converterIdMap;
+    private final ViewMemberInstanceFactoryMetadataMap validatorMap;
 
     private final Set<String> defaultValidatorIds;
     private volatile Map<String, String> defaultValidatorInfo;
@@ -158,12 +158,12 @@ public class InstanceFactory {
     public InstanceFactory(ApplicationAssociate applicationAssociate) {
         associate = applicationAssociate;
 
-        componentMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
-        converterIdMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
+        componentMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
+        converterIdMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
         converterTypeMap = new ConcurrentHashMap<>();
-        validatorMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
+        validatorMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
         defaultValidatorIds = new LinkedHashSet<>();
-        behaviorMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
+        behaviorMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
 
         WebConfiguration webConfig = WebConfiguration.getInstance(FacesContext.getCurrentInstance().getExternalContext());
         registerPropertyEditors = webConfig.isOptionEnabled(RegisterConverterPropertyEditors);
@@ -749,7 +749,7 @@ public class InstanceFactory {
      * @return The new object instance.
      */
     @SuppressWarnings("unchecked")
-    private <T> T newThing(String key, ViewMemberInstanceFactoryMetadataMap<String, Object> map) {
+    private <T> T newThing(String key, ViewMemberInstanceFactoryMetadataMap map) {
 
         Object result;
         Class<?> clazz;

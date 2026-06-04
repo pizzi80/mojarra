@@ -18,21 +18,18 @@ package com.sun.faces.application.applicationimpl;
 
 import static com.sun.faces.util.MessageUtils.ILLEGAL_ATTEMPT_SETTING_APPLICATION_ARTIFACT_ID;
 import static com.sun.faces.util.MessageUtils.getExceptionMessageString;
-import static com.sun.faces.util.Util.coalesce;
 import static com.sun.faces.util.Util.notNull;
+import static java.util.Collections.emptyIterator;
 import static java.util.logging.Level.FINE;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
-
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.util.FacesLogger;
 
 import jakarta.faces.application.NavigationHandler;
 import jakarta.faces.application.ResourceHandler;
@@ -41,6 +38,9 @@ import jakarta.faces.application.ViewHandler;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.ActionListener;
 import jakarta.faces.flow.FlowHandler;
+
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.util.FacesLogger;
 
 public class Singletons {
 
@@ -55,7 +55,7 @@ public class Singletons {
     private volatile ResourceHandler resourceHandler;
     private volatile StateManager stateManager;
 
-    private volatile ArrayList<Locale> supportedLocales;
+    private volatile List<Locale> supportedLocales;
     private volatile Locale defaultLocale;
     private volatile String messageBundle;
 
@@ -192,7 +192,7 @@ public class Singletons {
      * @see jakarta.faces.application.Application#getSupportedLocales()
      */
     public Iterator<Locale> getSupportedLocales() {
-        return coalesce(supportedLocales, Collections.<Locale>emptyList()).iterator();
+        return supportedLocales != null ? supportedLocales.iterator() : emptyIterator();
     }
 
     /*

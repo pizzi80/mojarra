@@ -30,9 +30,7 @@ public class SystemEventHelper {
     // -------------------------------------------------------- Constructors
 
     public SystemEventHelper() {
-
         systemEventInfoCache = new Cache<>(SystemEventInfo::new);
-
     }
 
     // ------------------------------------------------------ Public Methods
@@ -50,7 +48,6 @@ public class SystemEventHelper {
 
         Class<?> sourceClass = useSourceForLookup ? sourceBaseType != null ? sourceBaseType : source.getClass() : Void.class;
         return getEventInfo(systemEventClass, sourceClass);
-
     }
 
 }

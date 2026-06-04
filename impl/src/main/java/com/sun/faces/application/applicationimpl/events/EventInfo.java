@@ -42,33 +42,28 @@ public class EventInfo {
     private final Class<? extends SystemEvent> systemEvent;
     private final Class<?> sourceClass;
     private final Set<SystemEventListener> listeners;
-    private Constructor<?> eventConstructor;
     private final Map<Class<?>, Constructor<?>> constructorMap;
+    private Constructor<?> eventConstructor;
 
     // -------------------------------------------------------- Constructors
 
     public EventInfo(Class<? extends SystemEvent> systemEvent, Class<?> sourceClass) {
-
         this.systemEvent = systemEvent;
         this.sourceClass = sourceClass;
-        listeners = new CopyOnWriteArraySet<>();
-        constructorMap = new HashMap<>();
+        this.listeners = new CopyOnWriteArraySet<>();
+        this.constructorMap = new HashMap<>();
         if (!sourceClass.equals(Void.class)) {
             eventConstructor = getEventConstructor(sourceClass);
         }
-
     }
 
     // ------------------------------------------------------ Public Methods
 
     public Set<SystemEventListener> getListeners() {
-
         return listeners;
-
     }
 
     public SystemEvent createSystemEvent(Object source) {
-
         Constructor<?> toInvoke = getCachedConstructor(source.getClass());
         if (toInvoke != null) {
             try {
@@ -78,31 +73,18 @@ public class EventInfo {
             }
         }
         return null;
-
     }
 
     // ----------------------------------------------------- Private Methods
 
     private Constructor<?> getCachedConstructor(Class<?> source) {
-
-        if (eventConstructor != null) {
-            return eventConstructor;
-        } else {
-            Constructor<?> c = constructorMap.get(source);
-            if (c == null) {
-                c = getEventConstructor(source);
-                if (c != null) {
-                    constructorMap.put(source, c);
-                }
-            }
-            return c;
-        }
-
+        return eventConstructor != null ?
+                eventConstructor :
+                constructorMap.computeIfAbsent(source, this::getEventConstructor);
     }
 
     private Constructor<?> getEventConstructor(Class<?> source) {
 
-        Constructor<?> ctor = null;
         try {
             return systemEvent.getDeclaredConstructor(source);
         }
@@ -124,8 +106,8 @@ public class EventInfo {
                         new Object[] { systemEvent.getName(), sourceClass.getName() });
             }
         }
-        return ctor;
 
+        return null;
     }
 
 }

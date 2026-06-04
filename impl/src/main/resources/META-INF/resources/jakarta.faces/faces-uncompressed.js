@@ -1407,7 +1407,12 @@ if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{app
                         req.xmlReq.setRequestHeader('Faces-Request', 'partial/ajax');
 
                         // file upload
-                        if ( isMultiPart ) formData.append('Faces-Request','partial/ajax');
+                        if ( isMultiPart ) {
+                            formData.append('Faces-Request','partial/ajax');
+
+                            // register an upload onprogress callback
+                            if (context.includesInputFile) req.xmlReq.upload.onprogress = event => sendUploadProgressEvent(event, req.context);
+                        }
 
                         // GET or POST
                         // req.xmlReq.setRequestHeader('Content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
@@ -1550,6 +1555,32 @@ if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{app
             }
 
             // TODO: do we need to call these functions in the global context?
+            for (const listener of eventListeners) {
+                listener.call(null, data);
+            }
+        };
+
+        /**
+         * Upload progress event callback.
+         * This is a Mojarra only feature that probably will be standardized in the future,
+         * so we keep the function separate from the standard sendEvent implementation.
+         * Signals upload progress to per-request and global event listeners.
+         * This is a non-standard extension to the Faces Ajax event lifecycle.
+         * @param {ProgressEvent} event - the native XMLHttpRequest upload progress event
+         * @param {Object} context - the request context
+         * @ignore
+         */
+        const sendUploadProgressEvent = function sendUploadProgressEvent(event, context) {
+            const data = {};
+            data.type = "event";
+            data.status = "uploadprogress";
+            data.source = getElemById(context.sourceid); // data source is the dom element (14.4.1 of the 2.0 specification)
+            data.loaded = event.loaded;
+            data.total = event.total;
+            data.lengthComputable = event.lengthComputable;
+            if (context.onevent) {
+                context.onevent.call(null, data);
+            }
             for (const listener of eventListeners) {
                 listener.call(null, data);
             }

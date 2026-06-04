@@ -34,6 +34,7 @@ import jakarta.faces.context.ResponseWriter;
 public class GroupRenderer extends HtmlBasicRenderer {
 
     private static final Attribute[] ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.PANELGROUP);
+
     // ---------------------------------------------------------- Public Methods
 
     @Override
@@ -45,7 +46,7 @@ public class GroupRenderer extends HtmlBasicRenderer {
             return;
         }
         // Render a span around this group if necessary
-        String style = (String) component.getAttributes().get("style");
+        // String style = (String) component.getAttributes().get("style");
         String styleClass = (String) component.getAttributes().get("styleClass");
         ResponseWriter writer = context.getResponseWriter();
 
@@ -121,7 +122,7 @@ public class GroupRenderer extends HtmlBasicRenderer {
      *
      * @return <code>true</code> if we need to render a div or span element around this group.
      */
-    private static boolean divOrSpan(UIComponent component) {
+    private boolean divOrSpan(UIComponent component) {
 
         return shouldWriteIdAttribute(component) || component.getAttributes().get("style") != null || component.getAttributes().get("styleClass") != null;
 

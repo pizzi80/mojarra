@@ -19,7 +19,6 @@ package com.sun.faces.renderkit;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.BEHAVIOR_EVENT_PARAM;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.BEHAVIOR_SOURCE_PARAM;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.PARTIAL_EVENT_PARAM;
-import static com.sun.faces.util.Util.calculateMapCapacity;
 import static jakarta.faces.application.ResourceHandler.FACES_SCRIPT_LIBRARY_NAME;
 import static jakarta.faces.application.ResourceHandler.FACES_SCRIPT_RESOURCE_NAME;
 import static java.util.stream.Collectors.toList;
@@ -28,9 +27,9 @@ import java.io.IOException;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -39,17 +38,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.sun.faces.RIConstants;
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.application.resource.ResourceHandlerImpl;
-import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.el.ELUtils;
-import com.sun.faces.facelets.util.DevTools;
-import com.sun.faces.renderkit.html_basic.ScriptRenderer;
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.RequestStateManager;
-import com.sun.faces.util.Util;
 
 import jakarta.el.ValueExpression;
 import jakarta.faces.FacesException;
@@ -81,6 +69,17 @@ import jakarta.faces.render.RenderKit;
 import jakarta.faces.render.RenderKitFactory;
 import jakarta.faces.render.Renderer;
 import jakarta.faces.render.ResponseStateManager;
+
+import com.sun.faces.RIConstants;
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.application.resource.ResourceHandlerImpl;
+import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.el.ELUtils;
+import com.sun.faces.facelets.util.DevTools;
+import com.sun.faces.renderkit.html_basic.ScriptRenderer;
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.RequestStateManager;
+import com.sun.faces.util.Util;
 
 /**
  * <p>
@@ -1749,7 +1748,7 @@ public class RenderKitUtils {
             .append(clientId != null ? clientId : component.getClientId(context))
             .append("','")
             .append(domEventName)
-            .append("',function(event){" + function + "})");
+            .append("',function(event){").append(function).append("})");
 
         if (context.getPartialViewContext().isAjaxRequest()) {
             context.getPartialViewContext().getEvalScripts().add(script.toString());

@@ -477,7 +477,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
 
         // zero length "for" expression - global errors not associated with any component
         // returned
-        if (forComponent.trim().isEmpty()) {
+        if (forComponent.isBlank()) {
             return context.getMessages(null);
         }
 

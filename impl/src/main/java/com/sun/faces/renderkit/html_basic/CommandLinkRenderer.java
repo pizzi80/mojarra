@@ -30,6 +30,7 @@ import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
 import jakarta.faces.event.ActionEvent;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.application.resource.ResourceHandlerImpl;
 import com.sun.faces.renderkit.Attribute;
 import com.sun.faces.renderkit.AttributeManager;

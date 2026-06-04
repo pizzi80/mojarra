@@ -147,10 +147,10 @@ public class UILeaf extends UIComponentBase implements UntargetableComponent {
         // do nothing
     }
 
-    @Override
-    protected FacesListener[] getFacesListeners(Class<?> faces) {
-        return null;
-    }
+    //@Override
+//    protected FacesListener[] getFacesListeners(Class<?> faces) {
+//        return null;
+//    }
 
     @Override
     protected void removeFacesListener(FacesListener faces) {
