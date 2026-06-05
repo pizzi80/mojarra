@@ -342,7 +342,7 @@ final class CompilationManager {
     }
 
     public FaceletHandler createFaceletHandler() {
-        return units.getFirst().createFaceletHandler();
+        return units.get(0).createFaceletHandler();
     }
 
     private CompilationUnit currentUnit() {
