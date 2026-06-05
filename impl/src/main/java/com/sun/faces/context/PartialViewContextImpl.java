@@ -377,8 +377,7 @@ public class PartialViewContextImpl extends PartialViewContext {
         if (param == null) {
             return new ArrayList<>(1);
         } else {
-            Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
-            String[] pcs = Util.split(appMap, param, "[ \t]+");
+            String[] pcs = Util.split(FacesContext.getCurrentInstance(), param, "[ \t]+");
             return pcs != null && pcs.length != 0 ? new ArrayList<>(Arrays.asList(pcs)) : new ArrayList<>(1);
         }
 
