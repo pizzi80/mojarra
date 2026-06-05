@@ -33,6 +33,7 @@ import static com.sun.faces.util.MessageUtils.getExceptionMessageString;
 import static jakarta.faces.application.ViewHandler.CHARACTER_ENCODING_KEY;
 import static java.lang.Character.isDigit;
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.SEVERE;
@@ -557,30 +558,51 @@ public class Util {
         }
     }
 
-    public static void notNullArgs( Object arg1 , Object arg2 ) {
+    /**
+     * Checks that the specified objects reference is not {@code null}. This
+     * method is designed primarily for doing parameter validation in methods
+     * and constructors
+     *
+     * @param arg1 the object reference to check for nullity
+     * @param arg2 the object reference to check for nullity
+     * @throws NullPointerException if {@code arg1} or {@code arg2} is {@code null}
+     */
+    public static void notNullArgs(Object arg1, Object arg2) {
         if ( arg1 == null || arg2 == null )
             throw new NullPointerException();
     }
 
-    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 ) {
+    /**
+     * @see #notNullArgs(Object, Object)
+     */
+    public static void notNullArgs(Object arg1, Object arg2, Object arg3) {
         notNullArgs(arg1,arg2);
-        Objects.requireNonNull(arg3);
+        requireNonNull(arg3);
     }
 
-    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 , Object arg4 ) {
+    /**
+     * @see #notNullArgs(Object, Object)
+     */
+    public static void notNullArgs(Object arg1, Object arg2, Object arg3, Object arg4) {
         notNullArgs(arg1,arg2,arg3);
-        Objects.requireNonNull(arg4);
+        requireNonNull(arg4);
     }
 
-    public static void notNullArgs( Object arg1 , Object arg2 , Object arg3 , Object arg4 , Object arg5 ) {
+    /**
+     * @see #notNullArgs(Object, Object)
+     */
+    public static void notNullArgs(Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
         notNullArgs(arg1,arg2,arg3,arg4);
-        Objects.requireNonNull(arg5);
+        requireNonNull(arg5);
     }
 
-    public static void notNullArgs( Object... objets ) {
-        Objects.requireNonNull(objets);
-        for ( Object obj : objets)
-            Objects.requireNonNull(obj);
+    /**
+     * @see #notNullArgs(Object, Object)
+     */
+    public static void notNullArgs(Object... objets) {
+        requireNonNull(objets);
+        for (Object obj : objets)
+            requireNonNull(obj);
     }
 
     public static ValueExpression getValueExpressionNullSafe(UIComponent component, String name) {
@@ -914,7 +936,7 @@ public class Util {
     }
 
     public static Class<?> getTypeFromString(String type) throws ClassNotFoundException {
-        Objects.requireNonNull(type);
+        requireNonNull(type);
 
         Class<?> primitiveType = primitiveTypes.get(type);
         if ( primitiveType != null ) return primitiveType;
