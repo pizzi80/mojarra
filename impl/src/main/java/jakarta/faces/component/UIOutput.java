@@ -165,9 +165,12 @@ public class UIOutput extends UIComponentBase implements ValueHolder {
     public void markInitialState() {
         super.markInitialState();
 
-        Converter<?> c = getConverter();
-        if (c instanceof PartialStateHolder partialStateHolder) {
-            partialStateHolder.markInitialState();
+        // Use the field, not getConverter(): only an explicitly-installed converter can be a
+        // PartialStateHolder worth marking. A ValueExpression-bound converter is resolved lazily
+        // (a fresh instance per call), so resolving it here is meaningless — and getConverter() does
+        // a per-component ValueExpression lookup that dominates buildView on large views.
+        if (converter instanceof PartialStateHolder) {
+            ((PartialStateHolder) converter).markInitialState();
         }
     }
 
@@ -176,9 +179,8 @@ public class UIOutput extends UIComponentBase implements ValueHolder {
         if (initialStateMarked()) {
             super.clearInitialState();
 
-            Converter<?> c = getConverter();
-            if (c instanceof PartialStateHolder partialStateHolder) {
-                partialStateHolder.clearInitialState();
+            if (converter instanceof PartialStateHolder) {
+                ((PartialStateHolder) converter).clearInitialState();
             }
         }
     }
@@ -198,16 +200,18 @@ public class UIOutput extends UIComponentBase implements ValueHolder {
                  */
                 if (getParent() != null && getParent().initialStateMarked()) {
                     getAttributes().put(FORCE_FULL_CONVERTER_STATE, true);
-                    if (converter instanceof PartialStateHolder partialStateHolder) {
+                    if (converter instanceof PartialStateHolder) {
+                        PartialStateHolder partialStateHolder = (PartialStateHolder) converter;
                         partialStateHolder.clearInitialState();
                     }
                 }
 
                 converterState = saveAttachedState(context, converter);
             } else {
-                if (converter instanceof StateHolder stateHolder) {
+                if (converter instanceof StateHolder) {
+                    StateHolder stateHolder = (StateHolder) converter;
                     if (!stateHolder.isTransient()) {
-                        converterState = stateHolder.saveState(context);
+                        converterState = ((StateHolder) converter).saveState(context);
                     }
                 }
             }
@@ -243,8 +247,8 @@ public class UIOutput extends UIComponentBase implements ValueHolder {
             converter = (Converter<?>) restoreAttachedState(context, converterState);
         } else {
             // apply any saved state to the existing converter
-            if (converterState != null && converter instanceof StateHolder stateHolder) {
-                stateHolder.restoreState(context, converterState);
+            if (converterState != null && converter instanceof StateHolder) {
+                ((StateHolder) converter).restoreState(context, converterState);
             }
         }
     }
