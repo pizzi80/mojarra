@@ -37,6 +37,8 @@ import jakarta.faces.convert.Converter;
 import jakarta.faces.validator.Validator;
 import jakarta.validation.groups.Default;
 
+import com.sun.faces.util.Util;
+
 public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
 
     // Precompiled form of EMPTY_VALIDATION_GROUPS_PATTERN; setValidationGroups runs per postback, so avoid recompiling.
@@ -138,10 +140,7 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
 
     private static void misplacedComponentCheck(UIComponent parentComponent, String clientId) throws IllegalArgumentException {
         try {
-            parentComponent.getChildren()
-                           .reversed()
-                           .forEach( childComponent -> {
-
+            for (UIComponent childComponent : Util.reverse(parentComponent.getChildren()) ) {
                 if (childComponent.isRendered()) {
                     if (childComponent instanceof EditableValueHolder && !(childComponent instanceof UIValidateWholeBean)) {
                         throw new IllegalArgumentException(ERROR_MISPLACED_COMPONENT);
@@ -153,7 +152,7 @@ public class UIValidateWholeBean extends UIInput implements PartialStateHolder {
                         }
                     }
                 }
-            });
+            }
         } catch (BreakException be) {
             // STOP
         }
