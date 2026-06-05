@@ -870,9 +870,8 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
     protected void initializeMappings(FacesContext context) {
         String viewMappings = webConfig.getOptionValue(FaceletsViewMappings);
         if (viewMappings != null && !viewMappings.isEmpty()) {
-            Map<String, Object> appMap = context.getExternalContext().getApplicationMap();
 
-            String[] mappingsArray = split(appMap, viewMappings, ";");
+            String[] mappingsArray = viewMappings.split(";");
 
             List<String> extensionsList = new ArrayList<>(mappingsArray.length);
             List<String> prefixesList = new ArrayList<>(mappingsArray.length);
@@ -1310,15 +1309,15 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         }
 
         /**
-         * @param ctx the <code>FacesContext</code> for the current request
+         * @param context the <code>FacesContext</code> for the current request
          * @return an array of component targets to which a MethodExpression should be retargeted
          */
-        public String[] getTargets(FacesContext ctx) {
+        public String[] getTargets(FacesContext context) {
             ValueExpression targetsExpression = (ValueExpression) propertyDescriptor.getValue("targets");
             if (targetsExpression != null) {
-                String targets = targetsExpression.getValue(ctx.getELContext());
+                String targets = targetsExpression.getValue(context.getELContext());
                 if (targets != null) {
-                    return Util.split(ctx.getExternalContext().getApplicationMap(), targets, " ");
+                    return targets.split(Util.SPACE_STRING);
                 }
             }
 
