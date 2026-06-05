@@ -19,7 +19,6 @@ package com.sun.faces.application.applicationimpl.events;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +38,7 @@ public final class ReentrantListenerInvocationGuard {
     public static boolean isGuardSet(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
         Boolean result = getGuardHolder(context).get(systemEventClass);
 
-        return result != null && result;
+        return TRUE.equals(result);
     }
 
     public static void setGuard(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
@@ -58,7 +57,7 @@ public final class ReentrantListenerInvocationGuard {
 
         var result = (Map<Class<? extends SystemEvent>, Boolean>) attributes.get(IS_PROCESSING_LISTENERS_KEY);
         if (result == null) {
-            result = new HashMap<>(1, 1.0f);
+            result = new HashMap<>();
             attributes.put(IS_PROCESSING_LISTENERS_KEY, result);
         }
 
