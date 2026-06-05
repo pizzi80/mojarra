@@ -92,25 +92,14 @@ public class ResourceManager {
 
     // ------------------------------------------------------------ Constructors
 
-    /*
-     * This ctor is only ever called by test code.
-     */
-
-    public ResourceManager(ResourceCache cache) {
-        this.cache = cache;
-        Map<String, Object> throwAwayMap = new HashMap<>();
-        initCompressableTypes(throwAwayMap);
-    }
-
     /**
      * Constructs a new <code>ResourceManager</code>. Note: if the current {@link ProjectStage} is
      * {@link ProjectStage#Development} caching or {@link ResourceInfo} instances will not occur.
-     * @param appMap the application map
      * @param cache the resource cache
      */
-    public ResourceManager(Map<String, Object> appMap, ResourceCache cache) {
+    public ResourceManager(ResourceCache cache) {
         this.cache = cache;
-        initCompressableTypes(appMap);
+        initCompressableTypes();
     }
 
     // ------------------------------------------------------ Public Methods
@@ -599,36 +588,36 @@ public class ResourceManager {
     /**
      * Init <code>compressableTypes</code> from the configuration.
      */
-    private void initCompressableTypes(Map<String, Object> appMap) {
+    private void initCompressableTypes() {
 
         WebConfiguration config = WebConfiguration.getInstance();
         String value = config.getOptionValue(WebConfiguration.WebContextInitParameter.CompressableMimeTypes);
         if (value != null && !value.isEmpty()) {
-            String[] values = Util.split(appMap, value, ",");
-            if (values != null) {
-                for (String s : values) {
-                    String pattern = s.trim();
-                    if (!isPatternValid(pattern)) {
-                        continue;
-                    }
-                    if (pattern.endsWith("/*")) {
-                        pattern = pattern.substring(0, pattern.indexOf("/*"));
-                        pattern += "/[a-z0-9.-]*";
-                    }
-                    if (compressableTypes == null) {
-                        compressableTypes = new ArrayList<>(values.length);
-                    }
-                    try {
-                        compressableTypes.add(Pattern.compile(pattern));
-                    } catch (PatternSyntaxException pse) {
-                        if (LOGGER.isLoggable(Level.WARNING)) {
-                            // PENDING i18n
-                            // fixme: typo (also in .properties file)
-                            LOGGER.log(Level.WARNING, "faces.resource.mime.type.configration.invalid", new Object[] { pattern, pse.getPattern() });
-                        }
+            String[] values = value.split(",");
+
+            for (String s : values) {
+                String pattern = s.trim();
+                if (!isPatternValid(pattern)) {
+                    continue;
+                }
+                if (pattern.endsWith("/*")) {
+                    pattern = pattern.substring(0, pattern.indexOf("/*"));
+                    pattern += "/[a-z0-9.-]*";
+                }
+                if (compressableTypes == null) {
+                    compressableTypes = new ArrayList<>(values.length);
+                }
+                try {
+                    compressableTypes.add(Pattern.compile(pattern));
+                } catch (PatternSyntaxException pse) {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        // PENDING i18n
+                        // fixme: typo (also in .properties file)
+                        LOGGER.log(Level.WARNING, "faces.resource.mime.type.configration.invalid", new Object[] { pattern, pse.getPattern() });
                     }
                 }
             }
+
         }
 
     }
