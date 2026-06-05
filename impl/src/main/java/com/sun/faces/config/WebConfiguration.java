@@ -141,10 +141,10 @@ public class WebConfiguration {
 
         // build the cache of list type params
         cachedListParams = new HashMap<>(Util.calculateMapCapacity(6)); // make room for other Faces options
-        Map<String,Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
-        getOptionValue(appMap,WebContextInitParameter.ResourceExcludes, " ");
-        getOptionValue(appMap,WebContextInitParameter.FaceletsViewMappings, ";");
-        getOptionValue(appMap,WebContextInitParameter.FaceletsSuffix, " ");
+
+        getOptionValue(WebContextInitParameter.ResourceExcludes, " ");
+        getOptionValue(WebContextInitParameter.FaceletsViewMappings, ";");
+        getOptionValue(WebContextInitParameter.FaceletsSuffix, " ");
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -284,11 +284,6 @@ public class WebConfiguration {
     }
 
     public String[] getOptionValue(WebContextInitParameter param, String sep) {
-        Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
-        return getOptionValue(appMap, param, sep);
-    }
-
-    private String[] getOptionValue(Map<String,Object> appMap, WebContextInitParameter param, String sep) {
         // get from cache
         String[] result = cachedListParams.get(param);
 
@@ -298,7 +293,7 @@ public class WebConfiguration {
             if (value == null) {
                 result = RIConstants.EMPTY_STRING_ARRAY;
             } else {
-                result = split(appMap, value, sep);
+                result = split(servletContext, value, sep);
             }
             cachedListParams.put(param, result);
         }
