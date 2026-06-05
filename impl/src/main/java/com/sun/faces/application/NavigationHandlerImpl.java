@@ -855,11 +855,11 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
             }
 
             if (queryString != null && !queryString.isEmpty()) {
-                Map<String, Object> appMap = context.getExternalContext().getApplicationMap();
 
-                String[] queryElements = Util.split(appMap, queryString, "&amp;|&");
+
+                String[] queryElements = Util.split(context, queryString, "&amp;|&");
                 for (String queryElement : queryElements) {
-                    String[] elements = Util.split(appMap, queryElement, "=", 2);
+                    String[] elements = Util.split(context, queryElement, "=", 2);
                     if (elements.length == 2) {
                         String rightHandSide = elements[1];
                         String sanitized = null != rightHandSide && 2 < rightHandSide.length() ? rightHandSide.trim() : NO_VALUE;
