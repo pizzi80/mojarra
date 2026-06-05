@@ -30,7 +30,6 @@ import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 import static jakarta.servlet.http.HttpServletResponse.SC_NOT_MODIFIED;
 import static jakarta.servlet.http.MappingMatch.EXTENSION;
 import static java.lang.Boolean.FALSE;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 
@@ -45,7 +44,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.security.SecureRandom;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -93,11 +91,11 @@ public class ResourceHandlerImpl extends ResourceHandler {
      */
     public static final String DEFAULT_CSP_POLICY = "script-src 'self' 'nonce-#{nonce}' 'strict-dynamic'";
 
-    ResourceManager manager;
-    List<Pattern> excludePatterns;
+    private final ResourceManager manager;
+    private List<Pattern> excludePatterns;
     private long creationTime;
     private long maxAge;
-    private boolean cspEnabled;
+    private final boolean cspEnabled;
     private SecureRandom secureRandom;
     private final WebConfiguration webconfig;
 
@@ -107,11 +105,11 @@ public class ResourceHandlerImpl extends ResourceHandler {
      * Creates a new instance of ResourceHandlerImpl
      */
     public ResourceHandlerImpl() {
-        creationTime = System.currentTimeMillis();
-        webconfig = WebConfiguration.getInstance();
         ExternalContext extContext = FacesContext.getCurrentInstance().getExternalContext();
+        creationTime = System.currentTimeMillis();
+        webconfig = WebConfiguration.getInstance(extContext);
         manager = ApplicationAssociate.getInstance(extContext).getResourceManager();
-        initExclusions(extContext.getApplicationMap());
+        initExclusions();
         initMaxAge();
         cspEnabled = webconfig.isOptionEnabled(WebConfiguration.BooleanWebContextInitParameter.CspNonceEnabled);
         if (cspEnabled) {
@@ -555,14 +553,13 @@ public class ResourceHandlerImpl extends ResourceHandler {
      * Log a message indicating a particular resource (reference by name and/or library) could not be found. If this was due
      * to an exception, the exception provided will be logged as well.
      *
-     * @param ctx the {@link FacesContext} for the current request
-     * @param resourceName the resource name
-     * @param libraryName the resource library
+     * @param context the {@link FacesContext} for the current request
+     * @param resourceId the resource name
      * @param t the exception caught when attempting to find the resource
      */
-    private void logMissingResource(FacesContext ctx, String resourceId, Throwable t) {
+    private void logMissingResource(FacesContext context, String resourceId, Throwable t) {
         Level level;
-        if (!ctx.isProjectStage(Production)) {
+        if (!context.isProjectStage(Production)) {
             level = WARNING;
         } else {
             level = t != null ? WARNING : FINE;
@@ -636,9 +633,9 @@ public class ResourceHandlerImpl extends ResourceHandler {
      * <ul>
      * will be used.
      */
-    private void initExclusions(Map<String, Object> appMap) {
+    private void initExclusions() {
         String excludesParam = webconfig.getOptionValue(ResourceExcludes);
-        String[] patterns = Util.split(appMap, excludesParam, " ");
+        String[] patterns = excludesParam.split(Util.SPACE_STRING);
 
         excludePatterns = new ArrayList<>(patterns.length);
         for (String pattern : patterns) {
