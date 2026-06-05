@@ -426,7 +426,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
 
                     // We use a very small initial capacity on this HashMap.
                     // The goal is to keep the memory footprint small.
-                    // It is very unlikely that an an AjaxBehavior would have
+                    // It is very unlikely that an AjaxBehavior would have
                     // more than 1 or 2 bound properties
                     bindings = new HashMap<>(Util.calculateMapCapacity(2));
                 }
@@ -779,6 +779,8 @@ public class AjaxBehavior extends ClientBehaviorBase {
     private static final String FORM = "@form";
     private static final String THIS = "@this";
     private static final String NONE = "@none";
+
+    public static final Set<String> KEYWORDS = Set.of(ALL, FORM, THIS, NONE);
 
     // Shared execute/render collections
     private static final List<String> ALL_LIST = List.of(ALL);

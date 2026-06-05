@@ -297,7 +297,7 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
         Collection<String> ids = new ArrayList<>(Math.min(idsOrNull.size()*2,10)); // make room for more elements
         ids.addAll(idsOrNull);
         UIComponent composite = UIComponent.getCompositeComponentParent(component);
-        String separatorChar = String.valueOf(getSeparatorChar(facesContext));
+        char separatorChar = getSeparatorChar(facesContext);
 
         if (composite != null && (ajaxBehavior instanceof RetargetedAjaxBehavior) && (ids.isEmpty() || ids.contains("@this"))) {
             List<String> targetClientIds = ((RetargetedAjaxBehavior) ajaxBehavior).getTargetClientIds();
@@ -329,7 +329,7 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
                 first = false;
             }
 
-            boolean clientResolveableExpression = expression.equals("@all") || expression.equals("@none") || expression.equals("@form") || expression.equals("@this");
+            boolean clientResolveableExpression = AjaxBehavior.KEYWORDS.contains(expression);
 
             if (composite != null && (ajaxBehavior instanceof RetargetedAjaxBehavior) && (expression.equals("@this") || expression.startsWith("@this" + separatorChar))) {
                 expression = THIS_PATTERN.matcher(expression).replaceFirst(separatorChar + composite.getClientId(facesContext));
@@ -349,16 +349,16 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
                 try {
                     resolvedClientId = handler.resolveClientId(searchExpressionContext, expression);
                 } catch (ComponentNotFoundException cnfe) {
-                    if (composite != null && !expression.startsWith(separatorChar) && composite.getParent() != null && composite.getParent().getNamingContainer() != null) {
+                    if (composite != null && !startsWith(expression,separatorChar) && composite.getParent() != null && composite.getParent().getNamingContainer() != null) {
                         expression = composite.getParent().getNamingContainer().getClientId(facesContext) + separatorChar + expression;
 
                         try {
                             resolvedClientId = handler.resolveClientId(searchExpressionContext, expression);
                         } catch (ComponentNotFoundException ignore) {
-                            resolvedClientId = getResolvedId(component, expression);
+                            resolvedClientId = getResolvedId(facesContext, component, expression, separatorChar);
                         }
                     } else {
-                        resolvedClientId = getResolvedId(component, expression);
+                        resolvedClientId = getResolvedId(facesContext, component, expression, separatorChar);
                     }
                 }
                 builder.append(resolvedClientId);
@@ -368,16 +368,20 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
     }
 
     // Returns the resolved (client id) for a particular id.
-    private static String getResolvedId(UIComponent component, String id) {
-
+    private static String getResolvedId(FacesContext context, UIComponent component, String id, char separatorChar) {
         UIComponent resolvedComponent = component.findComponent(id);
         if (resolvedComponent == null) {
-            if (id.charAt(0) == UINamingContainer.getSeparatorChar(FacesContext.getCurrentInstance())) {
+            if (id.charAt(0) == separatorChar) {
                 return id.substring(1);
             }
             return id;
         }
 
-        return resolvedComponent.getClientId();
+        return resolvedComponent.getClientId(context);
     }
+
+    private static boolean startsWith(String s, char c) {
+        return s != null && !s.isEmpty() && s.charAt(0) != c;
+    }
+
 }
