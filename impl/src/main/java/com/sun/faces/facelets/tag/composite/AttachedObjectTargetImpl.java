@@ -49,8 +49,7 @@ public class AttachedObjectTargetImpl implements AttachedObjectTarget {
         FacesContext ctx = FacesContext.getCurrentInstance();
         if (null != targetsList) {
             String targetsListStr = targetsList.getValue(ctx.getELContext());
-            Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
-            String[] targetArray = Util.split(appMap, targetsListStr, " ");
+            String[] targetArray = targetsListStr.split(Util.SPACE_STRING);
             result = new ArrayList<>(targetArray.length);
             for (int i = 0, len = targetArray.length; i < len; i++) {
                 UIComponent comp = topLevelComponent.findComponent(augmentSearchId(ctx, topLevelComponent, targetArray[i]));
