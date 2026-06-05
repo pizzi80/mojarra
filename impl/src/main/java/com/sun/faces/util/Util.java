@@ -59,6 +59,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -159,16 +160,18 @@ public class Util {
         throw new IllegalStateException();
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, Pattern> getPatternCache(Map<String, Object> appMap) {
-        return (Map<String, Pattern>) appMap.computeIfAbsent( PATTERN_CACHE_KEY , k -> new ConcurrentLRUMap<>() );
+    private static final int PATTERN_CACHE_SIZE = 64;
+
+    private static Map<String, Pattern> getPatternCache(FacesContext context) {
+        ServletContext sc = (ServletContext) context.getExternalContext().getContext();
+        return getPatternCache(sc);
     }
 
     @SuppressWarnings("unchecked")
     private static Map<String, Pattern> getPatternCache(ServletContext sc) {
         Map<String, Pattern> result = (Map<String, Pattern>) sc.getAttribute(PATTERN_CACHE_KEY);
         if (result == null) {
-            result = new ConcurrentLRUMap<>();
+            result = new ConcurrentLRUMap<>(PATTERN_CACHE_SIZE);
             sc.setAttribute(PATTERN_CACHE_KEY, result);
         }
 
@@ -774,20 +777,19 @@ public class Util {
     }
 
     /**
-     * @deprecated use Java 21 {@link List#reversed()}
-     * @return a copy of the passed {@link List} with all the elements in reverse order
+     * @deprecated use Java 21 List#reversed()
+     * @return a view of the passed {@link List} with all the elements in reverse order
      */
-    @Deprecated(forRemoval = true)
-    public static <T> List<T> reverse(List<T> list) {
-        int length = list.size();
-        List<T> result = new ArrayList<>(length);
-
-        for (int i = length - 1; i >= 0; i--) {
-            result.add(list.get(i));
-        }
-
-        return result;
+    @Deprecated(forRemoval = true, since = "5.0")
+    public static <T> Iterable<T> reverse(final List<T> list) {
+        return () -> new Iterator<T>() {
+            private final ListIterator<T> li = list.listIterator(list.size());
+            @Override public boolean hasNext() { return li.hasPrevious(); }
+            @Override public T next() { return li.previous(); }
+            @Override public void remove() { li.remove(); }
+        };
     }
+
 
     /**
      * Returns <code>true</code> if the given string starts with one of the given prefixes.
@@ -1095,19 +1097,67 @@ public class Util {
         return result;
     }
 
+    // Split -------------------------------------------------------------------------------------
+
+    /** Regex metacharacters that, taken as a single char, require the full regex engine. */
+    private static final String REGEX_METACHARS = ".$|()[{^?*+\\";
+
+    /**
+     * Returns {@code true} when {@code regex} is not really a regex but a plain
+     * literal that {@link String#split(String, int)} can match with its internal
+     * character-scan fast-path (no Pattern compilation).
+     * <p>
+     * Mirrors the check in java.lang.String (JDK 7+) and is kept intentionally
+     * conservative: it must NEVER report more cases than the JDK actually
+     * fast-paths, otherwise delegating to String.split would recompile a Pattern
+     * on every call. Assumes regex != null (guaranteed by the caller).
+     */
+    private static boolean isNotSplitRegex(String regex) {
+        final char ch;
+
+        if (regex.length() == 1) {
+            // Case 1: a single character. It is a plain literal only if it is
+            // NOT one of the regex metacharacters.
+            ch = regex.charAt(0);
+            if (REGEX_METACHARS.indexOf(ch) != -1) return false;   // real metachar -> needs the regex
+
+        } else if (regex.length() == 2 && regex.charAt(0) == '\\') {
+            // Case 2: a backslash followed by one character. This is an escaped
+            // literal (e.g. "\.", "\|", "\$") ONLY when the second char is neither
+            // a digit nor a letter. "\d", "\w", "\s", "\1"... are regex constructs,
+            // not literals, so they must go through the engine.
+            ch = regex.charAt(1);
+            if ((ch >= '0' && ch <= '9') ||
+                    (ch >= 'a' && ch <= 'z') ||
+                    (ch >= 'A' && ch <= 'Z')) return false;            // escape sequence -> needs the regex
+
+        } else {
+            // Empty, longer, or any other shape: treat as a real regex.
+            return false;
+        }
+
+        // Final guard: the literal char must be a normal BMP code point, not a lone
+        // surrogate code unit. The constant names are counter-intuitive: a HIGH
+        // surrogate has a LOWER code point (0xD800) than a LOW surrogate (0xDFFF),
+        // so the surrogate block is exactly [MIN_HIGH_SURROGATE, MAX_LOW_SURROGATE].
+        // Hence "< MIN_HIGH_SURROGATE || > MAX_LOW_SURROGATE" reads as "outside the
+        // surrogate range" -> a safe, splittable literal.
+        return ch < Character.MIN_HIGH_SURROGATE || ch > Character.MAX_LOW_SURROGATE;
+    }
+
     /**
      * <p>
      * A slightly more efficient version of <code>String.split()</code> which caches the <code>Pattern</code>s in an LRUMap
      * instead of creating a new <code>Pattern</code> on each invocation.
      * </p>
      *
-     * @param appMap the Application Map
+     * @param context the current FacesContext
      * @param toSplit the string to split
      * @param regex the regex used for splitting
      * @return the result of <code>Pattern.spit(String, int)</code>
      */
-    public static String[] split(Map<String, Object> appMap, String toSplit, String regex) {
-        return split(appMap, toSplit, regex, 0);
+    public static String[] split(FacesContext context, String toSplit, String regex) {
+        return split(context, toSplit, regex, 0);
     }
 
     /**
@@ -1116,21 +1166,33 @@ public class Util {
      * the <code>Pattern</code>s in an LRUMap instead of
      * creating a new <code>Pattern</code> on each
      * invocation. Limited by splitLimit.</p>
-     * @param appMap the Application Map
+     *
+     * If the passed regex is not a real regex, rely
+     * on the native {@link String#split(String)} method
+     * which is optimized to split on literal since Java 7
+     * @param context the current FacesContext
      * @param toSplit the string to split
      * @param regex the regex used for splitting
      * @param splitLimit split result threshold
      * @return the result of <code>Pattern.spit(String, int)</code>
      */
-    public static String[] split(Map<String, Object> appMap, String toSplit, String regex, int splitLimit) {
-        Map<String, Pattern> patternCache = getPatternCache(appMap);
-        Pattern pattern = patternCache.computeIfAbsent(regex, Pattern::compile);
+    public static String[] split(FacesContext context, String toSplit, String regex, int splitLimit) {
+        // if is not a real Regex -> use optimized Java 7+ String.split
+        if (isNotSplitRegex(regex)) {
+            return toSplit.split(regex, splitLimit);
+        }
+
+        Pattern pattern = getPatternCache(context).computeIfAbsent(regex, Pattern::compile);
         return pattern.split(toSplit, splitLimit);
     }
 
     public static String[] split(ServletContext sc, String toSplit, String regex) {
-        Map<String, Pattern> patternCache = getPatternCache(sc);
-        Pattern pattern = patternCache.computeIfAbsent(regex, Pattern::compile);
+        // if is not a real Regex -> use optimized Java 7+ String.split
+        if (isNotSplitRegex(regex)) {
+            return toSplit.split(regex);
+        }
+
+        Pattern pattern = getPatternCache(sc).computeIfAbsent(regex, Pattern::compile);
         return pattern.split(toSplit, 0);
     }
 
@@ -1738,7 +1800,7 @@ public class Util {
         // We should in long term probably introduce a common interface like UIIterable.
         // But this is solid for now as all known implementing components already follow this pattern.
         // We could theoretically even remove the above instanceof checks.
-        Pattern clientIdNestedInIteratorPattern = getPatternCache(context.getExternalContext().getApplicationMap()).computeIfAbsent(CLIENT_ID_NESTED_IN_ITERATOR_PATTERN, k -> {
+        Pattern clientIdNestedInIteratorPattern = getPatternCache(context).computeIfAbsent(CLIENT_ID_NESTED_IN_ITERATOR_PATTERN, k -> {
             String separatorChar = Pattern.quote(String.valueOf(UINamingContainer.getSeparatorChar(context)));
             return Pattern.compile(".+" + separatorChar + "[0-9]+" + separatorChar + ".+");
         });
