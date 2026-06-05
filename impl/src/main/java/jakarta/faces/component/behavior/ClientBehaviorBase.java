@@ -16,6 +16,8 @@
 
 package jakarta.faces.component.behavior;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
@@ -25,6 +27,8 @@ import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.render.ClientBehaviorRenderer;
 import jakarta.faces.render.RenderKit;
+
+import com.sun.faces.util.Util;
 
 /**
  * <p class="changed_added_2_0">
@@ -66,14 +70,12 @@ public class ClientBehaviorBase extends BehaviorBase implements ClientBehavior {
      */
     @Override
     public String getScript(ClientBehaviorContext behaviorContext) {
+        requireNonNull(behaviorContext);
 
-        if (null == behaviorContext) {
-            throw new NullPointerException();
-        }
+        final ClientBehaviorRenderer renderer = getRenderer(behaviorContext.getFacesContext());
 
-        ClientBehaviorRenderer renderer = getRenderer(behaviorContext.getFacesContext());
         String script = null;
-        if (null != renderer) {
+        if (renderer != null) {
             script = renderer.getScript(behaviorContext, this);
         }
         return script;
@@ -95,13 +97,10 @@ public class ClientBehaviorBase extends BehaviorBase implements ClientBehavior {
      */
     @Override
     public void decode(FacesContext context, UIComponent component) {
-
-        if (null == context || null == component) {
-            throw new NullPointerException();
-        }
+        Util.notNullArgs(context, component);
 
         ClientBehaviorRenderer renderer = getRenderer(context);
-        if (null != renderer) {
+        if (renderer != null) {
             renderer.decode(context, component, this);
         }
     }
@@ -151,17 +150,16 @@ public class ClientBehaviorBase extends BehaviorBase implements ClientBehavior {
      * @since 2.0
      */
     protected ClientBehaviorRenderer getRenderer(FacesContext context) {
-        if (null == context) {
-            throw new NullPointerException();
-        }
+        requireNonNull(context);
+
         ClientBehaviorRenderer renderer = null;
         String rendererType = getRendererType();
-        if (null != rendererType) {
+        if (rendererType != null) {
             RenderKit renderKit = context.getRenderKit();
-            if (null != renderKit) {
+            if (renderKit != null) {
                 renderer = renderKit.getClientBehaviorRenderer(rendererType);
             }
-            if (null == renderer) {
+            if (renderer == null) {
                 if (logger.isLoggable(Level.FINE)) {
                     logger.fine("Can't get  behavior renderer for type " + rendererType);
                 }
