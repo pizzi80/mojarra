@@ -37,9 +37,8 @@ public class Cache<K, V> {
         @Override
         default V apply(K key) {
             try {
-                return newInstance(key);
-            }
-            catch (InterruptedException e) {
+                return newInstance( key );
+            } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -73,7 +72,17 @@ public class Cache<K, V> {
      * @return the value for the specified key, if any
      */
     public V get(final K key) {
-        return cache.computeIfAbsent(requireNonNull(key), factory);
+        requireNonNull(key);
+
+        // Steady state is a cache hit, so probe with a plain get() first: ConcurrentHashMap.get() is cheaper than
+        // computeIfAbsent(), which does extra work even when the key is already present. Fall back to computeIfAbsent()
+        // only on a miss, which still resolves the populate race atomically. The factory never caches null (a null
+        // value would simply re-resolve on the next call here, exactly as computeIfAbsent() already behaves).
+        V value = cache.get( key );
+        if ( value == null ) {
+            value = cache.computeIfAbsent( key , factory );
+        }
+        return value;
     }
 
     public V remove(final K key) {
