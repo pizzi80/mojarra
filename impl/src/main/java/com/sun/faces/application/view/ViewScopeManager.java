@@ -315,9 +315,11 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
 
                     // remove the eldest entry and destroy if we've reached the maximum capacity
                     if (viewMaps.size() == maxNumberOfViewMaps) {
+                        LOGGER.info(viewMap.size() + "<->" + maxNumberOfViewMaps);
                         final Map.Entry<String, Object> entry = viewMaps.popEldestEntry();
                         if (entry != null) {
                             final String eldestViewMapId = entry.getKey();
+                            LOGGER.info("removing ->" + eldestViewMapId);
                             final Map<String, Object> eldestViewMap = (Map<String, Object>) entry.getValue();
                             removeEldestViewMap(context, eldestViewMapId, eldestViewMap);
                         }
