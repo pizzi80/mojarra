@@ -25,6 +25,7 @@ import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.WARNING;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -288,11 +289,14 @@ public class ViewScopeContextManager {
     @SuppressWarnings("unchecked")
     private static Map<Object, ConcurrentMap<String, ViewScopeContextObject>> getViewScopeContextMap(Map<String, Object> sessionMap, Object session, boolean create) {
 
-        final ReentrantLock lock = getMutex(session);
+        final Object lock = getMutex(session);
 
-        return Util.execAtomically(lock, () -> (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>)
-                (create ? sessionMap.computeIfAbsent(ACTIVE_VIEW_CONTEXTS, $ -> new ConcurrentHashMap<>()) :
-                          sessionMap.get(ACTIVE_VIEW_CONTEXTS)));
+        synchronized (lock) {
+            return (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>) (create ?
+                    sessionMap.computeIfAbsent(ACTIVE_VIEW_CONTEXTS, $ -> new ConcurrentHashMap<>()) :
+                    sessionMap.get(ACTIVE_VIEW_CONTEXTS));
+        }
+
     }
 
     /**

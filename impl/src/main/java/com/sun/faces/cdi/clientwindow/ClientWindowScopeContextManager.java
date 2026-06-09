@@ -197,11 +197,12 @@ public class ClientWindowScopeContextManager {
     private static Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>> getClientWindowScopeContexts(
             ExternalContext externalContext, Map<String, Object> sessionMap, Object session, boolean create) {
 
-        final ReentrantLock lock = getMutex(session);
+        synchronized (getMutex(session)) {
+            return (Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>>) (create ?
+                     sessionMap.computeIfAbsent(CLIENT_WINDOW_CONTEXTS, k -> new ConcurrentLRUMap<>(getNumberOfClientWindows(externalContext))) :
+                     sessionMap.get(CLIENT_WINDOW_CONTEXTS));
+        }
 
-        return Util.execAtomically(lock, () -> create ?
-                (Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>>) sessionMap.computeIfAbsent(CLIENT_WINDOW_CONTEXTS, k -> new ConcurrentLRUMap<>(getNumberOfClientWindows(externalContext))) :
-                (Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>>) sessionMap.get(CLIENT_WINDOW_CONTEXTS));
     }
 
     /**

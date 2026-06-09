@@ -150,9 +150,9 @@ public class ServerSideStateHelper extends StateHelper {
                 final ExternalContext externalContext = ctx.getExternalContext();
                 final Object sessionObj = externalContext.getSession(true);
                 final Map<String, Object> sessionMap = externalContext.getSessionMap();
-                final ReentrantLock lock = getMutex(sessionObj);
+                final Object lock = getMutex(sessionObj);
 
-                Util.execAtomically(lock, () -> {
+                synchronized (lock) {
 
                     Map<String, Map> logicalMap = TypedCollections.dynamicallyCastMap((Map) sessionMap.get(LOGICAL_VIEW_MAP), String.class, Map.class);
                     if (logicalMap == null) {
@@ -196,7 +196,7 @@ public class ServerSideStateHelper extends StateHelper {
                     // always call put/setAttribute as we may be in a clustered environment.
                     sessionMap.put(LOGICAL_VIEW_MAP, logicalMap);
                     ctx.getAttributes().put("com.sun.faces.ViewStateValue", id[0]);
-                });
+                }
             }
             else {
                 id[0] = (String) ctx.getAttributes().get("com.sun.faces.ViewStateValue");
@@ -269,7 +269,7 @@ public class ServerSideStateHelper extends StateHelper {
             return null;
         }
 
-        return Util.execAtomically(getMutex(sessionObj), () -> {
+        synchronized (getMutex(sessionObj)) {
             Map logicalMap = (Map) externalCtx.getSessionMap().get(LOGICAL_VIEW_MAP);
             if (logicalMap != null) {
                 Map actualMap = (Map) logicalMap.get(idInLogicalMap);
@@ -292,7 +292,7 @@ public class ServerSideStateHelper extends StateHelper {
                 }
             }
             return null;
-        });
+        }
     }
 
     // ------------------------------------------------------- Protected Methods

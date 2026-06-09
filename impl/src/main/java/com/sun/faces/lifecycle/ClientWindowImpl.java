@@ -22,8 +22,6 @@ import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter
 import java.util.Map;
 import java.util.UUID;
 
-import com.sun.faces.util.Util;
-
 import jakarta.faces.component.UINamingContainer;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
@@ -61,7 +59,7 @@ public class ClientWindowImpl extends ClientWindow {
     }
 
     private String calculateClientWindow(FacesContext context) {
-        return Util.execAtomically(getMutex(context.getExternalContext().getSession(true)), () -> {
+        synchronized ( getMutex(context.getExternalContext().getSession(true)) ) {
 
             ExternalContext extContext = context.getExternalContext();
             Map<String, Object> sessionMap = extContext.getSessionMap();
@@ -72,7 +70,7 @@ public class ClientWindowImpl extends ClientWindow {
 
             sessionMap.put(clientWindowCounterKey, ++counter);
             return id;
-        });
+        }
     }
 
     @Override

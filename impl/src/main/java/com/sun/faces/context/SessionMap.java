@@ -210,17 +210,17 @@ public class SessionMap extends BaseContextMap<Object> {
 
     // PENDING: to be used when the session is null or invalidated during getMutex access
     // NOTE: we have to use ReentrantLock instead of the interface Lock because the latter is not Serializable
-    private static final ReentrantLock shared_mutex = new ReentrantLock();
+    private static final Object shared_mutex = new Object();
 
     public static void createMutex(HttpSession session) {
         session.setAttribute(MUTEX, new ReentrantLock());
     }
 
-    public static ReentrantLock getMutex(Object session) {
+    public static Object getMutex(Object session) {
         if ( session == null ) return shared_mutex;             // PENDING: to avoid NPE in synchronized blocks
         if ( session instanceof HttpSession httpSession ) {
             try {
-                final ReentrantLock mutex = (ReentrantLock) httpSession.getAttribute(MUTEX);
+                final Object mutex = httpSession.getAttribute(MUTEX);
                 // if the mutex was removed in the meantime -> return the shared_mutex...?
                 if ( mutex == null ) {
                     LOGGER.fine("getMutex(session) is returning a shared mutex because the Mutex attribute has been removed from session in the meantime");
