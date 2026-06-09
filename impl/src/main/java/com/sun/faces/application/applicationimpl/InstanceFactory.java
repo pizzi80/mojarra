@@ -55,7 +55,6 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -145,10 +144,10 @@ public class InstanceFactory {
     // These four maps store store "identifier" | "class name"
     // mappings.
     //
-    private final ViewMemberInstanceFactoryMetadataMap componentMap;
-    private final ViewMemberInstanceFactoryMetadataMap behaviorMap;
-    private final ViewMemberInstanceFactoryMetadataMap converterIdMap;
-    private final ViewMemberInstanceFactoryMetadataMap validatorMap;
+    private final ViewMemberInstanceFactoryMetadataMap<String, Object> componentMap;
+    private final ViewMemberInstanceFactoryMetadataMap<String, Object> behaviorMap;
+    private final ViewMemberInstanceFactoryMetadataMap<String, Object> converterIdMap;
+    private final ViewMemberInstanceFactoryMetadataMap<String, Object> validatorMap;
 
     private final Set<String> defaultValidatorIds;
     private volatile Map<String, String> defaultValidatorInfo;
@@ -158,12 +157,12 @@ public class InstanceFactory {
     public InstanceFactory(ApplicationAssociate applicationAssociate) {
         associate = applicationAssociate;
 
-        componentMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
-        converterIdMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
+        componentMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
+        converterIdMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
         converterTypeMap = new ConcurrentHashMap<>();
-        validatorMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
+        validatorMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
         defaultValidatorIds = new LinkedHashSet<>();
-        behaviorMap = new ViewMemberInstanceFactoryMetadataMap(new ConcurrentHashMap<>());
+        behaviorMap = new ViewMemberInstanceFactoryMetadataMap<>(new ConcurrentHashMap<>());
 
         WebConfiguration webConfig = WebConfiguration.getInstance(FacesContext.getCurrentInstance().getExternalContext());
         registerPropertyEditors = webConfig.isOptionEnabled(RegisterConverterPropertyEditors);
@@ -231,7 +230,7 @@ public class InstanceFactory {
             ValueExpression valueExpression = (ValueExpression) componentBeanDescriptor.getValue(COMPOSITE_COMPONENT_TYPE_KEY);
 
             if (valueExpression != null) {
-                String componentType = valueExpression.getValue(context.getELContext());
+                String componentType = (String) valueExpression.getValue(context.getELContext());
                 if (!isEmpty(componentType)) {
                     result = app.createComponent(componentType);
                 }
@@ -556,27 +555,23 @@ public class InstanceFactory {
         return validatorMap.keySet().iterator();
     }
 
-    private final ReentrantLock lock = new ReentrantLock();
-
     /*
      * @see jakarta.faces.application.Application#addDefaultValidatorId(String)
      */
-    public void addDefaultValidatorId(String validatorId) {
+    public synchronized void addDefaultValidatorId(String validatorId) {
         notNull("validatorId", validatorId);
 
-        Util.execAtomically(lock, () -> {
-            defaultValidatorInfo = null;
-            defaultValidatorIds.add(validatorId);
-        });
+        defaultValidatorInfo = null;
+        defaultValidatorIds.add(validatorId);
     }
 
-    /**
+    /*
      * @see jakarta.faces.application.Application#getDefaultValidatorInfo()
      */
     public Map<String, String> getDefaultValidatorInfo() {
 
         if (defaultValidatorInfo == null) {
-            Util.execAtomically(lock, () -> {
+            synchronized (this) {
                 if (defaultValidatorInfo == null) {
                     defaultValidatorInfo = new LinkedHashMap<>(Util.calculateMapCapacity(defaultValidatorIds.size()));
                     if (!defaultValidatorIds.isEmpty()) {
@@ -596,7 +591,7 @@ public class InstanceFactory {
                     }
                 }
                 defaultValidatorInfo = unmodifiableMap(defaultValidatorInfo);
-            });
+            }
         }
 
         return defaultValidatorInfo;

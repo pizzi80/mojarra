@@ -21,38 +21,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- *
- * @param <K> wrapper map key type
- * @param <V> wrapper map value type
- * @param <MK> metadata map key type
- * @param <MV> metadata map value type
- */
-public abstract class MetadataWrapperMap<K, V, MK, MV> implements Map<K, V> {
-
-    private final Map<K, V> wrapped;
-    private final Map<K, Map<MK,MV>> metadata;
+public abstract class MetadataWrapperMap<K, V> implements Map<K, V> {
 
     public MetadataWrapperMap(Map<K, V> toWrap) {
         this.wrapped = toWrap;
         metadata = new ConcurrentHashMap<>();
     }
 
-    // Metadata Map ------------------------------------------------------------------------
-
-    @Override
-    public V put(K key, V value) {
-        this.onPut(key, value);
-        return this.wrapped.put(key, value);
-    }
-
-    protected abstract V onPut(K key, V value);
-
-    protected Map<K, Map<MK,MV>> getMetadata() {
+    protected Map<K, Map<Object, Object>> getMetadata() {
         return metadata;
     }
 
-    // Wrapped Map ------------------------------------------------------------------------
+    private final Map<K, V> wrapped;
+    private final Map<K, Map<Object, Object>> metadata;
 
     @Override
     public void clear() {
@@ -88,6 +69,14 @@ public abstract class MetadataWrapperMap<K, V, MK, MV> implements Map<K, V> {
     public Set<K> keySet() {
         return this.wrapped.keySet();
     }
+
+    @Override
+    public V put(K key, V value) {
+        this.onPut(key, value);
+        return this.wrapped.put(key, value);
+    }
+
+    protected abstract V onPut(K key, V value);
 
     @Override
     public void putAll(Map m) {

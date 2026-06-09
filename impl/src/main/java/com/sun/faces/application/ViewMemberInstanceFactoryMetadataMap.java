@@ -25,8 +25,10 @@ import com.sun.faces.util.MetadataWrapperMap;
  * Used to hold metadata for classes that are members of views. Does not support annotation scanning for these classes,
  * as they are not eligible for injection.
  *
+ * @param <K> key
+ * @param <V> value
  */
-public class ViewMemberInstanceFactoryMetadataMap extends MetadataWrapperMap<String, Object, Object, Object> {
+public class ViewMemberInstanceFactoryMetadataMap<K, V> extends MetadataWrapperMap<String, Object> {
 
     public ViewMemberInstanceFactoryMetadataMap(Map<String, Object> toWrap) {
         super(toWrap);
