@@ -1,6 +1,5 @@
 package com.sun.faces.util;
 
-import static com.sun.faces.util.Util.execAtomically;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
@@ -14,10 +13,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -75,36 +76,36 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
      * @return the eldest element, if we've reached the maximum capacity, null otherwise.
      */
     public Map.Entry<K,V> popEldestEntry() {
-        return Util.execAtomically(lock, lru::popEldestEntry);
+        return execAtomically(lock, lru::popEldestEntry);
     }
 
     // -------------------------------------------------------  Map interface
 
     @Override
     public int size() {
-        return Util.execAtomically(lock, lru::size);
+        return execAtomically(lock, lru::size);
     }
 
     @Override
     public boolean isEmpty() {
-        return Util.execAtomically(lock, lru::isEmpty);
+        return execAtomically(lock, lru::isEmpty);
     }
 
     @Override
     public boolean containsKey(Object key) {
-        return key != null && Util.execAtomically(lock, () -> lru.containsKey(key));
+        return key != null && execAtomically(lock, () -> lru.containsKey(key));
     }
 
     @Override
     public V get(Object key) {
-        return key == null ? null : Util.execAtomically(lock, () -> lru.get(key));
+        return key == null ? null : execAtomically(lock, () -> lru.get(key));
     }
 
     @Override
     public V put(K key, V value) {
         requireNonNull(key);
         requireNonNull(value);
-        return Util.execAtomically(lock, () -> lru.put(key, value));
+        return execAtomically(lock, () -> lru.put(key, value));
     }
 
     @Override
@@ -124,12 +125,12 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
     @Override
     public boolean containsValue(Object value) {
-        return value != null &&  Util.execAtomically( lock , () -> lru.containsValue(value) );
+        return value != null &&  execAtomically( lock , () -> lru.containsValue(value) );
     }
 
     @Override
     public V remove(Object key) {
-        return key == null ? null : Util.execAtomically( lock , () -> lru.remove(key) );
+        return key == null ? null : execAtomically( lock , () -> lru.remove(key) );
     }
 
     @Override
@@ -156,14 +157,14 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
     public V putIfAbsent(K key, V value) {
         requireNonNull(key);
         requireNonNull(value);
-        return Util.execAtomically( lock , () -> lru.putIfAbsent(key, value) );
+        return execAtomically( lock , () -> lru.putIfAbsent(key, value) );
     }
 
     @Override
     public boolean remove(Object key, Object value) {
         requireNonNull(key);
         requireNonNull(value);
-        return Util.execAtomically( lock , () -> lru.remove(key, value) );
+        return execAtomically( lock , () -> lru.remove(key, value) );
     }
 
     @Override
@@ -171,14 +172,14 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
         requireNonNull(key);
         requireNonNull(oldValue);
         requireNonNull(newValue);
-        return Util.execAtomically( lock , () -> lru.replace(key, oldValue, newValue) );
+        return execAtomically( lock , () -> lru.replace(key, oldValue, newValue) );
     }
 
     @Override
     public V replace(K key, V value) {
         requireNonNull(key);
         requireNonNull(value);
-        return Util.execAtomically( lock , () -> lru.replace(key, value) );
+        return execAtomically( lock , () -> lru.replace(key, value) );
     }
 
     // Inner class --------------------------------------------------------------------------------
@@ -198,62 +199,62 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
         @Override
         public int size() {
-            return Util.execAtomically(mutex, c::size);
+            return execAtomically(mutex, c::size);
         }
 
         @Override
         public boolean isEmpty() {
-            return Util.execAtomically(mutex, c::isEmpty);
+            return execAtomically(mutex, c::isEmpty);
         }
 
         @Override
         public boolean contains(Object o) {
-            return Util.execAtomically(mutex, () -> c.contains(o));
+            return execAtomically(mutex, () -> c.contains(o));
         }
 
         @Override
         public Object[] toArray() {
-            return Util.execAtomically(mutex, () -> c.toArray());
+            return execAtomically(mutex, () -> c.toArray());
         }
 
         @Override
         public <T> T[] toArray(T[] a) {
-            return Util.execAtomically(mutex, () -> c.toArray(a));
+            return execAtomically(mutex, () -> c.toArray(a));
         }
 
         @Override
         public <T> T[] toArray(IntFunction<T[]> f) {
-            return Util.execAtomically(mutex, () -> c.toArray(f));
+            return execAtomically(mutex, () -> c.toArray(f));
         }
 
         @Override
         public boolean add(E e) {
-            return Util.execAtomically(mutex, () -> c.add(e));
+            return execAtomically(mutex, () -> c.add(e));
         }
 
         @Override
         public boolean remove(Object o) {
-            return Util.execAtomically(mutex, () -> c.remove(o));
+            return execAtomically(mutex, () -> c.remove(o));
         }
 
         @Override
         public boolean containsAll(Collection<?> coll) {
-            return Util.execAtomically(mutex, () -> c.containsAll(coll));
+            return execAtomically(mutex, () -> c.containsAll(coll));
         }
 
         @Override
         public boolean addAll(Collection<? extends E> coll) {
-            return Util.execAtomically(mutex, () -> c.addAll(coll));
+            return execAtomically(mutex, () -> c.addAll(coll));
         }
 
         @Override
         public boolean removeAll(Collection<?> coll) {
-            return Util.execAtomically(mutex, () -> c.removeAll(coll));
+            return execAtomically(mutex, () -> c.removeAll(coll));
         }
 
         @Override
         public boolean retainAll(Collection<?> coll) {
-            return Util.execAtomically(mutex, () -> c.retainAll(coll));
+            return execAtomically(mutex, () -> c.retainAll(coll));
         }
 
         @Override
@@ -263,7 +264,7 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
         @Override
         public String toString() {
-            return Util.execAtomically(mutex, c::toString);
+            return execAtomically(mutex, c::toString);
         }
 
         @Override
@@ -273,7 +274,7 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
         @Override
         public boolean removeIf(Predicate<? super E> filter) {
-            return Util.execAtomically(mutex, () -> c.removeIf(filter));
+            return execAtomically(mutex, () -> c.removeIf(filter));
         }
 
         // iterator ---------------------------------------------
@@ -319,12 +320,12 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            return Util.execAtomically(mutex, () -> c.equals(o));
+            return execAtomically(mutex, () -> c.equals(o));
         }
 
         @Override
         public int hashCode() {
-            return Util.execAtomically(mutex, c::hashCode);
+            return execAtomically(mutex, c::hashCode);
         }
 
     }
@@ -344,12 +345,12 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
 
         @Override
         public boolean hasNext() {
-            return Util.execAtomically(lock, i::hasNext);
+            return execAtomically(lock, i::hasNext);
         }
 
         @Override
         public E next() {
-            return Util.execAtomically(lock, i::next);
+            return execAtomically(lock, i::next);
         }
 
         @Override
@@ -364,6 +365,50 @@ public class ConcurrentLRUMap<K,V> implements ConcurrentMap<K,V> , Serializable 
                     action.accept(i.next());
                 }
             });
+        }
+    }
+
+
+    // Concurrency --------------------------------------------------------------------------------
+
+    @FunctionalInterface
+    public interface Action {
+        void execute() throws Exception;
+    }
+
+    /**
+     * Execute the passed task and return the computed result atomically using the passed lock.
+     * @param lock The {@link Lock} to be used for atomic execution
+     * @param task The {@link FunctionalInterface} to be executed atomically
+     */
+    public static void execAtomically(Lock lock, Action task) {
+        lock.lock();
+
+        try {
+            task.execute();
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Execute the passed task and return the computed result atomically using the passed lock.
+     * @param lock The {@link Lock} to be used for atomic execution
+     * @param task The {@link Supplier} to be executed atomically
+     * @return The result of the passed task.
+     */
+    public static <R> R execAtomically(Lock lock, Supplier<R> task) {
+        lock.lock();
+
+        try {
+            return task.get();
+        }
+        finally {
+            lock.unlock();
         }
     }
 

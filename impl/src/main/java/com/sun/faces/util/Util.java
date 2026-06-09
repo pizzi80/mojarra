@@ -19,8 +19,8 @@
 
 package com.sun.faces.util;
 
-import static com.sun.faces.RIConstants.CHAR_ENCODING;
 import static com.sun.faces.RIConstants.CDI_BEAN_MANAGER;
+import static com.sun.faces.RIConstants.CHAR_ENCODING;
 import static com.sun.faces.RIConstants.FACELETS_ENCODING_KEY;
 import static com.sun.faces.RIConstants.FACES_SERVLET_MAPPINGS;
 import static com.sun.faces.RIConstants.FACES_SERVLET_REGISTRATION;
@@ -49,9 +49,8 @@ import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.charset.Charset;
 import java.nio.channels.ClosedChannelException;
-import java.util.ArrayList;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -68,8 +67,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.locks.Lock;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -846,49 +843,6 @@ public class Util {
      */
     public static int calculateMapCapacity(int numMappings) {
         return (int) Math.ceil( numMappings / 0.75 );
-    }
-
-    // Concurrency --------------------------------------------------------------------------------
-
-    @FunctionalInterface
-    public interface Action {
-        void execute() throws Exception;
-    }
-
-    /**
-     * Execute the passed task and return the computed result atomically using the passed lock.
-     * @param lock The {@link Lock} to be used for atomic execution
-     * @param task The {@link FunctionalInterface} to be executed atomically
-     */
-    public static void execAtomically(Lock lock, Action task) {
-        lock.lock();
-
-        try {
-            task.execute();
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Execute the passed task and return the computed result atomically using the passed lock.
-     * @param lock The {@link Lock} to be used for atomic execution
-     * @param task The {@link Supplier} to be executed atomically
-     * @return The result of the passed task.
-     */
-    public static <R> R execAtomically(Lock lock, Supplier<R> task) {
-        lock.lock();
-
-        try {
-            return task.get();
-        }
-        finally {
-            lock.unlock();
-        }
     }
 
     // Locale --------------------------------------------------------------------------------
