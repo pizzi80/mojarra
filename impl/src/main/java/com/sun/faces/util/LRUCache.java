@@ -17,6 +17,8 @@ package com.sun.faces.util;
 
 import static java.util.Objects.requireNonNull;
 
+import com.sun.faces.util.Cache.Factory;
+
 /**
  * LRU Cache adapted to the code style of Faces
  * Optimized for modern JVMs and Virtual Threads.
@@ -30,19 +32,30 @@ public class LRUCache<K,V> {
     // Also, a plain Object monitor is way lighter than a ReentrantLock on the heap,
     // and we don't need any advanced lock features like timeouts or interruptibility.
     private final Object lock = new Object();
-    private final Cache.Factory<K,V> factory;
+    private final Factory<K,V> factory;
     private final LRUMap<K,V> cache;
 
-    public LRUCache(Cache.Factory<K,V> factory, int capacity) {
+    /**
+     * @param capacity the capacity of the Cache. the LRU policy will remove
+     */
+    public LRUCache(Factory<K,V> factory, int capacity) {
         this.factory = requireNonNull(factory);
         this.cache = new LRUMap<>(capacity);
     }
 
     /**
-     * get from cache if exists
-     * else init the value + save in cache + return created value
+     * get from cache if exists,
+     * otherwise init the value with the passed Factory, save in cache and return the created value.
      */
     public V get(final K key) {
+        return get(key, factory);
+    }
+
+    /**
+     * get from cache if exists,
+     * otherwise init the value with the passed Factory, save in cache and return the created value.
+     */
+    public V get(final K key, final Factory<K,V> factory) {
         requireNonNull(key);
 
         V value;
@@ -69,6 +82,17 @@ public class LRUCache<K,V> {
         }
 
         return value;
+    }
+
+    /**
+     * set a value
+     */
+    public void put(final K key, final V value) {
+        requireNonNull(key);
+        requireNonNull(value);
+        synchronized (lock) {
+            cache.put(key, value);
+        }
     }
 
     /**

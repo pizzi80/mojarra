@@ -163,20 +163,20 @@ public class Util {
 
     private static final int PATTERN_CACHE_SIZE = 64;
 
-    private static Map<String, Pattern> getPatternCache(FacesContext context) {
+    private static LRUCache<String,Pattern> getPatternCache(FacesContext context) {
         ServletContext sc = (ServletContext) context.getExternalContext().getContext();
         return getPatternCache(sc);
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<String, Pattern> getPatternCache(ServletContext sc) {
-        Map<String, Pattern> result = (Map<String, Pattern>) sc.getAttribute(PATTERN_CACHE_KEY);
-        if (result == null) {
-            result = new ConcurrentLRUMap<>(PATTERN_CACHE_SIZE);
-            sc.setAttribute(PATTERN_CACHE_KEY, result);
+    private static LRUCache<String,Pattern> getPatternCache(ServletContext sc) {
+        LRUCache<String, Pattern> cache = (LRUCache<String, Pattern>) sc.getAttribute(PATTERN_CACHE_KEY);
+        if (cache == null) {
+            cache = new LRUCache<>(Pattern::compile, PATTERN_CACHE_SIZE);
+            sc.setAttribute(PATTERN_CACHE_KEY, cache);
         }
 
-        return result;
+        return cache;
     }
 
     private static Collection<String> getFacesServletMappings(ServletContext servletContext) {
@@ -1211,7 +1211,7 @@ public class Util {
             return toSplit.split(regex, splitLimit);
         }
 
-        Pattern pattern = getPatternCache(context).computeIfAbsent(regex, Pattern::compile);
+        Pattern pattern = getPatternCache(context).get(regex, Pattern::compile);
         return pattern.split(toSplit, splitLimit);
     }
 
@@ -1221,7 +1221,7 @@ public class Util {
             return toSplit.split(regex);
         }
 
-        Pattern pattern = getPatternCache(sc).computeIfAbsent(regex, Pattern::compile);
+        Pattern pattern = getPatternCache(sc).get(regex, Pattern::compile);
         return pattern.split(toSplit, 0);
     }
 
@@ -1829,10 +1829,15 @@ public class Util {
         // We should in long term probably introduce a common interface like UIIterable.
         // But this is solid for now as all known implementing components already follow this pattern.
         // We could theoretically even remove the above instanceof checks.
-        Pattern clientIdNestedInIteratorPattern = getPatternCache(context).computeIfAbsent(CLIENT_ID_NESTED_IN_ITERATOR_PATTERN, k -> {
+        var cache = getPatternCache(context);
+        Pattern clientIdNestedInIteratorPattern = cache.get(CLIENT_ID_NESTED_IN_ITERATOR_PATTERN);
+
+        if ( clientIdNestedInIteratorPattern == null ) {
             String separatorChar = Pattern.quote(String.valueOf(UINamingContainer.getSeparatorChar(context)));
-            return Pattern.compile(".+" + separatorChar + "[0-9]+" + separatorChar + ".+");
-        });
+            clientIdNestedInIteratorPattern = Pattern.compile(".+" + separatorChar + "[0-9]+" + separatorChar + ".+");
+
+            cache.put(CLIENT_ID_NESTED_IN_ITERATOR_PATTERN, clientIdNestedInIteratorPattern);
+        }
 
         return clientIdNestedInIteratorPattern.matcher(parent.getClientId(context)).matches();
     }
