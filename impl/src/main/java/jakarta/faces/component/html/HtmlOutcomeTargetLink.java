@@ -302,6 +302,7 @@ public class HtmlOutcomeTargetLink extends UIOutcomeTarget implements ClientBeha
      */
     public void setOnclick(java.lang.String onclick) {
         getStateHelper().put(PropertyKeys.onclick, onclick);
+        handleAttribute(this, "onclick", onclick);
     }
 
     /**
@@ -733,6 +734,7 @@ public class HtmlOutcomeTargetLink extends UIOutcomeTarget implements ClientBeha
      */
     public void setStyleClass(java.lang.String styleClass) {
         getStateHelper().put(PropertyKeys.styleClass, styleClass);
+        handleAttribute(this, "styleClass", styleClass);
     }
 
     /**
@@ -785,6 +787,7 @@ public class HtmlOutcomeTargetLink extends UIOutcomeTarget implements ClientBeha
      */
     public void setTarget(java.lang.String target) {
         getStateHelper().put(PropertyKeys.target, target);
+        handleAttribute(this, "target", target);
     }
 
     /**

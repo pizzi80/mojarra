@@ -41,6 +41,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.faces.RIConstants;
+import com.sun.faces.renderkit.RenderKitUtils;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.MessageUtils;
 import com.sun.faces.util.Util;
@@ -610,6 +611,22 @@ public abstract class HtmlBasicRenderer extends Renderer {
         return id;
     }
 
+    protected void writeStyleClassAttributeIfNecessary(ResponseWriter writer, UIComponent component) throws IOException {
+
+        String styleClass = (String) RenderKitUtils.getAttributeIfSet(component, "styleClass");
+        if (styleClass != null) {
+            writer.writeAttribute("class", styleClass, "styleClass");
+        }
+    }
+
+    protected void writeStyleAttributeIfNecessary(ResponseWriter writer, UIComponent component) throws IOException {
+
+        String style = (String) RenderKitUtils.getAttributeIfSet(component, "style");
+        if (style != null) {
+            writer.writeAttribute("style", style, "style");
+        }
+    }
+
     protected void rendererParamsNotNull(FacesContext context, UIComponent component) {
         notNull("context", context);
         notNull("component", component);
@@ -630,7 +647,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
 
     protected boolean shouldDecode(UIComponent component) {
 
-        if (componentIsDisabledOrReadonly(component)) {
+        if (isDisabledOrReadonly(component)) {
             if (logger.isLoggable(FINE)) {
                 logger.log(FINE, "No decoding necessary since the component {0} is disabled or read-only", component.getId());
             }
@@ -638,6 +655,20 @@ public abstract class HtmlBasicRenderer extends Renderer {
         }
 
         return true;
+    }
+
+    /**
+     * Whether the component is disabled or read-only (and therefore should not decode). {@code disabled}/{@code
+     * readonly} only exist on editable inputs ({@link UIInput}, which includes the selects) and commands
+     * ({@link UICommand}); for anything else (outputs, panels) the reflective attributes-map read would always miss,
+     * so it is skipped. Renderers bound to a concrete input/command type override this to read the typed getters
+     * directly, avoiding the reflective lookup entirely (mirrors the typed-getter encode path from PR #5796).
+     */
+    protected boolean isDisabledOrReadonly(UIComponent component) {
+        if (component instanceof UIInput || component instanceof UICommand) {
+            return componentIsDisabledOrReadonly(component);
+        }
+        return false;
     }
 
     protected boolean shouldEncodeChildren(UIComponent component) {

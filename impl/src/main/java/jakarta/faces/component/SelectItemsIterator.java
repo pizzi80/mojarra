@@ -157,7 +157,8 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
      */
     private void initializeItems(Object kid) {
 
-        if (kid instanceof UISelectItem ui) {
+        if (kid instanceof UISelectItem) {
+            UISelectItem ui = (UISelectItem) kid;
             SelectItem item = (SelectItem) ui.getValue();
             if (item == null) {
                 item = new SelectItem(ui.getItemValue(), ui.getItemLabel(), ui.getItemDescription(), ui.isItemDisabled(), ui.isItemEscaped(),
@@ -165,7 +166,8 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
             }
             updateSingeItemIterator(item);
             items = singleItemIterator;
-        } else if (kid instanceof UISelectItems ui) {
+        } else if (kid instanceof UISelectItems) {
+            UISelectItems ui = (UISelectItems) kid;
             Object value = ui.getValue();
             if (value != null) {
                 if (value instanceof SelectItem) {
@@ -448,9 +450,9 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
                     setValue(itemValueResult != null ? itemValueResult : value);
                     setLabel(itemLabelResult != null ? itemLabelResult.toString() : value.toString());
                     setDescription(itemDescriptionResult != null ? itemDescriptionResult.toString() : null);
-                    setEscape(itemEscapedResult != null ? Boolean.parseBoolean(itemEscapedResult.toString()) : true);
-                    setDisabled(itemDisabledResult != null ? Boolean.parseBoolean(itemDisabledResult.toString()) : false);
-                    setNoSelectionOption(noSelectionOptionResult != null ? Boolean.parseBoolean(noSelectionOptionResult.toString()) : false);
+                    setEscape(toBoolean(itemEscapedResult, true));
+                    setDisabled(toBoolean(itemDisabledResult, false));
+                    setNoSelectionOption(toBoolean(noSelectionOptionResult, false));
                 } finally {
                     if (var != null) {
                         if (oldVarValue != null) {
@@ -461,6 +463,18 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
                     }
                 }
 
+            }
+
+            // Coerce a boolean-attribute value without the Boolean -> String -> boolean round-trip on the common path:
+            // absent -> default, already-Boolean -> direct, otherwise parse. (Local copy to avoid a com.sun.faces dependency.)
+            private static boolean toBoolean(Object value, boolean defaultValue) {
+                if (value == null) {
+                    return defaultValue;
+                }
+                if (value instanceof Boolean bool) {
+                    return bool;
+                }
+                return Boolean.parseBoolean(value.toString());
             }
 
             // --------------------------------------- Methods from Serializable

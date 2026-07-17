@@ -25,9 +25,10 @@ import static com.sun.faces.RIConstants.DYNAMIC_COMPONENT;
 import static com.sun.faces.facelets.tag.faces.core.FacetHandler.KEY;
 import static com.sun.faces.util.Util.isAllNull;
 import static com.sun.faces.util.Util.isEmpty;
+import static com.sun.faces.util.Util.toBoolean;
+import static jakarta.faces.application.Resource.COMPONENT_RESOURCE_KEY;
 import static com.sun.faces.util.Util.notNullArgs;
 import static java.beans.Introspector.getBeanInfo;
-import static java.lang.Boolean.TRUE;
 import static java.lang.Character.isDigit;
 import static java.lang.Character.isLetter;
 import static java.lang.Thread.currentThread;
@@ -114,19 +115,29 @@ public abstract class UIComponentBase extends UIComponent {
     private static final int CHILD_STATE = 1;
 
     /**
-     * <p>
-     * Each entry is an map of <code>PropertyDescriptor</code>s describing the properties of a concrete {@link UIComponent}
-     * implementation, keyed by the corresponding <code>java.lang.Class</code>.
-     * </p>
-     *
-     */
-    private Map<Class<?>, Map<String, PropertyDescriptor>> descriptors;
-
-    /**
-     * Reference to the map of <code>PropertyDescriptor</code>s for this class in the <code>descriptors<code>
-     * <code>Map<code>.
+     * This class's <code>PropertyDescriptor</code>s (keyed by property name) within the application-scoped descriptors
+     * cache &mdash; the {@code Map<Class, Map<String, PropertyDescriptor>>} kept in the application map (see
+     * {@link #populateDescriptorsMapIfNecessary}).
      */
     private Map<String, PropertyDescriptor> propertyDescriptorMap;
+
+    /**
+     * This class's read methods (keyed by property name) within the application-scoped read-methods cache &mdash; the
+     * {@code Map<Class, Map<String, Method>>} kept in the application map alongside the descriptors cache (see
+     * {@link #populateDescriptorsMapIfNecessary}). It holds the access-suppressed read {@link Method}s strongly, which
+     * keeps the suppression durable (a {@link PropertyDescriptor}'s read method is handed back via a soft reference that
+     * can be regenerated) and lets the hot attribute-read path skip re-suppressing and re-caching it per component.
+     */
+    private Map<String, Method> readMethodMap;
+
+    /**
+     * This class's write methods (keyed by property name), the write-side counterpart of {@link #readMethodMap} kept in
+     * its own application-scoped cache (see {@link #populateDescriptorsMapIfNecessary}). Holds the access-suppressed
+     * setter {@link Method}s strongly so the {@code getAttributes().put} property-write path (Facelets applying a
+     * literal-text {@code ValueExpression} or a non-property literal during buildView) skips the per-put access check
+     * and the soft-reference setter rediscovery.
+     */
+    private Map<String, Method> writeMethodMap;
 
     private Map<Class<? extends SystemEvent>, List<SystemEventListener>> listenersByEventClass;
 
@@ -223,6 +234,19 @@ public abstract class UIComponentBase extends UIComponent {
      * relies on {@code buildView} (partial state) or the saved full state to re-establish the value.
      */
     private transient boolean rendererTypeSet;
+
+    /**
+     * Encode-scoped cache of {@link #isRendered()}. Within a single component encode the renderer's
+     * {@code shouldEncode}, {@code encodeChildren} and {@code encodeEnd} all re-consult {@code isRendered()},
+     * each otherwise re-reading {@code rendered} from the StateHelper. {@link #encodeBegin} computes it once and
+     * holds it here for the {@code encodeBegin}..{@code encodeEnd} window (covering both the {@code encodeAll} and
+     * renderer {@code encodeRecursive} paths, which both flow through those methods); {@link #encodeEnd} clears it.
+     * {@code rendered} cannot change mid-encode, so the cached value is authoritative for that window. It is
+     * recomputed fresh on every {@code encodeBegin}, so an encode that aborts before {@code encodeEnd} cannot leave
+     * a stale value in effect. {@code null} means "not currently encoding" — reads fall through to the StateHelper.
+     * Transient: never part of view state.
+     */
+    private transient Boolean cachedIsRendered;
 
     /**
      * The <code>List</code> containing our child components.
@@ -350,6 +374,8 @@ public abstract class UIComponentBase extends UIComponent {
         cachedRenderer = null;
         // The parent chain changed, so the cached NamingContainer ancestor is no longer valid.
         namingContainerAncestor = null;
+        // The client id is derived from the parent chain, so a reparent invalidates it too.
+        clientId = null;
 
         if (parent == null) {
             if (this.parent != null) {
@@ -375,7 +401,14 @@ public abstract class UIComponentBase extends UIComponent {
 
     @Override
     public boolean isRendered() {
-        return (Boolean) getStateHelper().eval(PropertyKeys.rendered, TRUE);
+        if (cachedIsRendered != null) {
+            return cachedIsRendered;
+        }
+        // Coerce leniently rather than casting: a "rendered" value expression bound with a non-Boolean expected
+        // type (e.g. via a templating layer) can evaluate to a String, which a direct (Boolean) cast rejects.
+        // Tolerating it is not spec-required but is kept for backward compatibility; a Boolean costs nothing here.
+        // Mojarra 5.0 should log a warning on this and Mojarra 6.0 should remove this leniency.
+        return toBoolean(getStateHelper().eval(PropertyKeys.rendered), true);
     }
 
     @Override
@@ -595,7 +628,11 @@ public abstract class UIComponentBase extends UIComponent {
 
         pushComponentToEL(context, null);
 
-        if (!isRendered()) {
+        // Memoize rendered for this component's encode pass: the renderer's shouldEncode, encodeChildren and
+        // encodeEnd re-consult isRendered() and would otherwise re-read the StateHelper each time. Recomputed fresh
+        // here (rather than relying on a prior clear) so an encode that aborted before encodeEnd leaves no stale value.
+        cachedIsRendered = isRendered();
+        if (!cachedIsRendered) {
             return;
         }
 
@@ -652,21 +689,26 @@ public abstract class UIComponentBase extends UIComponent {
             throw new NullPointerException();
         }
 
-        if (!isRendered()) {
-            popComponentFromEL(context);
-            return;
-        }
-
-        if (getRendererType() != null) {
-            Renderer renderer = getRenderer(context);
-            if (renderer != null) {
-                renderer.encodeEnd(context, this);
+        try {
+            if (!isRendered()) {
+                popComponentFromEL(context);
+                return;
             }
 
-            // We've already logged for this component
-        }
+            if (getRendererType() != null) {
+                Renderer renderer = getRenderer(context);
+                if (renderer != null) {
+                    renderer.encodeEnd(context, this);
+                }
 
-        popComponentFromEL(context);
+                // We've already logged for this component
+            }
+
+            popComponentFromEL(context);
+        } finally {
+            // End of the encode pass opened by encodeBegin: drop the memoized rendered value.
+            cachedIsRendered = null;
+        }
     }
 
     // -------------------------------------------------- Event Listener Methods
@@ -722,6 +764,28 @@ public abstract class UIComponentBase extends UIComponent {
         }
 
         listeners.add(listener);
+    }
+
+    /**
+     * Whether at least one listener of the given type would receive an event broadcast by this component. Reads the
+     * same list {@link #broadcast} does, without building the arrays {@link #getFacesListeners} has to allocate.
+     *
+     * @param clazz the listener type to look for
+     * @return true if such a listener is attached
+     */
+    boolean hasFacesListener(Class<? extends FacesListener> clazz) {
+
+        if (listeners == null) {
+            return false;
+        }
+
+        for (Iterator<FacesListener> i = listeners.iterator(); i.hasNext();) {
+            if (clazz.isAssignableFrom(i.next().getClass())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -840,8 +904,14 @@ public abstract class UIComponentBase extends UIComponent {
         }
 
         if (!listenersForEventClass.contains(facesLifecycleListener)) {
-            clearInitialState();
             listenersForEventClass.add(facesLifecycleListener);
+            // A listener subscribed while the view's initial state is being built (@ListenerFor on a component or
+            // renderer, an f:event handler) is part of the initial-state baseline and buildView re-establishes it on
+            // restore, so only a subscription made after markInitialState needs to ride along in the delta (mirrors
+            // bindingsModified / rendererTypeSet).
+            if (initialStateMarked()) {
+                systemEventListenersModified = true;
+            }
         }
     }
 
@@ -876,6 +946,9 @@ public abstract class UIComponentBase extends UIComponent {
 
                 if (existingListener.equals(componentListener)) {
                     i.remove();
+                    if (initialStateMarked()) {
+                        systemEventListenersModified = true;
+                    }
                     break;
                 }
             }
@@ -934,10 +1007,11 @@ public abstract class UIComponentBase extends UIComponent {
                     facet.processDecodes(context);
                 }
             }
-            int childCount = getChildCount();
-            if (childCount > 0) {
+            if (getChildCount() > 0) {
+                // Re-read size() each iteration: a child appended while an earlier child is being processed
+                // must still be processed, matching the live children-list iterator semantics.
                 List<UIComponent> children = getChildren();
-                for (int i = 0; i < childCount; i++) {
+                for (int i = 0; i < children.size(); i++) {
                     children.get(i).processDecodes(context);
                 }
             }
@@ -981,10 +1055,11 @@ public abstract class UIComponentBase extends UIComponent {
                     facet.processValidators(context);
                 }
             }
-            int childCount = getChildCount();
-            if (childCount > 0) {
+            if (getChildCount() > 0) {
+                // Re-read size() each iteration: a child appended while an earlier child is being processed
+                // must still be processed, matching the live children-list iterator semantics.
                 List<UIComponent> children = getChildren();
-                for (int i = 0; i < childCount; i++) {
+                for (int i = 0; i < children.size(); i++) {
                     children.get(i).processValidators(context);
                 }
             }
@@ -1019,10 +1094,11 @@ public abstract class UIComponentBase extends UIComponent {
                     facet.processUpdates(context);
                 }
             }
-            int childCount = getChildCount();
-            if (childCount > 0) {
+            if (getChildCount() > 0) {
+                // Re-read size() each iteration: a child appended while an earlier child is being processed
+                // must still be processed, matching the live children-list iterator semantics.
                 List<UIComponent> children = getChildren();
-                for (int i = 0; i < childCount; i++) {
+                for (int i = 0; i < children.size(); i++) {
                     children.get(i).processUpdates(context);
                 }
             }
@@ -1230,13 +1306,13 @@ public abstract class UIComponentBase extends UIComponent {
 
         if (initialStateMarked()) {
             Object savedFacesListeners = listeners != null ? listeners.saveState(context) : null;
-            Object savedSysEventListeners = saveSystemEventListeners(context);
+            // buildView re-subscribes @ListenerFor / f:event listeners on restore, so only a subscription made after
+            // markInitialState needs to ride along in the delta (mirrors bindingsModified / rendererTypeSet).
+            Object savedSysEventListeners = systemEventListenersModified ? saveSystemEventListeners(context) : null;
             Object savedBehaviors = saveBehaviorsState(context);
-            Object savedBindings = null;
-
-            if (bindings != null) {
-                savedBindings = saveBindingsState(context);
-            }
+            // buildView re-applies facelet value expressions on restore, so only a change made after
+            // markInitialState needs to ride along in the delta (mirrors rendererType/rendererTypeSet).
+            Object savedBindings = bindingsModified ? saveBindingsState(context) : null;
 
             Object savedHelper = null;
             if (stateHelper != null) {
@@ -1280,6 +1356,13 @@ public abstract class UIComponentBase extends UIComponent {
                 values[3] = saveBindingsState(context);
             }
 
+            // MARK_CREATED is field-backed and no longer mirrored into the attributes map per component (see
+            // AttributesMap.put). Full state runs no buildView reconstruction on restore, so re-attach it here for
+            // restoreMarkersFromState to recover. Partial state omits it -- buildView re-establishes it each postback.
+            if (markCreated != null) {
+                getStateHelper().put(PropertyKeys.attributes, MARK_CREATED, markCreated);
+            }
+
             if (stateHelper != null) {
                 values[4] = stateHelper.saveState(context);
             }
@@ -1319,6 +1402,11 @@ public abstract class UIComponentBase extends UIComponent {
             } else {
                 listenersByEventClass = restoredListeners;
             }
+            if (values.length != 7) {
+                // Partial-state delta: a listener changed after markInitialState; keep it dirty so the change stays
+                // in the delta across subsequent postbacks (mirrors bindingsModified / rendererTypeSet below).
+                systemEventListenersModified = true;
+            }
         }
 
         if (values[2] != null) {
@@ -1327,6 +1415,11 @@ public abstract class UIComponentBase extends UIComponent {
 
         if (values[3] != null) {
             bindings = restoreBindingsState(context, values[3]);
+            if (values.length != 7) {
+                // Partial-state delta: a value expression changed after markInitialState; keep it dirty so
+                // the change stays in the delta across subsequent postbacks (mirrors rendererTypeSet below).
+                bindingsModified = true;
+            }
         }
 
         if (values[4] != null) {
@@ -1623,6 +1716,14 @@ public abstract class UIComponentBase extends UIComponent {
         return propertyDescriptorMap;
     }
 
+    Map<String, Method> getReadMethodMap() {
+        return readMethodMap;
+    }
+
+    Map<String, Method> getWriteMethodMap() {
+        return writeMethodMap;
+    }
+
     // ---- Field-backed Facelets markers (authoritative cache for AttributesMap) ----
     // The marker fields are the single source of truth: AttributesMap.put/remove keep them in sync, and
     // AttributesMap.get/containsKey read them WITHOUT touching the state map -- so the per-component
@@ -1657,7 +1758,9 @@ public abstract class UIComponentBase extends UIComponent {
         return NOT_MARKER;
     }
 
-    private void markerPut(Object key, Object value) {
+    // Returns true if the key is a marker (so AttributesMap can skip the getPropertyDescriptor probe:
+    // a framework marker is never a JavaBean property, so the lookup is guaranteed to miss).
+    private boolean markerPut(Object key, Object value) {
         if (MARK_CREATED.equals(key)) {
             markCreated = (String) value;
         } else if (KEY.equals(key)) {
@@ -1670,10 +1773,13 @@ public abstract class UIComponentBase extends UIComponent {
             markDeleted = Boolean.TRUE.equals(value);
         } else if (MARK_CHILDREN_MODIFIED.equals(key)) {
             markChildrenModified = Boolean.TRUE.equals(value);
+        } else {
+            return false;
         }
+        return true;
     }
 
-    private void markerRemove(Object key) {
+    private boolean markerRemove(Object key) {
         if (MARK_CREATED.equals(key)) {
             markCreated = null;
         } else if (KEY.equals(key)) {
@@ -1686,7 +1792,10 @@ public abstract class UIComponentBase extends UIComponent {
             markDeleted = false;
         } else if (MARK_CHILDREN_MODIFIED.equals(key)) {
             markChildrenModified = false;
+        } else {
+            return false;
         }
+        return true;
     }
 
     // Full-state restore deserializes the tree without re-running buildView, so the marker fields are synced
@@ -1703,6 +1812,7 @@ public abstract class UIComponentBase extends UIComponent {
         dynamicComponent = attrs.get(DYNAMIC_COMPONENT);
         markDeleted = Boolean.TRUE.equals(attrs.get(MARK_DELETED));
         markChildrenModified = Boolean.TRUE.equals(attrs.get(MARK_CHILDREN_MODIFIED));
+        setCompositeComponentFlag(attrs.containsKey(COMPONENT_RESOURCE_KEY));
     }
 
     private void doPostAddProcessing(FacesContext context, UIComponent added) {
@@ -2117,7 +2227,11 @@ public abstract class UIComponentBase extends UIComponent {
 
         // private Map<String, Object> attributes;
         private transient Map<String, PropertyDescriptor> pdMap;
-        private transient ConcurrentMap<String, Method> readMap;
+        // Per-class, application-scoped cache of access-suppressed read methods (see UIComponentBase.readMethodMap);
+        // a hit skips the PropertyDescriptor lookup, the access-check suppression and the reflective getter discovery.
+        private transient Map<String, Method> readMap;
+        // Write-side counterpart of readMap (see UIComponentBase.writeMethodMap); used by the property-write path in put.
+        private transient Map<String, Method> writeMap;
         private transient UIComponentBase component;
 
         // -------------------------------------------------------- Constructors
@@ -2125,6 +2239,8 @@ public abstract class UIComponentBase extends UIComponent {
         private AttributesMap(UIComponent component) {
             this.component = (UIComponentBase) component;
             pdMap = this.component.getDescriptorMap();
+            readMap = this.component.getReadMethodMap();
+            writeMap = this.component.getWriteMethodMap();
         }
 
         @Override
@@ -2167,9 +2283,9 @@ public abstract class UIComponentBase extends UIComponent {
             // Resolved lazily: the property-backed fast path below never needs it.
             Map<String, Object> attributes = null;
             if (null == result) {
-                // A previously-resolved property getter is cached by name. Invoke it directly and skip the
-                // per-read PropertyDescriptor lookup -- the descriptor is only needed to discover the getter
-                // once. This is the hot path when the same component is rendered repeatedly (UIData/UIRepeat rows).
+                // The access-suppressed property getter is cached per class by name. Invoke it directly and skip the
+                // per-read PropertyDescriptor lookup and access-check suppression -- the descriptor is only needed to
+                // discover the getter once per class. This is the hot path for every property-backed attribute read.
                 Method readMethod = readMap == null ? null : readMap.get(key);
                 if (readMethod != null) {
                     result = invokeReadMethod(readMethod);
@@ -2178,11 +2294,7 @@ public abstract class UIComponentBase extends UIComponent {
                     if (pd != null) {
                         readMethod = pd.getReadMethod();
                         if (readMethod != null) {
-                            if (null == readMap) {
-                                readMap = new ConcurrentHashMap<>();
-                            }
                             suppressAccessCheck(readMethod);
-                            readMap.putIfAbsent(key, readMethod);
                             result = invokeReadMethod(readMethod);
                         } else {
                             throw new IllegalArgumentException(key);
@@ -2245,8 +2357,19 @@ public abstract class UIComponentBase extends UIComponent {
                 throw new NullPointerException();
             }
 
-            // Keep the field cache in sync; the value is still stored in the attributes map below.
-            component.markerPut(keyValue, value);
+            // markerPut keeps the field cache in sync for framework markers. Persistent markers (MARK_CREATED etc.)
+            // are still mirrored into the attributes map below so full-state restore can read them back. MARK_DELETED
+            // is a transient build-time flag (markForDeletion/finalizeForDeletion set and clear it on every component
+            // each refresh) that is never present when state is saved, so it stays field-only to avoid per-component
+            // StateHelper traffic.
+            boolean marker = component.markerPut(keyValue, value);
+            if (marker && (MARK_DELETED.equals(keyValue) || MARK_CREATED.equals(keyValue))) {
+                // MARK_DELETED is a transient build-time flag; MARK_CREATED is field-backed (markCreated) and set on
+                // every component during buildView. Neither needs the per-component StateHelper mirror on the hot
+                // c:forEach re-apply path: MARK_DELETED is never saved, and MARK_CREATED is re-attached to the
+                // attributes map once at full-state save (saveState) -- partial state rebuilds it via buildView.
+                return null;
+            }
 
             if (ATTRIBUTES_THAT_ARE_SET_KEY.equals(keyValue)) {
                 if (component.attributesThatAreSet == null) {
@@ -2257,15 +2380,29 @@ public abstract class UIComponentBase extends UIComponent {
                 return null;
             }
 
-            PropertyDescriptor pd = getPropertyDescriptor(keyValue);
+            // A marker key is never a JavaBean property; skip the descriptor probe and store it directly.
+            PropertyDescriptor pd = marker ? null : getPropertyDescriptor(keyValue);
             if (pd != null) {
                 try {
-                    Object result = null;
-                    Method readMethod = pd.getReadMethod();
-                    if (readMethod != null) {
-                        result = readMethod.invoke(component, EMPTY_OBJECT_ARRAY);
+                    // Prefer the access-suppressed accessors cached per class (writeMap/readMap); fall back to the
+                    // descriptor only when the cache is absent (e.g. no FacesContext at construction), suppressing the
+                    // discovered method so a later put on the same component does not repeat the access check.
+                    Method readMethod = readMap == null ? null : readMap.get(keyValue);
+                    if (readMethod == null) {
+                        readMethod = pd.getReadMethod();
+                        if (readMethod != null) {
+                            suppressAccessCheck(readMethod);
+                        }
                     }
-                    Method writeMethod = pd.getWriteMethod();
+                    Object result = readMethod == null ? null : readMethod.invoke(component, EMPTY_OBJECT_ARRAY);
+
+                    Method writeMethod = writeMap == null ? null : writeMap.get(keyValue);
+                    if (writeMethod == null) {
+                        writeMethod = pd.getWriteMethod();
+                        if (writeMethod != null) {
+                            suppressAccessCheck(writeMethod);
+                        }
+                    }
                     if (writeMethod != null) {
                         writeMethod.invoke(component, value);
                     } else {
@@ -2310,11 +2447,14 @@ public abstract class UIComponentBase extends UIComponent {
             if (key == null) {
                 throw new NullPointerException();
             }
-            component.markerRemove(key);
+            boolean marker = component.markerRemove(key);
+            if (marker && MARK_DELETED.equals(key)) {
+                return null;
+            }
             if (ATTRIBUTES_THAT_ARE_SET_KEY.equals(key)) {
                 return null;
             }
-            PropertyDescriptor pd = getPropertyDescriptor(key);
+            PropertyDescriptor pd = marker ? null : getPropertyDescriptor(key);
             if (pd != null) {
                 throw new IllegalArgumentException(key);
             } else {
@@ -2430,6 +2570,12 @@ public abstract class UIComponentBase extends UIComponent {
         }
 
         private Object putAttribute(String key, Object value) {
+            if (COMPONENT_RESOURCE_KEY.equals(key)) {
+                // Putting the component resource is what makes a component composite; prime the cached flag so
+                // isCompositeComponent() answers from the field instead of probing the attributes map (see the
+                // UIComponent.isCompositeComponent field).
+                component.setCompositeComponentFlag(true);
+            }
             return component.getStateHelper().put(PropertyKeys.attributes, key, value);
         }
 
@@ -2444,19 +2590,20 @@ public abstract class UIComponentBase extends UIComponent {
         }
 
         /**
-         * Suppresses the per-invoke reflective access check on the (public) property getter that gets
-         * cached in {@link #readMap} and then invoked on every property-backed attribute read — hot under
-         * render and {@code UIData}/{@code UIRepeat} iteration (a renderer reads each pass-through attribute
-         * through {@code getAttributes().get}). The check is otherwise re-run per invoke because
-         * {@link PropertyDescriptor#getReadMethod()} hands back the method via a soft {@link
-         * java.lang.ref.Reference} that may be regenerated, yielding a fresh {@link Method} whose access
+         * Suppresses the per-invoke reflective access check on the (public) property accessor (getter cached in
+         * {@link #readMap}, setter in {@link #writeMap}) that is then invoked on every property-backed attribute read
+         * or write — hot under render and {@code UIData}/{@code UIRepeat} iteration (a renderer reads each pass-through
+         * attribute through {@code getAttributes().get}) and under buildView (Facelets writes through
+         * {@code getAttributes().put}). The check is otherwise re-run per invoke because
+         * {@link PropertyDescriptor#getReadMethod()}/{@link PropertyDescriptor#getWriteMethod()} hand back the method via
+         * a soft {@link java.lang.ref.Reference} that may be regenerated, yielding a fresh {@link Method} whose access
          * was never suppressed. Suppressing it on the strongly-held cached instance makes the win durable.
          */
-        private static void suppressAccessCheck(Method readMethod) {
+        private static void suppressAccessCheck(Method accessor) {
             try {
-                // The module system may forbid this for a getter in a non-exported user package;
+                // The module system may forbid this for an accessor in a non-exported user package;
                 // when it does, the normal per-invoke access check simply remains.
-                readMethod.setAccessible(true);
+                accessor.setAccessible(true);
             } catch (RuntimeException accessNotSuppressed) {
             }
         }
@@ -3367,50 +3514,81 @@ public abstract class UIComponentBase extends UIComponent {
 
     }
 
-    private static final String COMPONENT_DESCRIPTORS_MAP_KEY = "com.sun.faces.component.COMPONENT_DESCRIPTORS_MAP";
+    private static final String COMPONENT_METADATA_MAP_KEY = "com.sun.faces.component.COMPONENT_METADATA_MAP";
+
+    /**
+     * Application-scoped per-class reflective metadata, composed into a single value so the per-construction
+     * {@link #populateDescriptorsMapIfNecessary} does one application-map lookup and one per-class lookup rather than
+     * three of each. The three maps are always produced and cached together, so bundling them is behaviour-equivalent.
+     */
+    private static final class ComponentMetadata {
+        private final Map<String, PropertyDescriptor> propertyDescriptors;
+        private final Map<String, Method> readMethods;
+        private final Map<String, Method> writeMethods;
+
+        private ComponentMetadata(Map<String, PropertyDescriptor> propertyDescriptors, Map<String, Method> readMethods, Map<String, Method> writeMethods) {
+            this.propertyDescriptors = propertyDescriptors;
+            this.readMethods = readMethods;
+            this.writeMethods = writeMethods;
+        }
+    }
 
     @SuppressWarnings("unchecked")
     private void populateDescriptorsMapIfNecessary() {
         FacesContext facesContext = FacesContext.getCurrentInstance();
         Class<?> clazz = getClass();
+        Map<Class<?>, ComponentMetadata> metadataByClass = null;
 
         /*
-         * If we can find a valid FacesContext we are going to use it to get access to the property descriptor map.
+         * If we can find a valid FacesContext we are going to use it to get access to the metadata cache.
          */
         if (facesContext != null && facesContext.getExternalContext() != null && facesContext.getExternalContext().getApplicationMap() != null) {
 
             Map<String, Object> applicationMap = facesContext.getExternalContext().getApplicationMap();
 
-            descriptors = (Map<Class<?>, Map<String, PropertyDescriptor>>) applicationMap.computeIfAbsent(
-                    COMPONENT_DESCRIPTORS_MAP_KEY, k -> new ConcurrentHashMap<>());
-            propertyDescriptorMap = descriptors.get(clazz);
+            metadataByClass = (Map<Class<?>, ComponentMetadata>) applicationMap.computeIfAbsent(
+                    COMPONENT_METADATA_MAP_KEY, k -> new ConcurrentHashMap<>());
+
+            ComponentMetadata metadata = metadataByClass.get(clazz);
+            if (metadata != null) {
+                propertyDescriptorMap = metadata.propertyDescriptors;
+                readMethodMap = metadata.readMethods;
+                writeMethodMap = metadata.writeMethods;
+                return;
+            }
         }
 
-        if (propertyDescriptorMap == null) {
+        // We did not find the metadata for this class so we are now going to load it.
 
-            // We did not find the property descriptor map so we are now going to load it.
-
-            PropertyDescriptor[] propertyDescriptors = getPropertyDescriptors();
-            if (propertyDescriptors != null) {
-                propertyDescriptorMap = new HashMap<>(Util.calculateMapCapacity(propertyDescriptors.length));
-                for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
-                    // Suppress the access check up front (see AttributesMap.suppressAccessCheck); note the
-                    // hot path additionally suppresses it on the readMap-cached instance, since the method
-                    // handed back here may be regenerated before that cache is populated.
-                    Method readMethod = propertyDescriptor.getReadMethod();
-                    if (readMethod != null) {
-                        AttributesMap.suppressAccessCheck(readMethod);
-                    }
-                    propertyDescriptorMap.put(propertyDescriptor.getName(), propertyDescriptor);
+        PropertyDescriptor propertyDescriptors[] = getPropertyDescriptors();
+        if (propertyDescriptors != null) {
+            propertyDescriptorMap = new HashMap<>(propertyDescriptors.length, 1.0f);
+            readMethodMap = new HashMap<>(propertyDescriptors.length, 1.0f);
+            writeMethodMap = new HashMap<>(propertyDescriptors.length, 1.0f);
+            for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
+                // Suppress the access check once, here, and strongly cache the accessor per class so the
+                // suppression stays durable (PropertyDescriptor.getReadMethod/getWriteMethod hand it back via a soft
+                // reference that can be regenerated) and the hot attribute-read/write paths never re-suppress or
+                // re-cache it.
+                Method readMethod = propertyDescriptor.getReadMethod();
+                if (readMethod != null) {
+                    AttributesMap.suppressAccessCheck(readMethod);
+                    readMethodMap.put(propertyDescriptor.getName(), readMethod);
                 }
-
-                if (LOGGER.isLoggable(FINE)) {
-                    LOGGER.log(FINE, "fine.component.populating_descriptor_map", new Object[] { clazz, currentThread().getName() });
+                Method writeMethod = propertyDescriptor.getWriteMethod();
+                if (writeMethod != null) {
+                    AttributesMap.suppressAccessCheck(writeMethod);
+                    writeMethodMap.put(propertyDescriptor.getName(), writeMethod);
                 }
+                propertyDescriptorMap.put(propertyDescriptor.getName(), propertyDescriptor);
+            }
 
-                if (descriptors != null) {
-                    descriptors.putIfAbsent(clazz, propertyDescriptorMap);
-                }
+            if (LOGGER.isLoggable(FINE)) {
+                LOGGER.log(FINE, "fine.component.populating_descriptor_map", new Object[] { clazz, currentThread().getName() });
+            }
+
+            if (metadataByClass != null) {
+                metadataByClass.putIfAbsent(clazz, new ComponentMetadata(propertyDescriptorMap, readMethodMap, writeMethodMap));
             }
         }
     }
@@ -3656,28 +3834,45 @@ public abstract class UIComponentBase extends UIComponent {
             return base;
         }
 
-        // Search through our facets and children
-        UIComponent component = null;
-        for (Iterator<UIComponent> i = base.getFacetsAndChildren(); i.hasNext();) {
-            UIComponent kid = i.next();
-            if (!(kid instanceof NamingContainer)) {
-                if (checkId && id.equals(kid.getId())) {
-                    component = kid;
-                    break;
-                }
-
-                component = findComponent(kid, id, true);
-
+        // Search through our facets and children, in the order getFacetsAndChildren() defines (facets first),
+        // but without that method's per-node wrapper collection and iterator: this walk recurses over the whole
+        // subtree, so allocating two objects per node visited dominates the cost of resolving a single id.
+        if (base.getFacetCount() != 0) {
+            for (UIComponent facet : base.getFacets().values()) {
+                UIComponent component = findComponentInKid(facet, id);
                 if (component != null) {
-                    break;
+                    return component;
                 }
-            } else if (id.equals(kid.getId())) {
-                component = kid;
-                break;
             }
         }
 
-        return component;
+        if (base.getChildCount() != 0) {
+            List<UIComponent> children = base.getChildren();
+            for (int i = 0, size = children.size(); i < size; i++) {
+                UIComponent component = findComponentInKid(children.get(i), id);
+                if (component != null) {
+                    return component;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * <p>
+     * Match <code>id</code> against a single facet or child of the component being searched: a
+     * {@link NamingContainer} matches only on its own id and is never descended into, any other kid is matched
+     * by a recursive scan which checks its own id first.
+     * </p>
+     */
+    private static UIComponent findComponentInKid(UIComponent kid, String id) {
+
+        if (kid instanceof NamingContainer) {
+            return id.equals(kid.getId()) ? kid : null;
+        }
+
+        return findComponent(kid, id, true);
     }
 
     private List<Object> collectChildState(FacesContext context, List<Object> stateList) {

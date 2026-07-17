@@ -24,6 +24,7 @@ import com.sun.faces.renderkit.AttributeManager;
 import com.sun.faces.renderkit.RenderKitUtils;
 
 import jakarta.faces.component.UIComponent;
+import jakarta.faces.component.html.HtmlPanelGroup;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
 
@@ -34,7 +35,6 @@ import jakarta.faces.context.ResponseWriter;
 public class GroupRenderer extends HtmlBasicRenderer {
 
     private static final Attribute[] ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.PANELGROUP);
-
     // ---------------------------------------------------------- Public Methods
 
     @Override
@@ -46,12 +46,12 @@ public class GroupRenderer extends HtmlBasicRenderer {
             return;
         }
         // Render a span around this group if necessary
-        // String style = (String) component.getAttributes().get("style");
-        String styleClass = (String) component.getAttributes().get("styleClass");
+        String styleClass = (String) RenderKitUtils.getAttributeIfSet(component, "styleClass");
         ResponseWriter writer = context.getResponseWriter();
 
-        if (divOrSpan(component)) {
-            if ("block".equals(component.getAttributes().get("layout"))) {
+        if (divOrSpan(component, styleClass)) {
+            if (component instanceof HtmlPanelGroup group ? "block".equals(group.getLayout())
+                    : "block".equals(component.getAttributes().get("layout"))) {
                 writer.startElement("div", component);
             } else {
                 writer.startElement("span", component);
@@ -60,8 +60,6 @@ public class GroupRenderer extends HtmlBasicRenderer {
             if (styleClass != null) {
                 writer.writeAttribute("class", styleClass, "styleClass");
             }
-            // JAVASERVERFACES-3270: do not manually render "style" as it is handled
-            // in renderPassThruAttributes().
         }
 
         RenderKitUtils.renderPassThruAttributes(context, writer, component, ATTRIBUTES);
@@ -98,8 +96,10 @@ public class GroupRenderer extends HtmlBasicRenderer {
 
         // Close our span element if necessary
         ResponseWriter writer = context.getResponseWriter();
-        if (divOrSpan(component)) {
-            if ("block".equals(component.getAttributes().get("layout"))) {
+        String styleClass = (String) RenderKitUtils.getAttributeIfSet(component, "styleClass");
+        if (divOrSpan(component, styleClass)) {
+            if (component instanceof HtmlPanelGroup group ? "block".equals(group.getLayout())
+                    : "block".equals(component.getAttributes().get("layout"))) {
                 writer.endElement("div");
             } else {
                 writer.endElement("span");
@@ -119,12 +119,13 @@ public class GroupRenderer extends HtmlBasicRenderer {
 
     /**
      * @param component <code>UIComponent</code> for this group
+     * @param styleClass the already-resolved {@code styleClass} value
      *
      * @return <code>true</code> if we need to render a div or span element around this group.
      */
-    private boolean divOrSpan(UIComponent component) {
+    private boolean divOrSpan(UIComponent component, String styleClass) {
 
-        return shouldWriteIdAttribute(component) || component.getAttributes().get("style") != null || component.getAttributes().get("styleClass") != null;
+        return shouldWriteIdAttribute(component) || styleClass != null || RenderKitUtils.getAttributeIfSet(component, "style") != null;
 
     }
 

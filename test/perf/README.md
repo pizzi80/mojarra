@@ -152,9 +152,9 @@ diff /tmp/a.txt /tmp/b.txt
 
 Run both sides on the same server profile so the comparison is fair.
 
-## Tuning state saving / view pooling
+## Tuning state saving
 
-The state and view-pooling context parameters are filtered into the WAR's `web.xml`
+The state-saving context parameters are filtered into the WAR's `web.xml`
 at package time, so they can be tuned per run without editing anything. Defaults
 match the implementation defaults; each knob sets the Mojarra parameter and, where
 applicable, its MyFaces equivalent (the other implementation ignores the foreign one):
@@ -164,10 +164,9 @@ applicable, its MyFaces equivalent (the other implementation ignores the foreign
 | `-Dwebapp.stateSavingMethod`     | `server` | `jakarta.faces.STATE_SAVING_METHOD`    | *(same)* |
 | `-Dwebapp.serializeServerState`  | `false`  | `jakarta.faces.SERIALIZE_SERVER_STATE` | *(same)* |
 | `-Dwebapp.compressViewState`     | `true`   | `com.sun.faces.compressViewState`      | `org.apache.myfaces.COMPRESS_STATE_IN_SESSION` |
-| `-Dwebapp.numberOfViewsInSession`| `15`     | `com.sun.faces.numberOfLogicalViews`   | `org.apache.myfaces.NUMBER_OF_VIEWS_IN_SESSION` |
 
 ```
-mvn clean verify -Dperf=true -Dwebapp.stateSavingMethod=client -Dwebapp.numberOfViewsInSession=10
+mvn clean verify -Dperf=true -Dwebapp.stateSavingMethod=client -Dwebapp.serializeServerState=true
 ```
 
 For any parameter without a dedicated knob, pass raw `<context-param>` XML through the
@@ -183,30 +182,44 @@ mvn clean verify -Dperf=true \
 
 ## Scenarios
 
-Row data for the table/repeat/composite scenarios comes from one shared `DataBean`. The counts are
-calibrated so each scenario costs roughly ~5 ms per postback on tomcat-myfaces, keeping per-scenario times
-comparable: `readonlyRows` (200) and `inputRows` (50) for the cheap table/repeat rows, `compositeRows` (100)
-for the heavier per-row composites, `ajaxRows` (200) for the restore-dominated ajax-inputs scenarios (kept
-under the container's default `maxParameterCount`), and `groups` (5×10) for the nested scenarios. The
-`*-unrolled` scenarios size their `c:forEach` directly for the same ~5 ms target.
+Row data for the table/repeat/composite/foreach scenarios comes from one shared `DataBean`, sized by four
+constants — one per tier — so a whole tier is tuned by editing a single number: `READONLY_ROWS` (200),
+`INPUT_ROWS` (35), `FOREACH_ROWS` (100) and nested `GROUPS`×`GROUP_ROWS` (5×10). The rows themselves are
+realistic `Row` records (typed fields, a non-ASCII/HTML-metachar description exercising the slow escaping path).
+The two `dynamic-*` scenarios are sized by the `FIELD_COUNT` constant of their backing bean, and the flat forms
+by the shared `/WEB-INF/includes/form-fields.xhtml` field body. `index` and `viewparam-get` are intentionally
+left small.
 
-- `index` — landing page (smallest baseline)
-- `form-inputs` — single h:form with text/textarea/select/checkbox/radio, managed converters+validators, BV
-- `table-readonly` — h:dataTable, 200 rows, outputs only
-- `table-inputs` — h:dataTable, 50 rows, per-row inputs + converters/validators
-- `table-nested` — h:dataTable ∋ h:dataTable with a per-row input composite (5×10); UIData twin of `composite-nested`, isolating UIData's per-row child-state save/restore against ui:repeat's
-- `repeat-readonly` — ui:repeat, 200 rows, outputs only
-- `repeat-inputs` — ui:repeat, 50 rows, per-row inputs
-- `repeat-nested` — ui:repeat ∋ ui:repeat (5×10 rows, per-row inputs)
-- `composite-readonly` — readonly composite component, 100 instances
-- `composite-inputs` — input composite component, 50 instances
-- `composite-nested` — composite component nested inside ui:repeat (5×10)
-- `composite-unrolled` — *static* tree of composite components built by `c:forEach` (~100 composites, all NamingContainers — the issue #4811 pattern); a postback rebuilds and re-renders the whole composite tree at scale (its restore is delta-free, so the state-restore walk is skipped)
-- `view-unrolled` — flat *static* tree built by `c:forEach` (~200 panelGroups, no inputs); delta-free full postback exercising `restoreViewRootOnly` + the descendant mark-id cache + full render at scale
-- `form-inputs-ajax`, `table-inputs-ajax`, `repeat-inputs-ajax` — same as their non-ajax twins but submit via `<f:ajax execute="@form" render="@form messages">`; driver sends a partial-ajax POST and refreshes `ViewState` from the XML response.
-- `view-unrolled-ajax` — ajax twin of `view-unrolled`: same flat static tree, `@form` ajax postback (`restoreViewRootOnly` + partial-response render at scale)
-- `dynamic-form-ajax` — the idiomatic **dynamic components** pattern: a request-scoped bean holds the container via `binding`, and an `f:event type="postAddToView"` listener (`DynamicFormBean#build`) **programmatically** builds a large set of labelled inputs each time the view is (re)built, rather than declaring them in the facelet. The tree structure is identical every request, so the ajax postback runs the full lifecycle (decode/validate/update + partial render) over the dynamically-built inputs exactly like `form-inputs-ajax`. Unlike `dynamic-toggle-ajax` it does **not** touch the dynamic add/remove machinery (the components are built during the normal view (re)build, not after it) — it isolates the cost of `binding` resolution plus programmatic component construction, and is portable across implementations.
-- `dynamic-toggle-ajax` — each ajax toggle adds or removes a large input subtree under the in-view `container` via `getChildren().add()/clear()` in the action. Because the mutation happens **after** `markInitialState`, this is the scenario that drives Mojarra's dynamic add/remove path — `StateContext` dynamic-action tracking, the `DYNAMIC_COMPONENT` marker, and full-state-save/restore of the dynamic subtree — which no structurally-static scenario reaches. It is the one for benchmarking that path. On Mojarra the dynamic subtree is replayed on restore, so toggles alternate add↔remove; MyFaces re-adds it each request rather than persisting it across the postback.
+### Component-family matrix
+
+Four component families each span up to six variants. The family fixes the *structure*; the variant fixes the
+*request shape* and whether inputs are present:
+
+| family | iterator | readonly (GET) | inputs | nested | build | inputs-ajax | nested-ajax |
+|---|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| **table** | `h:dataTable` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **repeat** | `ui:repeat` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **composite** | composite components | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **foreach** | `c:forEach items` (build-time unrolled) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+- **readonly** — GET render, outputs only, no form: isolates fresh `buildView` + encode (no state restore). Sized by `READONLY_ROWS` (200); `foreach-readonly` by `FOREACH_ROWS` (100).
+- **inputs** — full postback, per-row inputs + managed converters/validators (`INPUT_ROWS`, 35): full lifecycle over a flat iteration.
+- **nested** — full postback, the iterator inside itself two levels deep with per-row inputs (`GROUPS`×`GROUP_ROWS`, 5×10): isolates per-row child-state save/restore.
+- **build** — full postback of a **readonly** (no-input) tree: empty ARV/PV/UMV, so it isolates the state-**restore** path + encode from any input processing — the representative postback cost for readonly content. `table-build`/`repeat-build` re-post the standard readonly tree (`READONLY_ROWS`); `composite-build` (the #4811 all-NamingContainer case) and `foreach-build` (flat unrolled outputs) are the `c:forEach`-built trees (`FOREACH_ROWS`, delta-free restore).
+- **inputs-ajax** / **nested-ajax** — ajax twins of `inputs`/`nested`, submitting `<f:ajax execute="@form" render="…">`; the driver sends a partial-ajax POST and refreshes `ViewState` from the XML response.
+
+The GET `readonly` and postback `build` variants of the same family render the same tree, giving a clean
+`buildView` (GET) vs `restore` (postback) A/B. Everything else is a full postback (all six phases on POST).
+
+Scenarios outside the matrix:
+
+- `index` — landing page (smallest baseline); also relocates a stylesheet + script via `h:outputStylesheet`/`h:outputScript`
+- `form-inputs` — flat multi-section form (product/contact/address/company/payment/preferences) sharing `/WEB-INF/includes/form-fields.xhtml`: text/textarea/select/checkbox/radio inputs over managed converters+validators and Bean Validation; `country` uses a `Map`-valued `f:selectItems` (label→code). The hero `name`/`quantity`/`price` fields stay flat; the bulk sit in nested typed section view-models on `FormBean` (two-level `BeanELResolver` path)
+- `form-inputs-ajax` — ajax twin of `form-inputs` (same shared field body): submits via `<f:ajax execute="@form" render="@form messages">`; additionally the `name` field carries **two** `f:ajax` on distinct events (keyup+blur), which flips the client-behavior chain and Mojarra's *unoptimized* pass-through-attribute renderer path (enabled via the fragment's `ajax` param)
+- `form-invalid` — same shared field body as `form-inputs`, but the driver posts values that fail conversion/validation (`name=forbidden` trips the CDI prohibited-words validator; non-numeric quantity/price trip `convertNumber`) so every run exercises `FacesMessage` creation, `UIInput` invalid-marking, the **skipped** Update Model/Invoke phases, redisplay of the rejected values and `h:messages` rendering with content
+- `form-invalid-ajax` — ajax twin of `form-invalid`: the same rejected values, but submitted via `<f:ajax>`, so the unhappy path (message creation, invalid-marking, skipped Update Model/Invoke, redisplay of rejected values) runs through the **partial** response render rather than a full postback
+- `dynamic-form-ajax` — the idiomatic **dynamic components** pattern: a request-scoped bean holds the container via `binding`, and an `f:event type="postAddToView"` listener (`DynamicFormBean#build`) **programmatically** builds `FIELD_COUNT` labelled inputs each time the view is (re)built, rather than declaring them in the facelet. The tree structure is identical every request, so the ajax postback runs the full lifecycle (decode/validate/update + partial render) over the dynamically-built inputs exactly like `form-inputs-ajax`. Unlike `dynamic-toggle-ajax` it does **not** touch the dynamic add/remove machinery (the components are built during the normal view (re)build, not after it) — it isolates the cost of `binding` resolution plus programmatic component construction, and is portable across implementations.
+- `dynamic-toggle-ajax` — each ajax toggle adds or removes a `FIELD_COUNT`-input subtree under the in-view `container` via `getChildren().add()/clear()` in the action. Because the mutation happens **after** `markInitialState`, this is the scenario that drives Mojarra's dynamic add/remove path — `StateContext` dynamic-action tracking, the `DYNAMIC_COMPONENT` marker, and full-state-save/restore of the dynamic subtree — which no structurally-static scenario reaches. It is the one for benchmarking that path. On Mojarra the dynamic subtree is replayed on restore, so toggles alternate add↔remove; MyFaces re-adds it each request rather than persisting it across the postback.
 - `viewparam-get` — GET with `<f:metadata><f:viewParam><f:viewAction></f:metadata>` so the GET runs the **entire** lifecycle (Apply Request Values → Render Response), not just Restore View + Render Response.
 
 GET-only scenarios fire RESTORE_VIEW + RENDER_RESPONSE; the `viewparam-get`
@@ -223,27 +236,38 @@ postback and ajax-postback scenarios fire all six phases on POST.
 
 The bench is also useful as a JFR driver for figuring out *where* the time is going. `PerfStats` tells you per-(scenario, phase) wall time; JFR layered on top tells you which methods are burning the CPU and which call sites are allocating.
 
-Enable JFR by adding two `<jvm-options>` to the GlassFish JVM at the top of `<java-config>` inside `server-config`:
+Enable JFR by appending the flags to `-Dperf.jvmArguments` — this is filtered straight into
+the forked server VM, so there is nothing to edit in server config (and nothing to lose when
+`mvn clean` regenerates that config). Keep the heap flag the property defaults to:
 
 ```
-target/glassfish8/glassfish/domains/domain1/config/domain.xml
+-Dperf.jvmArguments="-Xmx1g -XX:StartFlightRecording=filename=/tmp/perf-bench.jfr,settings=profile,name=perf,dumponexit=true -XX:FlightRecorderOptions=stackdepth=256"
 ```
 
-```xml
-<jvm-options>-XX:StartFlightRecording=duration=900s,filename=/tmp/perf-bench.jfr,settings=profile,name=perf</jvm-options>
-<jvm-options>-XX:FlightRecorderOptions=stackdepth=128</jvm-options>
-```
+`dumponexit=true` writes the recording when Arquillian shuts the server down at the end of
+the run, so no `duration=` guesswork is needed.
 
-(For the other servers the same JVM options go into their respective config rather
-than `domain.xml`: Payara `payara7/glassfish/domains/domain1/config/domain.xml`,
-WildFly `standalone.conf`, TomEE `bin/setenv.sh` / `-Dtomee.catalina_opts`, Tomcat
-`bin/setenv.sh`, OpenLiberty `wlp/usr/servers/defaultServer/jvm.options`.)
+This works for **Tomcat, WildFly and TomEE** (where `perf.jvmArguments` feeds the forked VM
+directly). **OpenLiberty** has no such hook — put the same flags in
+`wlp/usr/servers/defaultServer/jvm.options`. **GlassFish and Payara** can't be JFR-injected
+through the harness at all: the `arquillian-glassfish-server-managed` adapter only exposes
+`maxHeapSize`, with no arbitrary-JVM-args property — so profile on Tomcat or WildFly instead.
 
 Then run the bench at a tighter iteration count — JFR samples on a 20 ms cadence by default, so ~7,500 samples (≈150 s of bench time) is plenty for a clear hot-method picture without producing a huge file:
 
 ```
 mvn failsafe:integration-test failsafe:verify -Dperf=true -Dperf.warmup=20 -Dperf.runs=200
 ```
+
+**Isolating one scenario / one phase.** To profile a single scenario, restrict the run
+with `-Dperf.scenarios=<name>` (comma-separated; the IT filters to just those). But note
+the sampling-budget trap: JFR fires one sample per thread per ~10–20 ms, so a *thin* phase
+gets very few samples even over a long run. At the suite default of 1000 runs, a phase
+that costs ~0.3 ms/req accumulates only ~0.3 s of wall time → **~20 samples**, far too few
+to rank methods. Scale `-Dperf.runs` up (e.g. `-Dperf.runs=20000`) until the *thinnest*
+phase you care about clears a few hundred samples — a single-scenario run is cheap enough
+to afford it. Check the per-phase `total_us` in the stats dump: divide by ~15000 µs to
+estimate the sample count before trusting any ranking.
 
 Analyze with the JDK-bundled `jfr` tool:
 
@@ -257,15 +281,26 @@ jfr view --width 200 allocation-by-site /tmp/perf-bench.jfr
 For deeper aggregation (e.g. grouping hot leaves by their Mojarra-side caller, filtering by thread, attributing samples to scenarios via the timeline) export the execution samples to JSON and process them with a small script:
 
 ```
-jfr print --json --events jdk.ExecutionSample /tmp/perf-bench.jfr > /tmp/samples.json
+jfr print --json --stack-depth 256 --events jdk.ExecutionSample /tmp/perf-bench.jfr > /tmp/samples.json
 ```
 
-Each event lives at `event['values']['stackTrace']['frames']`; class names use slash form (`com/sun/faces/...`).
+**`--stack-depth` is mandatory here:** `jfr print` truncates each stack to **5 frames by
+default**, which silently drops every frame below the JDK leaf — your aggregation then finds
+no Faces/Mojarra frames at all (the recording itself is fine; only the print is truncated).
+Pass a depth that comfortably exceeds the deepest request stack (256 is safe).
+
+Each event lives at `event['values']['stackTrace']['frames']`, ordered **root → leaf**
+(so `frames[0]` is the outermost caller and `frames[-1]` is the sampled leaf); class names
+use slash form (`com/sun/faces/...`). To attribute a sample to a lifecycle phase, scan its
+frames for the phase class — `RestoreViewPhase`, `ApplyRequestValuesPhase`,
+`ProcessValidationsPhase`, `UpdateModelValuesPhase`, `InvokeApplicationPhase`,
+`RenderResponsePhase` (for ajax, Restore View and Render Response also run through
+`PartialViewContextImpl`). Filter to the request worker threads (`http-nio-*-exec-*` on
+Tomcat, `http-thread-pool-*` on GlassFish) to drop server-housekeeping samples.
 
 ### Gotchas
 
-- `domain.xml` is regenerated by `mvn clean package`, so reapply the JFR `<jvm-options>` after every WAR rebuild.
-- Cancelling a bench mid-flight can leave an already-deployed app in `target/glassfish8/glassfish/domains/domain1/applications/`; the next run will then error with `Application with name perf-<version> is already registered`. Fix with `rm -rf target/glassfish8` followed by `mvn clean package -DskipTests` (then reapply the JFR edit).
+- Cancelling a bench mid-flight can leave an already-deployed app in `target/glassfish8/glassfish/domains/domain1/applications/`; the next run will then error with `Application with name perf-<version> is already registered`. Fix with `rm -rf target/glassfish8` followed by `mvn clean package -DskipTests`.
 - A killed bench can also leave an orphan `ASMain` JVM running, which trips the next run with `The server is already running!`. Check `jps`, identify the specific PID, kill it by ID — never blanket `pkill java` on a shared host.
 
 ## Profiling a non-Mojarra layer (e.g. GlassFish, Weld)
@@ -274,6 +309,6 @@ Because the bench drives the *whole* request stack, the JFR profile picks up CPU
 
 1. Build the layer in its own checkout (e.g. `mvn clean install` in a GlassFish module) so a `<version>-SNAPSHOT` artifact lands in `~/.m2`.
 2. Either re-run `mvn clean package -DskipTests -Dglassfish.version=<version>-SNAPSHOT` (forces a fresh GlassFish unpack with the SNAPSHOT zip), or — for a single-jar swap — replace the matching `target/glassfish8/glassfish/modules/<artifact>.jar` in place.
-3. Reapply the JFR `<jvm-options>` and run the bench.
+3. Enable JFR via `-Dperf.jvmArguments` (see above) and run the bench. Since that hook is unavailable on GlassFish/Payara, profile a server-layer swap on a JFR-injectable server (Tomcat or WildFly) where possible.
 
 The bench couldn't care less which version of which jar is in the server's modules directory; whatever's on disk at startup is what gets profiled.

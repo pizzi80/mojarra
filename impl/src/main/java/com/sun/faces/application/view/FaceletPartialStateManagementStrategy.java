@@ -18,6 +18,7 @@ package com.sun.faces.application.view;
 
 import static com.sun.faces.RIConstants.DYNAMIC_ACTIONS;
 import static com.sun.faces.RIConstants.DYNAMIC_COMPONENT;
+import static com.sun.faces.RIConstants.VIEW_REBUILT_AT_RENDER;
 import static com.sun.faces.util.ComponentStruct.ADD;
 import static com.sun.faces.util.ComponentStruct.REMOVE;
 import static com.sun.faces.util.Util.isEmpty;
@@ -162,6 +163,26 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
     }
 
     /**
+     * Returns the index the given action's child must be restored at. The action carries it, as the component
+     * does not necessarily survive to hold it: a facelet-created child which was dynamically moved to another
+     * parent is deleted and recreated by the facelet refresh, losing its marker. The marker on the component
+     * is only consulted for state saved before the action carried the index.
+     *
+     * @param struct the component struct.
+     * @param child the child being restored.
+     * @return the index within the parent's children, or {@link ComponentStruct#APPEND} to append.
+     */
+    private static int indexOf(ComponentStruct struct, UIComponent child) {
+        if (struct.getIndex() != ComponentStruct.APPEND) {
+            return struct.getIndex();
+        }
+        if (child.getAttributes().get(DYNAMIC_COMPONENT) instanceof Integer index) {
+            return index;
+        }
+        return ComponentStruct.APPEND;
+    }
+
+    /**
      * Method that takes care of restoring a dynamic add.
      *
      * @param context the Faces context.
@@ -179,10 +200,19 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
             UIComponent child = componentIndex.get(struct.getClientId());
 
             /*
+             * The buildView reapply that runs earlier in restoreView preserves programmatically-added
+             * children across the facelet refresh in their original order, so the child often already sits
+             * correctly under its parent. In that case skip the remove + re-add: getChildren().remove and
+             * getChildren().add each scan for the child (O(n) indexOf), i.e. O(n^2) over a large dynamic
+             * subtree, only to reproduce the position it already holds.
+             */
+            boolean alreadyInPlace = child != null && struct.getFacetName() == null && child.getParent() == parent;
+
+            /*
              * If Facelets engine restored the child before us we are going to use it, but we need to remove it before we can add it
              * in the correct place.
              */
-            if (child != null) {
+            if (child != null && !alreadyInPlace) {
                 if (struct.getFacetName() == null) {
                     parent.getChildren().remove(child);
                 } else {
@@ -213,14 +243,14 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
              * Now if we have the child we are going to add it back in.
              */
             if (child != null) {
-                if (struct.getFacetName() != null) {
+                if (alreadyInPlace) {
+                    // Child survived the facelet refresh under this parent; leave it where it is. The
+                    // bookkeeping below still runs.
+                } else if (struct.getFacetName() != null) {
                     parent.getFacets().put(struct.getFacetName(), child);
                     child.getAttributes().put(DYNAMIC_COMPONENT, child.getParent().getChildren().indexOf(child));
                 } else {
-                    int childIndex = -1;
-                    if (child.getAttributes().containsKey(DYNAMIC_COMPONENT)) {
-                        childIndex = (Integer) child.getAttributes().get(DYNAMIC_COMPONENT);
-                    }
+                    int childIndex = indexOf(struct, child);
                     child.setId(struct.getId());
                     int storedIndex;
                     if (childIndex >= parent.getChildCount() || childIndex == -1) {
@@ -412,6 +442,11 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
                             action.getClientId());
                 }
                 if (component != null) {
+                    // The tree walk above has just stamped each dynamically added component with the index it
+                    // actually ended up at, which supersedes the one recorded when the action was fired.
+                    if (ADD.equals(action.getAction()) && component.getAttributes().get(DYNAMIC_COMPONENT) instanceof Integer index) {
+                        action.setIndex(index);
+                    }
                     savedActions.add(action.saveState(context));
                 }
             }
@@ -440,7 +475,12 @@ public class FaceletPartialStateManagementStrategy extends StateManagementStrate
             return null;
         }
 
-        Util.checkIdUniqueness(context, viewRoot, new HashSet<>(64));
+        // Skip the whole-tree duplicate-id walk when the render-time build skipped the facelet re-apply: the tree is
+        // then identical to the one already validated when it was first built (see VIEW_REBUILT_AT_RENDER). A rebuilt
+        // or freshly-built (GET / navigation / JSTL) tree, or an unset flag, still runs the check.
+        if (!Boolean.FALSE.equals(context.getAttributes().get(VIEW_REBUILT_AT_RENDER))) {
+            Util.checkIdUniqueness(context, viewRoot, new HashSet<>(64));
+        }
 
         final Map<String, Object> stateMap = new HashMap<>();
         final StateContext stateContext = StateContext.getStateContext(context);

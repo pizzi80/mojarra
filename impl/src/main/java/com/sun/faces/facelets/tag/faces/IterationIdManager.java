@@ -83,17 +83,12 @@ public class IterationIdManager {
     private static Deque<Set<String>> _getStackOfTrackedIds(FaceletContext context) {
         Deque<Set<String>> stack = _getStackOfTrackedIdsAttribute(context);
         if (stack == null) {
-            synchronized(IterationIdManager.class) {
-                stack = _getStackOfTrackedIdsAttribute(context);
-                if(stack == null) {
-                    // At the moment we need a LinkedList
-                    // because we use the null value
-                    // to suspend Id tracking
-                    // (see the startNamingContainer method)
-                    stack = new LinkedList<>();
-                    context.setAttribute(_STACK_OF_TRACKED_IDS, stack);
-                }
-            }
+            // At the moment we need a LinkedList
+            // because we use the null value
+            // to suspend Id tracking
+            // (see the startNamingContainer method)
+            stack = new LinkedList<>();
+            ctx.setAttribute(_STACK_OF_TRACKED_IDS, stack);
         }
         return stack;
     }

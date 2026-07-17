@@ -209,7 +209,8 @@ public class ComponentValidators {
      * @param editableValueHolder the target component to which the validators installed
      * @param validatorStack current stack of ValidatorInfo instances
      */
-    private static void addValidatorsToComponent(FacesContext ctx, Collection<String> validatorIds, EditableValueHolder editableValueHolder, List<ValidatorInfo> validatorStack) {
+    private static void addValidatorsToComponent(FacesContext ctx, Collection<String> validatorIds, EditableValueHolder editableValueHolder,
+            List<ValidatorInfo> validatorStack) {
 
         if (validatorIds == null || validatorIds.isEmpty()) {
             return;
@@ -236,7 +237,7 @@ public class ComponentValidators {
             // work backwards up the stack of ValidatorInfo to find the
             // nearest matching ValidatorInfo to apply attributes
             if (validatorStack != null) {
-                for (int i = validatorStack.size()-1; i >= 0; i--) {
+                for (int i = validatorStack.size() - 1; i >= 0; i--) {
                     ValidatorInfo info = validatorStack.get(i);
                     if (id.equals(info.getValidatorId())) {
                         info.applyAttributes(v);
@@ -244,7 +245,6 @@ public class ComponentValidators {
                     }
                 }
             }
-
             editableValueHolder.addValidator(v);
         }
 
@@ -287,7 +287,7 @@ public class ComponentValidators {
 
         }
 
-        public void applyAttributes(Validator<?> v) {
+        public void applyAttributes(Validator v) {
 
             owner.setAttributes(ctx, v);
 

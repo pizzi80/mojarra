@@ -60,6 +60,8 @@ public class SetHandler extends TagHandlerImpl {
     @Override
     public void apply(FaceletContext context, UIComponent parent) throws IOException {
 
+        markDynamicTransientBuild(ctx);
+
         StringBuilder bodyValue = new StringBuilder();
 
         Iterator<TextHandler> iterator = findNextByType(TextHandler.class);

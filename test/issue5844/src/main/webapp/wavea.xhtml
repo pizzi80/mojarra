@@ -16,27 +16,18 @@
     SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
 
 -->
-<html lang="#{facesContext.viewRoot.locale.language}"
-    xmlns:h="jakarta.faces.html"
+<html lang="en"
+    xmlns="http://www.w3.org/1999/xhtml"
     xmlns:f="jakarta.faces.core"
-    xmlns:c="jakarta.tags.core"
+    xmlns:h="jakarta.faces.html"
 >
-    <h:head>
-        <title>view-unrolled-ajax</title>
-    </h:head>
+    <f:metadata>
+        <f:viewParam name="param" value="#{issue5844Bean.param}" />
+    </f:metadata>
+
+    <h:head />
+
     <h:body>
-        <h:form id="form">
-            <c:forEach var="i" begin="1" end="165">
-                <h:panelGroup id="block#{i}" layout="block">
-                    <h:outputText value="alpha"/>
-                    <h:outputText value="beta"/>
-                    <h:outputText value="gamma"/>
-                    <h:outputText value="delta"/>
-                </h:panelGroup>
-            </c:forEach>
-            <h:commandButton id="submit" value="Submit">
-                <f:ajax execute="@form" render="@form"/>
-            </h:commandButton>
-        </h:form>
+        <span id="param">#{issue5844Bean.param}</span>
     </h:body>
 </html>

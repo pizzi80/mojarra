@@ -34,7 +34,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import com.sun.faces.cdi.CdiExtension;
+import com.sun.faces.application.view.ViewScopeManager;
 import com.sun.faces.cdi.CdiUtils;
 import com.sun.faces.el.ELContextImpl;
 import com.sun.faces.renderkit.RenderKitUtils;
@@ -493,6 +493,7 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public void release() {
         BeanManager beanManager = Util.getCdiBeanManager(this);
+        ViewScopeManager.releaseViewMaps(this);
 
         released = true;
         if (externalContext != null) {

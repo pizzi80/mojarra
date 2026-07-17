@@ -68,8 +68,13 @@ public final class LoadBundleHandler extends TagHandlerImpl {
      */
     @Override
     public void apply(FaceletContext ctx, UIComponent parent) throws IOException {
-        final UIViewRoot root = ComponentSupport.getViewRoot(ctx, parent);
-        final ResourceBundle bundle;
+        if (!basename.isLiteral()) {
+            // A non-literal basename is re-evaluated per request, so the view must be re-applied on every (re)build
+            // instead of skipped (see refreshTransientBuildOnPSS) to re-resolve the bundle under var.
+            markDynamicTransientBuild(ctx);
+        }
+        UIViewRoot root = ComponentSupport.getViewRoot(ctx, parent);
+        ResourceBundle bundle = null;
         try {
             String name = basename.getValue(ctx);
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
@@ -90,7 +95,7 @@ public final class LoadBundleHandler extends TagHandlerImpl {
 
     private final static class ResourceBundleMap implements Map<String,Object> {
 
-        private static final String MISSING_RESOURCE_PREFIX = "???";
+        private static final String MISSING_RESOURCE_PLACEHOLDER = "???";
 
         private final ResourceBundle bundle;
 
@@ -135,7 +140,7 @@ public final class LoadBundleHandler extends TagHandlerImpl {
             try {
                 return bundle.getObject((String) key);
             } catch (MissingResourceException mre) {
-                return MISSING_RESOURCE_PREFIX + key + MISSING_RESOURCE_PREFIX;
+                return MISSING_RESOURCE_PLACEHOLDER + key + MISSING_RESOURCE_PLACEHOLDER;
             }
         }
 

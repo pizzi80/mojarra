@@ -37,7 +37,9 @@ import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQuery;
+import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
@@ -384,14 +386,11 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
                 return null;
             }
 
-            // Identify the Locale to use for parsing
-            Locale locale = getLocale(context);
-
-            // Create and configure the parser to be used
-            parser = getDateFormat(locale, true);
-            if (timeZone != null) {
-                parser.setTimeZone(timeZone);
-            }
+            // Create and configure the parser to be used, reused per FacesContext across equal configurations (see
+            // getCachedFormatter). Unlike the formatter it is built with forParsing=true, so it is cached under a
+            // distinct key: for the java.time local/offset/zoned types the parser normalizes fixed-width whitespace,
+            // which the formatter must not.
+            parser = getCachedFormatter(context, true);
 
             // Perform the requested parsing
             returnValue = parser.parse(value);
@@ -496,14 +495,10 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
                 return (String) value;
             }
 
-            // Identify the Locale to use for formatting
-            Locale locale = getLocale(context);
-
-            // Create and configure the formatter to be used
-            FormatWrapper formatter = getDateFormat(locale, false);
-            if (null != timeZone) {
-                formatter.setTimeZone(timeZone);
-            }
+            // Create and configure the formatter to be used, reused per FacesContext across equal configurations (see
+            // getCachedFormatter): it is a function of this converter's configuration only, and rebuilding it per value
+            // dominated allocation on conversion-heavy views (e.g. a per-row f:convertDateTime unrolled by c:forEach).
+            FormatWrapper formatter = getCachedFormatter(context, false);
 
             // Perform the requested formatting
             return formatter.format(value);
@@ -529,9 +524,108 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
      *                   {@code false} if it will be used for formatting output
      * @throws ConverterException if no instance can be created
      */
-    private FormatWrapper getDateFormat(Locale locale, boolean forParsing) {
+    private static final String FORMATTER_CACHE_KEY = "jakarta.faces.convert.DateTimeConverter.formatters";
 
-        // PENDING(craigmcc) - Implement pooling if needed for performance?
+    /**
+     * Upper bound on the per-FacesContext formatter cache, kept as an LRU so a view whose converters are all
+     * differently configured cannot retain an unbounded number of formatters for the request, while a recurring working
+     * set stays cached. Normal views use only a handful of configurations.
+     */
+    private static final int FORMATTER_CACHE_LIMIT = 64;
+
+    /** Bounded, access-ordered (LRU) formatter cache stored per {@link FacesContext}. */
+    private static final class FormatterCache extends LinkedHashMap<String, FormatWrapper> {
+
+        private static final long serialVersionUID = 1L;
+
+        FormatterCache() {
+            super(16, 0.75f, true);
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, FormatWrapper> eldest) {
+            return size() > FORMATTER_CACHE_LIMIT;
+        }
+    }
+
+    /**
+     * Return the fully configured formatter for {@link #getAsString} ({@code forParsing == false}) or {@link #getAsObject}
+     * ({@code forParsing == true}). The java.time-backed formatters (the {@code localDate}/{@code localDateTime}/{@code
+     * localTime}/{@code offsetTime}/{@code offsetDateTime}/{@code zonedDateTime} types) are immutable and thread-safe, so
+     * they are cached once per application across requests (see {@link #getApplicationCachedFormatter}); the legacy
+     * {@link DateFormat}-backed formatters are mutable, so they stay in a per-{@link FacesContext} cache (see
+     * {@link #getRequestCachedFormatter}).
+     */
+    private FormatWrapper getCachedFormatter(FacesContext context, boolean forParsing) {
+        Locale locale = getLocale(context);
+        if (type != null && JAVA_TIME_TYPES.containsKey(type)) {
+            return getApplicationCachedFormatter(context, locale, forParsing);
+        }
+        return getRequestCachedFormatter(context, locale, forParsing);
+    }
+
+    /**
+     * Resolve an immutable java.time formatter from a cache shared across the whole application. {@link DateTimeFormatter}
+     * is immutable and thread-safe and, unlike the {@link DateFormat} path, ignores {@link #timeZone} (the offset/zoned
+     * types carry their zone in the parsed text), so a single instance is safely reused by every request and converter -
+     * a flat form's one date field no longer rebuilds its formatter each request. Bounded, so an application using many
+     * distinct configurations cannot retain formatters without limit.
+     */
+    private FormatWrapper getApplicationCachedFormatter(FacesContext context, Locale locale, boolean forParsing) {
+        Map<String, Object> applicationMap = context.getExternalContext().getApplicationMap();
+        @SuppressWarnings("unchecked")
+        Map<String, FormatWrapper> cache = (Map<String, FormatWrapper>) applicationMap.get(FORMATTER_CACHE_KEY);
+        if (cache == null) {
+            // Access-synchronized: the access-ordered LRU is structurally mutated on get, and this cache is shared across
+            // request threads. A concurrent first use may build two maps and lose one put; harmless - the losing entries
+            // are simply rebuilt.
+            cache = Collections.synchronizedMap(new FormatterCache());
+            applicationMap.put(FORMATTER_CACHE_KEY, cache);
+        }
+        String key = formatterKey(locale, forParsing);
+        FormatWrapper formatter = cache.get(key);
+        if (formatter == null) {
+            formatter = getDateFormat(locale, forParsing);
+            cache.put(key, formatter);
+        }
+        return formatter;
+    }
+
+    /**
+     * Resolve a mutable {@link DateFormat}-backed formatter from the per-{@link FacesContext} cache, keyed by this
+     * converter's format-determining configuration plus {@code forParsing}, building it once per distinct configuration.
+     * Two converters with equal configuration share one instance within a FacesContext - single-threaded, so sequential
+     * {@code format}/{@code parse} calls are safe - so an unrolled view (a per-row {@code f:convertDateTime} multiplied by
+     * {@code c:forEach}) builds the formatter once rather than per row, even though each row has its own converter instance.
+     */
+    private FormatWrapper getRequestCachedFormatter(FacesContext context, Locale locale, boolean forParsing) {
+        Map<Object, Object> attributes = context.getAttributes();
+        @SuppressWarnings("unchecked")
+        Map<String, FormatWrapper> cache = (Map<String, FormatWrapper>) attributes.get(FORMATTER_CACHE_KEY);
+        if (cache == null) {
+            cache = new FormatterCache();
+            attributes.put(FORMATTER_CACHE_KEY, cache);
+        }
+        String key = formatterKey(locale, forParsing);
+        FormatWrapper formatter = cache.get(key);
+        if (formatter == null) {
+            formatter = getDateFormat(locale, forParsing);
+            if (timeZone != null) {
+                formatter.setTimeZone(timeZone);
+            }
+            cache.put(key, formatter);
+        }
+        return formatter;
+    }
+
+    /** Key over every property {@link #getCachedFormatter} reads to build the formatter. */
+    private String formatterKey(Locale locale, boolean forParsing) {
+        return new StringBuilder(48).append(pattern).append('|').append(type).append('|').append(dateStyle).append('|')
+                .append(timeStyle).append('|').append(locale).append('|')
+                .append(timeZone == null ? null : timeZone.getID()).append('|').append(forParsing).toString();
+    }
+
+    private FormatWrapper getDateFormat(Locale locale, boolean forParsing) {
 
         if (pattern == null && type == null) {
             throw new IllegalArgumentException("Either pattern or type must" + " be specified.");
@@ -654,8 +748,27 @@ public class DateTimeConverter implements Converter, PartialStateHolder {
     }
 
     private static String normalizeWhitespace(CharSequence text) {
+        if (!mayContainFixedOrZeroWidthWhitespace(text)) {
+            return text.toString();
+        }
         String normalized = FIXED_WIDTH_WHITESPACE.matcher(text).replaceAll(" ");
         return ZERO_WIDTH_WHITESPACE.matcher(normalized).replaceAll("");
+    }
+
+    /**
+     * Fast pre-check for {@link #normalizeWhitespace}: every code point either {@link #FIXED_WIDTH_WHITESPACE} or
+     * {@link #ZERO_WIDTH_WHITESPACE} can match is at or above {@code U+00A0}, so text whose characters are all below that
+     * (all ASCII input, e.g. {@code "Jul 8, 2026"}) cannot match either and needs no normalization. Skips the two
+     * {@link java.util.regex.Matcher} allocations plus the regex scan on the hot per-value parse path. Keep the lower
+     * bound in sync should either pattern ever gain a lower code point.
+     */
+    private static boolean mayContainFixedOrZeroWidthWhitespace(CharSequence text) {
+        for (int i = 0, length = text.length(); i < length; i++) {
+            if (text.charAt(i) >= '\u00a0') {
+                return true;
+            }
+        }
+        return false;
     }
 
    private static FormatStyle getFormatStyle(String name) {

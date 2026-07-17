@@ -125,27 +125,40 @@ class PerfBenchIT extends BaseIT {
             Map.entry("table-readonly", "table-readonly.xhtml"),
             Map.entry("repeat-readonly", "repeat-readonly.xhtml"),
             Map.entry("composite-readonly", "composite-readonly.xhtml"),
+            Map.entry("foreach-readonly", "foreach-readonly.xhtml"),
             Map.entry("viewparam-get", "viewparam-get.xhtml?id=42")));
 
-    /** Full (non-ajax) form postbacks. */
+    /** Full (non-ajax) form postbacks. The {@code *-build} scenarios are readonly (no input fields), so their
+     *  postback isolates state restore + encode from any input-processing cost. */
     private static final List<String> POSTBACK = only(List.of(
             "form-inputs",
+            "form-invalid",
             "table-inputs",
             "repeat-inputs",
             "composite-inputs",
+            "foreach-inputs",
             "table-nested",
             "repeat-nested",
             "composite-nested",
-            "composite-unrolled",
-            "view-unrolled"));
+            "foreach-nested",
+            "table-build",
+            "repeat-build",
+            "composite-build",
+            "foreach-build"));
 
     /** Ajax-partial postbacks. Same body fields as their non-ajax twin plus the
      *  {@code jakarta.faces.partial.*} markers and the {@code Faces-Request} header. */
     private static final List<String> POSTBACK_AJAX = only(List.of(
             "form-inputs-ajax",
+            "form-invalid-ajax",
             "table-inputs-ajax",
             "repeat-inputs-ajax",
-            "view-unrolled-ajax",
+            "composite-inputs-ajax",
+            "foreach-inputs-ajax",
+            "table-nested-ajax",
+            "repeat-nested-ajax",
+            "composite-nested-ajax",
+            "foreach-nested-ajax",
             "dynamic-form-ajax",
             "dynamic-toggle-ajax"));
 
@@ -159,6 +172,14 @@ class PerfBenchIT extends BaseIT {
     private static final Pattern SELECT_TAG = Pattern.compile("<select\\b([^>]*)>(.*?)</select>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     private static final Pattern OPTION_TAG = Pattern.compile("<option\\b([^>]*)>", Pattern.CASE_INSENSITIVE);
     private static final Pattern ATTR = Pattern.compile("\\b(\\w+)\\s*=\\s*\"([^\"]*)\"");
+    private static final Pattern FORM_ID = Pattern.compile("<form\\b[^>]*\\bid=\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
+    /**
+     * The rendered ajax-behavior call, impl-agnostic: Mojarra emits {@code mojarra.ab(this,event,<event>,<execute>,
+     * <render>)} and MyFaces {@code myfaces.ab(this,event,<event>,<execute>,<render>,{})}. Same arg positions; an
+     * arg is a quoted string, {@code 0} (Mojarra "no execute") or {@code ''} (MyFaces "no execute").
+     */
+    private static final Pattern AJAX_AB = Pattern.compile(
+            "(?:mojarra|myfaces)\\.ab\\(this,\\s*event,\\s*('[^']*'|0)\\s*,\\s*('[^']*'|0)\\s*,\\s*('[^']*'|0)\\s*[,)]");
 
     private static int totalScenarios() {
         return GET_ONLY.size() + POSTBACK.size() + POSTBACK_AJAX.size();
@@ -187,6 +208,10 @@ class PerfBenchIT extends BaseIT {
             ajaxForms.put(scenario, parseForm(html, scenario + ".xhtml", true));
         }
 
+        // The unhappy path, for both the full-postback and ajax invalid forms (see injectInvalidValues).
+        injectInvalidValues(forms.get("form-invalid"));
+        injectInvalidValues(ajaxForms.get("form-invalid-ajax"));
+
         get(client, "perf-stats?reset=1");
 
         // warmup: lets JIT settle and primes any caches the perf branches add
@@ -205,15 +230,26 @@ class PerfBenchIT extends BaseIT {
         get(client, "perf-stats?reset=1");
 
         long startWall = System.nanoTime();
-        for (int i = 0; i < RUNS; i++) {
-            for (String url : GET_ONLY.values()) {
+        // Block-wise measurement: run each scenario RUNS times back-to-back rather than round-robin, so its
+        // code+data stay cache-resident within its block. This isolates intrinsic per-phase cost from the
+        // cross-scenario cache interleaving. Warmup above stays round-robin so shared lifecycle code is still compiled against
+        // every scenario's types (realistic mixed JIT state). Each form's ViewState went stale during the prior
+        // block, so re-GET a live ViewState at the start of each block before posting (never submit an expired one).
+        for (String url : GET_ONLY.values()) {
+            for (int i = 0; i < RUNS; i++) {
                 get(client, url);
             }
-            for (FormSpec form : forms.values()) {
-                postAndRefresh(client, form);
+        }
+        for (Map.Entry<String, FormSpec> entry : forms.entrySet()) {
+            refreshViewState(client, entry.getKey(), entry.getValue());
+            for (int i = 0; i < RUNS; i++) {
+                postAndRefresh(client, entry.getValue());
             }
-            for (FormSpec form : ajaxForms.values()) {
-                ajaxPostAndRefresh(client, form);
+        }
+        for (Map.Entry<String, FormSpec> entry : ajaxForms.entrySet()) {
+            refreshViewState(client, entry.getKey(), entry.getValue());
+            for (int i = 0; i < RUNS; i++) {
+                ajaxPostAndRefresh(client, entry.getValue());
             }
         }
         long elapsedMs = (System.nanoTime() - startWall) / 1_000_000L;
@@ -247,6 +283,22 @@ class PerfBenchIT extends BaseIT {
         }
     }
 
+    /**
+     * The "unhappy path": replace the happy-path field values with ones that fail conversion/validation, so every run
+     * exercises FacesMessage creation, UIInput invalid-marking, the skipped UPDATE_MODEL/INVOKE phases, redisplay of
+     * the submitted (rejected) value and h:messages rendering with content. "forbidden" trips the CDI prohibited-words
+     * validator; the non-numeric quantity/price trip convertNumber. Injected once; reposted verbatim each run.
+     */
+    private static void injectInvalidValues(FormSpec form) {
+        if (form != null) {
+            form.fields.replaceAll((name, value) ->
+                      name.endsWith(":name")     ? "forbidden"
+                    : name.endsWith(":quantity") ? "not-a-number"
+                    : name.endsWith(":price")    ? "xyz"
+                    : value);
+        }
+    }
+
     private static long scenarioCount(String stats, String scenario, String phase) {
         Pattern p = Pattern.compile("^" + Pattern.quote(scenario) + "\\s+" + Pattern.quote(phase) + "\\s+(\\d+)", Pattern.MULTILINE);
         Matcher m = p.matcher(stats);
@@ -256,6 +308,20 @@ class PerfBenchIT extends BaseIT {
     private void postAndRefresh(HttpClient client, FormSpec form) throws IOException, InterruptedException {
         String body = post(client, form);
         Matcher vs = VIEW_STATE.matcher(body);
+        if (vs.find()) {
+            form.fields.put("jakarta.faces.ViewState", vs.group(1) != null ? vs.group(1) : vs.group(2));
+        }
+    }
+
+    /**
+     * Re-GET the scenario page to install a live ViewState into the form: in the block-wise measurement loop a
+     * form's stored ViewState goes stale (and, under server-side state saving, gets evicted) while the previous
+     * scenario's block runs, so the block's first post would otherwise submit an expired ViewState. Only the
+     * ViewState is replaced; the form's input values (including injected invalids) are left intact.
+     */
+    private void refreshViewState(HttpClient client, String scenario, FormSpec form) throws IOException, InterruptedException {
+        String html = get(client, scenario + ".xhtml");
+        Matcher vs = VIEW_STATE.matcher(html);
         if (vs.find()) {
             form.fields.put("jakarta.faces.ViewState", vs.group(1) != null ? vs.group(1) : vs.group(2));
         }
@@ -331,6 +397,7 @@ class PerfBenchIT extends BaseIT {
         Matcher m = INPUT_TAG.matcher(html);
         boolean submitSeen = false;
         String submitName = null;
+        String submitAttrs = null;
         while (m.find()) {
             String attrs = m.group(1);
             String name = attribute(attrs, "name");
@@ -350,6 +417,7 @@ class PerfBenchIT extends BaseIT {
                     fields.put(name, value == null ? "" : value);
                     submitSeen = true;
                     submitName = name;
+                    submitAttrs = attrs;
                 }
                 continue;
             }
@@ -373,18 +441,80 @@ class PerfBenchIT extends BaseIT {
             fields.put("jakarta.faces.ViewState", v);
         }
         if (ajax && submitName != null) {
-            // Faces partial-ajax markers — what faces.js emits for a commandButton f:ajax submit. The action fires
-            // via the AjaxBehavior decode, which requires jakarta.faces.behavior.event AND the source clientId to be
-            // present in the execute list (faces.js prepends it). A bare "@form" execute does not decode the
-            // behavior, so without these the action method is never invoked.
+            // Faces partial-ajax markers — exactly what faces.js emits for this commandButton's f:ajax submit.
+            // The markers (execute/render targets, behavior event) are read from the rendered (mojarra|myfaces).ab(...)
+            // call so each scenario drives the real execute/render its view declares, on either impl. CRUCIAL:
+            // resolve @form/@this to concrete client ids the way faces.js does — the server only treats @all as a
+            // keyword, so a literal @form would findComponent("@form") -> miss -> process/render nothing (silently).
+            // Named targets are already absolute in the rendered call (Faces resolves them at render time).
+            String eventName = "action";
+            String executeRaw = "@form";
+            String renderRaw = "@form";
+            String onclick = submitAttrs == null ? null : attribute(submitAttrs, "onclick");
+            if (onclick != null) {
+                Matcher ab = AJAX_AB.matcher(onclick);
+                if (ab.find()) {
+                    eventName = unquote(ab.group(1));
+                    executeRaw = ab.group(2);
+                    renderRaw = ab.group(3);
+                }
+            }
+            Matcher fm = FORM_ID.matcher(html);
+            String formId = fm.find() ? fm.group(1) : null;
+            String execute = resolveAjaxTargets(executeRaw, submitName, formId);
+            // faces.js always executes the source so its behavior decodes; ensure it is present.
+            if (execute.isEmpty()) {
+                execute = submitName;
+            } else if (!(" " + execute + " ").contains(" " + submitName + " ")) {
+                execute = submitName + " " + execute;
+            }
             fields.put("jakarta.faces.partial.ajax", "true");
             fields.put("jakarta.faces.source", submitName);
-            fields.put("jakarta.faces.behavior.event", "action");
+            fields.put("jakarta.faces.behavior.event", eventName);
             fields.put("jakarta.faces.partial.event", "click");
-            fields.put("jakarta.faces.partial.execute", submitName + " @form");
-            fields.put("jakarta.faces.partial.render", "@form");
+            fields.put("jakarta.faces.partial.execute", execute);
+            fields.put("jakarta.faces.partial.render", resolveAjaxTargets(renderRaw, submitName, formId));
         }
         return new FormSpec(action, fields);
+    }
+
+    /**
+     * Resolve a faces.js execute/render argument to the concrete client ids the server expects, mirroring
+     * faces.js: {@code @form}/{@code @this} become the form/source client id, {@code @all}/{@code @none} stay
+     * keywords, {@code 0} (mojarra.ab's "default, i.e. @this only") yields nothing extra, and any other token is
+     * already an absolute client id (Faces resolves named targets at render time). Returns a space-separated list.
+     */
+    private static String resolveAjaxTargets(String raw, String source, String formId) {
+        String value = unquote(raw);
+        if (value.isEmpty() || "0".equals(value)) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder();
+        for (String token : value.split("\\s+")) {
+            String resolved = switch (token) {
+                case "@form" -> formId;
+                case "@this" -> source;
+                default -> token; // @all/@none keyword, or an already-absolute client id
+            };
+            if (resolved != null && !resolved.isEmpty()) {
+                if (out.length() > 0) {
+                    out.append(' ');
+                }
+                out.append(resolved);
+            }
+        }
+        return out.toString();
+    }
+
+    private static String unquote(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() >= 2 && trimmed.startsWith("'") && trimmed.endsWith("'")) {
+            return trimmed.substring(1, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     private static String attribute(String attrs, String name) {

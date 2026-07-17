@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import jakarta.faces.component.UIComponent;
+import jakarta.faces.component.html.HtmlSelectBooleanCheckbox;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
 import jakarta.faces.convert.ConverterException;
@@ -40,6 +41,14 @@ public class CheckboxRenderer extends HtmlBasicInputRenderer {
     private static final Attribute[] ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.SELECTBOOLEANCHECKBOX);
 
     // ---------------------------------------------------------- Public Methods
+
+    @Override
+    protected boolean isDisabledOrReadonly(UIComponent component) {
+        if (component instanceof HtmlSelectBooleanCheckbox checkbox) {
+            return checkbox.isDisabled() || checkbox.isReadonly();
+        }
+        return super.isDisabledOrReadonly(component);
+    }
 
     @Override
     public void decode(FacesContext context, UIComponent component) {
@@ -88,7 +97,6 @@ public class CheckboxRenderer extends HtmlBasicInputRenderer {
 
         ResponseWriter writer = context.getResponseWriter();
         assert writer != null;
-        String styleClass;
 
         writer.startElement("input", component);
         writeIdAttributeIfNecessary(context, writer, component);
@@ -98,9 +106,7 @@ public class CheckboxRenderer extends HtmlBasicInputRenderer {
         if (Boolean.parseBoolean(currentValue)) {
             writer.writeAttribute("checked", Boolean.TRUE, "value");
         }
-        if (null != (styleClass = (String) component.getAttributes().get("styleClass"))) {
-            writer.writeAttribute("class", styleClass, "styleClass");
-        }
+        writeStyleClassAttributeIfNecessary(writer, component);
         RenderKitUtils.renderPassThruAttributes(context, writer, component, null, false, ATTRIBUTES, "click", "valueChange");
         RenderKitUtils.renderXHTMLStyleBooleanAttributes(writer, component);
 

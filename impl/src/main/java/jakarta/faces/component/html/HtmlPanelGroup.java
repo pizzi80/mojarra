@@ -407,6 +407,7 @@ public class HtmlPanelGroup extends UIPanel implements ClientBehaviorHolder {
      */
     public void setStyleClass(java.lang.String styleClass) {
         getStateHelper().put(PropertyKeys.styleClass, styleClass);
+        handleAttribute(this, "styleClass", styleClass);
     }
 
     private static final Collection<String> EVENT_NAMES = List.of("click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");

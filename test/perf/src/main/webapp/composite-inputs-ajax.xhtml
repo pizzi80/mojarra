@@ -18,18 +18,24 @@
 -->
 <html lang="#{facesContext.viewRoot.locale.language}"
     xmlns:h="jakarta.faces.html"
-    xmlns:c="jakarta.tags.core"
+    xmlns:f="jakarta.faces.core"
+    xmlns:ui="jakarta.faces.facelets"
     xmlns:cc="jakarta.faces.composite/cc"
 >
     <h:head>
-        <title>composite-unrolled</title>
+        <title>composite-inputs-ajax</title>
     </h:head>
     <h:body>
         <h:form id="form">
-            <c:forEach var="i" begin="1" end="85">
-                <cc:cell value="#{i}"/>
-            </c:forEach>
-            <h:commandButton id="submit" value="Submit" />
+            <h:panelGroup id="rows" layout="block">
+                <ui:repeat value="#{dataBean.inputRows}" var="row">
+                    <cc:inputs row="#{row}"/>
+                </ui:repeat>
+            </h:panelGroup>
+            <h:commandButton id="submit" value="Save" action="#{dataBean.save}">
+                <f:ajax execute="@form" render="rows messages"/>
+            </h:commandButton>
+            <h:messages id="messages" globalOnly="false"/>
         </h:form>
     </h:body>
 </html>

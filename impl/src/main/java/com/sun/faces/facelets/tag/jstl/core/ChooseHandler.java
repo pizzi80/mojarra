@@ -60,15 +60,16 @@ public final class ChooseHandler extends TagHandlerImpl {
     }
 
     @Override
-    public void apply(FaceletContext context, UIComponent parent) throws IOException {
-        for (ChooseWhenHandler chooseWhenHandler : when) {
-            if (chooseWhenHandler.isTestTrue(context)) {
-                chooseWhenHandler.apply(context, parent);
+    public void apply(FaceletContext ctx, UIComponent parent) throws IOException {
+        markDynamicTransientBuild(ctx);
+        for (int i = 0; i < when.length; i++) {
+            if (when[i].isTestTrue(ctx)) {
+                when[i].apply(ctx, parent);
                 return;
             }
         }
         if (otherwise != null) {
-            otherwise.apply(context, parent);
+            otherwise.apply(ctx, parent);
         }
     }
 

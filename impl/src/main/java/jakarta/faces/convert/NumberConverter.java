@@ -23,7 +23,9 @@ import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Currency;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import jakarta.faces.component.PartialStateHolder;
@@ -494,8 +496,9 @@ public class NumberConverter implements Converter, PartialStateHolder {
             // Identify the Locale to use for parsing
             Locale locale = getLocale(context);
 
-            // Create and configure the parser to be used
-            parser = getNumberFormat(locale);
+            // Create and configure the parser to be used. The base parser is cached per (pattern, type, locale) and
+            // cloned here so the per-value/per-component configuration below mutates only this request-local copy.
+            parser = (NumberFormat) getCachedBaseParser(context, locale).clone();
             if (pattern != null && pattern.length() != 0 || "currency".equals(type)) {
                 configureCurrency(parser);
             }
@@ -614,15 +617,11 @@ public class NumberConverter implements Converter, PartialStateHolder {
                 return (String) value;
             }
 
-            // Identify the Locale to use for formatting
-            Locale locale = getLocale(context);
-
-            // Create and configure the formatter to be used
-            NumberFormat formatter = getNumberFormat(locale);
-            if (pattern != null && pattern.length() != 0 || "currency".equals(type)) {
-                configureCurrency(formatter);
-            }
-            configureFormatter(formatter);
+            // Create and configure the formatter to be used, reused per FacesContext across equal configurations (see
+            // getCachedFormatter): the formatter is a function of this converter's configuration only, and rebuilding
+            // it per value - a DecimalFormat plus a locale-data DecimalFormatSymbols - dominated allocation on
+            // conversion-heavy views (e.g. a per-row f:convertNumber unrolled by c:forEach).
+            NumberFormat formatter = getCachedFormatter(context);
 
             // Perform the requested formatting
             return formatter.format(value);
@@ -766,13 +765,105 @@ public class NumberConverter implements Converter, PartialStateHolder {
      * @param locale The <code>Locale</code> used to select formatting and parsing conventions
      * @throws ConverterException if no instance can be created
      */
+    private static final String FORMATTER_CACHE_KEY = "jakarta.faces.convert.NumberConverter.formatters";
+
+    private static final String PARSER_CACHE_KEY = "jakarta.faces.convert.NumberConverter.parsers";
+
+    /**
+     * Upper bound on the per-FacesContext formatter cache, kept as an LRU so a view whose converters are all
+     * differently configured (e.g. a per-row {@code pattern}) cannot retain an unbounded number of formatters for the
+     * request, while a recurring working set stays cached. Normal views use only a handful of configurations.
+     */
+    private static final int FORMATTER_CACHE_LIMIT = 64;
+
+    /** Bounded, access-ordered (LRU) formatter cache stored per {@link FacesContext}. */
+    private static final class FormatterCache extends LinkedHashMap<String, NumberFormat> {
+
+        private static final long serialVersionUID = 1L;
+
+        FormatterCache() {
+            super(16, 0.75f, true);
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, NumberFormat> eldest) {
+            return size() > FORMATTER_CACHE_LIMIT;
+        }
+    }
+
+    /**
+     * Return the fully configured formatter for {@link #getAsString}, cached in the FacesContext attributes keyed by
+     * this converter's format-determining configuration. The formatter is a function of that configuration only, so two
+     * converters with equal configuration share one instance within a FacesContext - single-threaded, so sequential
+     * {@code format} calls are safe - turning a per-value {@code DecimalFormat} + locale-data
+     * {@code DecimalFormatSymbols} rebuild into a single build per configuration.
+     */
+    private NumberFormat getCachedFormatter(FacesContext context) throws Exception {
+        Locale locale = getLocale(context);
+        Map<String, NumberFormat> cache = formatterCache(context, FORMATTER_CACHE_KEY);
+        String key = formatterKey(locale);
+        NumberFormat formatter = cache.get(key);
+        if (formatter == null) {
+            formatter = getNumberFormat(locale);
+            if (pattern != null && pattern.length() != 0 || "currency".equals(type)) {
+                configureCurrency(formatter);
+            }
+            configureFormatter(formatter);
+            cache.put(key, formatter);
+        }
+        return formatter;
+    }
+
+    /**
+     * Return the base (unconfigured) parser for {@link #getAsObject}, cached in the FacesContext attributes keyed by the
+     * inputs to {@link #getNumberFormat} ({@code pattern}, {@code type}, {@code locale}). Building that base drags in
+     * locale data (a fresh {@link DecimalFormatSymbols}), so a per-row {@code f:convertNumber} multiplied by a table's
+     * rows otherwise rebuilds it for every parsed cell. The caller {@link Object#clone() clones} the shared base before
+     * applying its per-value, per-component configuration ({@code parseIntegerOnly}, {@code parseBigDecimal}, fixed-width
+     * whitespace normalization), so the cached instance itself is never mutated and stays safe to share within the
+     * (single-threaded) request.
+     */
+    private NumberFormat getCachedBaseParser(FacesContext context, Locale locale) {
+        Map<String, NumberFormat> cache = formatterCache(context, PARSER_CACHE_KEY);
+        String key = parserKey(locale);
+        NumberFormat parser = cache.get(key);
+        if (parser == null) {
+            parser = getNumberFormat(locale);
+            cache.put(key, parser);
+        }
+        return parser;
+    }
+
+    /** The bounded per-{@link FacesContext} formatter/parser cache stored under {@code cacheKey}, created on first use. */
+    private static Map<String, NumberFormat> formatterCache(FacesContext context, String cacheKey) {
+        Map<Object, Object> attributes = context.getAttributes();
+        @SuppressWarnings("unchecked")
+        Map<String, NumberFormat> cache = (Map<String, NumberFormat>) attributes.get(cacheKey);
+        if (cache == null) {
+            cache = new FormatterCache();
+            attributes.put(cacheKey, cache);
+        }
+        return cache;
+    }
+
+    /** Key over every property {@link #getNumberFormat} reads to build the base parser. */
+    private String parserKey(Locale locale) {
+        return new StringBuilder(32).append(pattern).append('|').append(type).append('|').append(locale).toString();
+    }
+
+    /** Key over every property {@link #getCachedFormatter} reads to build the formatter. */
+    private String formatterKey(Locale locale) {
+        return new StringBuilder(64).append(pattern).append('|').append(type).append('|').append(locale).append('|')
+                .append(currencyCode).append('|').append(currencySymbol).append('|').append(groupingUsed).append('|')
+                .append(minIntegerDigits).append('|').append(maxIntegerDigits).append('|').append(minFractionDigits)
+                .append('|').append(maxFractionDigits).toString();
+    }
+
     private NumberFormat getNumberFormat(Locale locale) {
 
         if (pattern == null && type == null) {
             throw new IllegalArgumentException("Either pattern or type must" + " be specified.");
         }
-
-        // PENDING(craigmcc) - Implement pooling if needed for performance?
 
         // If pattern is specified, type is ignored
         if (pattern != null) {

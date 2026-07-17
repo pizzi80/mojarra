@@ -101,6 +101,10 @@ public final class CompositionHandler extends TagHandlerImpl implements Template
 
         if (template != null) {
 
+            if (!template.isLiteral()) {
+                markDynamicTransientBuild(ctx);
+            }
+
             FacesContext facesContext = ctx.getFacesContext();
             Integer compositionCount = (Integer) facesContext.getAttributes().get(FACES_UI_COMPOSITION_COUNT);
             if (compositionCount == null) {

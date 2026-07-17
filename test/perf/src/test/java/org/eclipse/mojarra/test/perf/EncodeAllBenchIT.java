@@ -32,16 +32,16 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.openqa.selenium.WebDriver;
 
 /**
- * Drives {@link RenderResponseBenchServlet} so a JFR recording captures only the encode walk (no
+ * Drives {@link EncodeAllBenchServlet} so a JFR recording captures only the encode walk (no
  * buildView, no state save/restore). Run on Mojarra and on MyFaces (via the {@code -*-myfaces}
  * profiles) and diff the recordings to see where Mojarra's render does more work.
  *
  * <p>Gated behind {@code -Drender=true}. Iteration counts reuse {@code -Dperf.warmup}/{@code
  * -Dperf.runs} (defaults 50/2000); {@code -Dperf.scenarios=<one>} selects the view (default
- * composite-unrolled).
+ * composite-build).
  */
 @EnabledIfSystemProperty(named = "render", matches = "true")
-class RenderResponseBenchIT extends BaseIT {
+class EncodeAllBenchIT extends BaseIT {
 
     private static final int WARMUP = getInteger("perf.warmup", 50);
     private static final int RUNS = getInteger("perf.runs", 2000);
@@ -61,9 +61,9 @@ class RenderResponseBenchIT extends BaseIT {
 
     @Test
     void renderResponse() throws Exception {
-        String scenario = System.getProperty("perf.scenarios", "composite-unrolled").trim();
+        String scenario = System.getProperty("perf.scenarios", "composite-build").trim();
         if (scenario.isEmpty() || scenario.contains(",")) {
-            scenario = "composite-unrolled";
+            scenario = "composite-build";
         }
 
         HttpClient client = HttpClient.newBuilder()
@@ -71,11 +71,11 @@ class RenderResponseBenchIT extends BaseIT {
                 .connectTimeout(ofSeconds(10))
                 .build();
 
-        String url = baseURL + "renderresponse-bench?scenario=" + scenario + "&warmup=" + WARMUP + "&runs=" + RUNS;
+        String url = baseURL + "encodeall-bench?scenario=" + scenario + "&warmup=" + WARMUP + "&runs=" + RUNS;
         HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(ofSeconds(600)).GET().build();
         HttpResponse<String> response = client.send(request, ofString(UTF_8));
 
-        assertEquals(200, response.statusCode(), "renderresponse-bench");
+        assertEquals(200, response.statusCode(), "encodeall-bench");
         System.out.println();
         System.out.println(response.body());
     }

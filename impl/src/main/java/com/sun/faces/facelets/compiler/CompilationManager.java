@@ -17,8 +17,8 @@
 package com.sun.faces.facelets.compiler;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,7 +62,7 @@ final class CompilationManager {
 
     private final NamespaceManager namespaceManager;
 
-    private final Stack<CompilationUnit> units;
+    private final List<CompilationUnit> units;
 
     private int tagId;
 
@@ -94,8 +94,8 @@ final class CompilationManager {
         finished = false;
 
         // our compilation unit stack
-        units = new Stack<>();
-        units.push(new CompilationUnit());
+        units = new ArrayList<>();
+        units.add(new CompilationUnit());
 
         config = WebConfiguration.getInstance();
 
@@ -228,7 +228,7 @@ final class CompilationManager {
             CompilationUnit viewRootUnit = getViewRootUnitFromStack(units);
             units.clear();
             NamespaceUnit nsUnit = namespaceManager.toNamespaceUnit(tagLibrary);
-            units.push(nsUnit);
+            units.add(nsUnit);
             if (viewRootUnit != null) {
                 viewRootUnit.removeChildren();
                 currentUnit().addChild(viewRootUnit);
@@ -251,7 +251,7 @@ final class CompilationManager {
             // Clear the parent tags
             units.clear();
             NamespaceUnit nsUnit = namespaceManager.toNamespaceUnit(tagLibrary);
-            units.push(nsUnit);
+            units.add(nsUnit);
             currentUnit().addChild(iface);
             startUnit(new ImplementationUnit(tagLibrary, qname[0], qname[1], t, nextTagId()));
             if (log.isLoggable(Level.FINE)) {
@@ -259,7 +259,7 @@ final class CompilationManager {
             }
 
         } else if (isRemove(qname[0], qname[1])) {
-            units.push(new RemoveUnit());
+            units.add(new RemoveUnit());
         } else if (tagLibrary.containsTagHandler(qname[0], qname[1])) {
             if (isInterface(qname[0], qname[1])) {
                 InterfaceUnit iface = new InterfaceUnit(tagLibrary, qname[0], qname[1], t, nextTagId());
@@ -347,13 +347,13 @@ final class CompilationManager {
 
     private CompilationUnit currentUnit() {
         if (!units.isEmpty()) {
-            return units.peek();
+            return units.get(units.size() - 1);
         }
         return null;
     }
 
     private void finishUnit() {
-        CompilationUnit unit = units.pop();
+        CompilationUnit unit = units.remove(units.size() - 1);
         unit.finishNotify(this);
 
         if (log.isLoggable(Level.FINE)) {
@@ -379,7 +379,7 @@ final class CompilationManager {
         }
 
         currentUnit().addChild(unit);
-        units.push(unit);
+        units.add(unit);
         unit.startNotify(this);
     }
 
@@ -445,9 +445,9 @@ final class CompilationManager {
             TagAttribute[] oa = tag.getAttributes().getAll();
             TagAttribute[] na = new TagAttribute[oa.length - 1];
             int p = 0;
-            for (TagAttribute tagAttribute : oa) {
-                if (!FACES_JSFC_ATTRIBUTE.equals(tagAttribute.getLocalName())) {
-                    na[p++] = tagAttribute;
+            for (int i = 0; i < oa.length; i++) {
+                if (!FACES_JSFC_ATTRIBUTE.equals(oa[i].getLocalName())) {
+                    na[p++] = oa[i];
                 }
             }
             return new Tag(tag, new TagAttributesImpl(na));
@@ -470,7 +470,7 @@ final class CompilationManager {
             return tag;
         } else {
             List<TagAttribute> attrList = new ArrayList<>(attr.length);
-            int p;
+            int p = 0;
             for (int i = 0; i < attr.length; i++) {
                 p = 1 << i;
                 if ((p & remove) == p) {
@@ -488,7 +488,7 @@ final class CompilationManager {
      * @param units the compilation units.
      * @return Get the view
      */
-    private static CompilationUnit getViewRootUnitFromStack(Stack<CompilationUnit> units) {
+    private static CompilationUnit getViewRootUnitFromStack(List<CompilationUnit> units) {
         CompilationUnit result = null;
         for (CompilationUnit compilationUnit : units) {
             if (compilationUnit instanceof TagUnit tagUnit) {

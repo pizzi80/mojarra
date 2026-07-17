@@ -200,9 +200,14 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
     private boolean isInView;
     private Map<String, String> resourceBundleMap;
 
-    // It is safe to cache this because components never go from being
-    // composite to non-composite.
-    private transient Boolean isCompositeComponent;
+    // It is safe to cache this because components never go from being composite to non-composite. Event-driven
+    // rather than lazily resolved: the flag is set TRUE when COMPONENT_RESOURCE_KEY is put
+    // (UIComponentBase.AttributesMap) -- the act that makes a component composite -- and re-synced from the
+    // restored attributes map by UIComponentBase.restoreMarkersFromState on full-state restore (full-state saving,
+    // and dynamically-added subtrees restored via a full-state StateHolderSaver under partial state saving).
+    // So the common non-composite component answers isCompositeComponent() straight from the field, without a
+    // getAttributes().containsKey(COMPONENT_RESOURCE_KEY) probe on every EL push/pop during buildView.
+    private transient boolean isCompositeComponent;
 
     /**
      * Track whether we have been pushed as current in order to handle mismatched pushes and pops of Jakarta Expression
@@ -317,10 +322,7 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
             throw new NullPointerException();
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, ValueExpression> map = (Map<String, ValueExpression>) getStateHelper().get(UIComponentBase.PropertyKeys.bindings);
-
-        return map != null ? map.get(name) : null;
+        return bindings != null ? bindings.get(name) : null;
     }
 
     /**
@@ -375,7 +377,13 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
                     getStateHelper().add(PropertyKeysPrivate.attributesThatAreSet, name);
                 }
 
-                getStateHelper().put(UIComponentBase.PropertyKeys.bindings, name, binding);
+                if (bindings == null) {
+                    bindings = new HashMap<>(5);
+                }
+                bindings.put(name, binding);
+                if (initialStateMarked()) {
+                    bindingsModified = true;
+                }
 
             } else {
                 ELContext context = FacesContext.getCurrentInstance().getELContext();
@@ -387,7 +395,12 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
             }
         } else {
             getStateHelper().remove(PropertyKeysPrivate.attributesThatAreSet, name);
-            getStateHelper().remove(UIComponentBase.PropertyKeys.bindings, name);
+            if (bindings != null) {
+                bindings.remove(name);
+                if (initialStateMarked()) {
+                    bindingsModified = true;
+                }
+            }
         }
     }
 
@@ -1434,13 +1447,14 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
 
         if (getRendersChildren()) {
             encodeChildren(context);
-        } else {
-            int childCount = getChildCount();
-            if (childCount > 0) {
-                List<UIComponent> children = getChildren();
-                for (int i = 0; i < childCount; i++) {
-                    children.get(i).encodeAll(context);
-                }
+        } else if (getChildCount() > 0) {
+            // Re-read size() each iteration rather than freezing the count: a child may be appended to this
+            // component while one of its own children is being encoded (e.g. a component that programmatically
+            // adds a sibling during its render), and it must still be encoded. This matches the live semantics
+            // of the children list iterator, which never throws on concurrent append.
+            List<UIComponent> children = getChildren();
+            for (int i = 0; i < children.size(); i++) {
+                children.get(i).encodeAll(context);
             }
         }
 
@@ -1582,12 +1596,21 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
      * @since 2.0
      */
     public static boolean isCompositeComponent(UIComponent component) {
-        Objects.requireNonNull(component);
 
-        if (component.isCompositeComponent == null)
-            component.isCompositeComponent = component.getAttributes().containsKey(Resource.COMPONENT_RESOURCE_KEY);
-
+        if (component == null) {
+            throw new NullPointerException();
+        }
         return component.isCompositeComponent;
+
+    }
+
+    /**
+     * Primes the cached composite-component flag without probing the attributes map. Called by
+     * {@code UIComponentBase.AttributesMap} when {@code COMPONENT_RESOURCE_KEY} is put (which is what makes a
+     * component composite) and by {@code restoreMarkersFromState} on full-state restore. See the field declaration.
+     */
+    void setCompositeComponentFlag(boolean composite) {
+        isCompositeComponent = composite;
     }
 
     /**
@@ -1713,7 +1736,7 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
      * @throws IllegalArgumentException if <code>class</code> is not, and does not implement, {@link FacesListener}
      * @throws NullPointerException if <code>clazz</code> is <code>null</code>
      */
-    protected abstract FacesListener[] getFacesListeners(Class<?> clazz);
+    protected abstract FacesListener[] getFacesListeners(Class clazz);
 
     /**
      * <p>
@@ -1884,7 +1907,13 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
                 valueExpression.setValue(FacesContext.getCurrentInstance().getELContext(), this);
             }
 
-            isCompositeComponent = null;
+            // isCompositeComponent is intentionally NOT re-derived here. It is maintained authoritatively on
+            // every restore path before this PostRestoreState walk runs: AttributesMap.put sets it when
+            // COMPONENT_RESOURCE_KEY is (re)applied by buildView under partial state saving, and
+            // restoreMarkersFromState sets it from the restored attributes map on full-state restore -- including
+            // dynamically-added subtrees, which restore via a full-state StateHolderSaver even under partial state
+            // saving. A per-component reflective getAttributes().containsKey() probe across the full-tree
+            // PostRestoreState walk was pure waste (it never once changed the flag in either state-saving mode).
         }
     }
 
@@ -1996,7 +2025,8 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
 
     // --------------------------------------------------------- Package Private
 
-    static final class ComponentSystemEventListenerAdapter implements ComponentSystemEventListener, SystemEventListener, StateHolder, FacesWrapper<ComponentSystemEventListener> {
+    static final class ComponentSystemEventListenerAdapter
+            implements ComponentSystemEventListener, SystemEventListener, StateHolder, FacesWrapper<ComponentSystemEventListener> {
 
         ComponentSystemEventListener wrapped;
         Class<?> instanceClass;
@@ -2388,11 +2418,28 @@ public abstract class UIComponent implements PartialStateHolder, TransientStateH
         }
     }
 
-    // The set of ValueExpressions for this component, keyed by property
-    // name This collection is lazily instantiated
-    // The set of ValueExpressions for this component, keyed by property
-    // name This collection is lazily instantiated
+    // The set of ValueExpressions for this component, keyed by property name; lazily instantiated.
+    // Field-backs the component's value expressions (replacing the former PropertyKeys.bindings StateHelper
+    // entry) so getValueExpression/setValueExpression skip a per-call StateHelper lookup -- notably the
+    // getValueExpression("binding") probe fired on every component during Restore View. buildView re-applies
+    // the facelet expressions on each restore, so they ride in the partial-state delta only when changed after
+    // markInitialState (see bindingsModified); full state saving persists the whole map.
     @Deprecated
     protected Map<String, ValueExpression> bindings = null;
+
+    /**
+     * {@code true} once a {@link ValueExpression} is set or removed after {@code markInitialState}, so the change
+     * rides in the partial-state delta. Transient: re-derived per request as {@code buildView} rebuilds the tree.
+     * Gates the field-backed {@link #bindings} map's partial-state save (mirrors {@code rendererTypeSet}).
+     */
+    transient boolean bindingsModified;
+
+    /**
+     * {@code true} once a system-event listener is subscribed or unsubscribed after {@code markInitialState}, so the
+     * change rides in the partial-state delta. Listeners established during the view build ({@code @ListenerFor},
+     * {@code f:event}) are re-established by {@code buildView} on restore, so they stay out of the delta. Transient:
+     * re-derived per request as {@code buildView} rebuilds the tree.
+     */
+    transient boolean systemEventListenersModified;
 
 }

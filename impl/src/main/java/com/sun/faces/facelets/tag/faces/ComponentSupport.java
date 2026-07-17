@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -81,6 +82,10 @@ public final class ComponentSupport {
 
     private final static String IMPLICIT_PANEL = "com.sun.faces.facelets.IMPLICIT_PANEL";
 
+    // Request-scoped IdentityHashMap<UIComponent, Object[]{index, generation}> memoizing each refreshed parent's
+    // MARK_CREATED -> component index for findChildByTagIdIndexed. Lives for the build; keyed by parent identity.
+    private final static String REFRESH_INDEX = "com.sun.faces.facelets.refreshIndex";
+
     /**
      * Key to a FacesContext scoped Map where the keys are UIComponent instances and the values are Tag instances.
      */
@@ -125,10 +130,9 @@ public final class ComponentSupport {
             }
         }
 
-        Map<String, UIComponent> facets = c.getFacets();
-        // remove any facets marked as deleted
-        if ( !facets.isEmpty() ) {
-            Set<Entry<String, UIComponent>> col = facets.entrySet();
+        // remove any facets marked as deleted (getFacetCount avoids allocating an empty FacetsMap when there are none)
+        if (c.getFacetCount() > 0) {
+            Set<Entry<String, UIComponent>> col = c.getFacets().entrySet();
             UIComponent fc;
             Entry<String, UIComponent> curEntry;
             for (Iterator<Entry<String, UIComponent>> itr = col.iterator(); itr.hasNext();) {
@@ -241,7 +245,72 @@ public final class ComponentSupport {
         if (context.getAttributes().get(BUILDING_FRESH_SUBTREE) == Boolean.TRUE) {
             return null;
         }
-        return findChildByTagIdFullStateSaving(context, parent, id);
+        return findChildByTagIdIndexed(context, parent, id);
+    }
+
+    /**
+     * Indexed variant of the refresh-time tag-id lookup. A parent's body applies one child tag after another, each
+     * calling this for a distinct id; the plain scan re-reads every sibling's MARK_CREATED (a string-keyed
+     * AttributesMap.get) on every call, so reconciling a K-child parent costs O(K^2) map reads. Instead build a
+     * MARK_CREATED -> component index once per parent and look up in O(1). The index is request-scoped and guarded
+     * by the parent's child+facet count: a body that creates a new child (count grows) rebuilds it, so it can never
+     * return a stale or detached component. The facetName fast-path and coverage mirror
+     * {@link #findChildByTagIdFullStateSaving} exactly.
+     */
+    private static UIComponent findChildByTagIdIndexed(FacesContext context, UIComponent parent, String id) {
+        String facetName = getFacetName(parent);
+        if (facetName != null) {
+            UIComponent facet = parent.getFacet(facetName);
+            // A facet name without a matching facet occurs with composite-component facets; fall through to the index.
+            if (facet != null && id.equals(facet.getAttributes().get(MARK_CREATED))) {
+                return facet;
+            }
+        }
+        return refreshIndex(context, parent).get(id);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, UIComponent> refreshIndex(FacesContext context, UIComponent parent) {
+        Map<UIComponent, Object[]> cache = (Map<UIComponent, Object[]>) context.getAttributes().get(REFRESH_INDEX);
+        if (cache == null) {
+            cache = new IdentityHashMap<>();
+            context.getAttributes().put(REFRESH_INDEX, cache);
+        }
+        int generation = parent.getChildCount() + parent.getFacetCount();
+        Object[] entry = cache.get(parent);
+        if (entry == null || (Integer) entry[1] != generation) {
+            entry = new Object[] { buildTagIdIndex(parent), generation };
+            cache.put(parent, entry);
+        }
+        return (Map<String, UIComponent>) entry[0];
+    }
+
+    private static Map<String, UIComponent> buildTagIdIndex(UIComponent parent) {
+        Map<String, UIComponent> index = new HashMap<>();
+        if (parent.getFacetCount() > 0) {
+            for (UIComponent facet : parent.getFacets().values()) {
+                indexTagId(index, facet);
+            }
+        }
+        List<UIComponent> children = parent.getChildren();
+        for (int i = 0, len = children.size(); i < len; i++) {
+            UIComponent c = children.get(i);
+            indexTagId(index, c);
+            if (c instanceof UIPanel && c.getAttributes().containsKey(IMPLICIT_PANEL)) {
+                for (UIComponent c2 : c.getChildren()) {
+                    indexTagId(index, c2);
+                }
+            }
+        }
+        return index;
+    }
+
+    private static void indexTagId(Map<String, UIComponent> index, UIComponent c) {
+        String cid = (String) c.getAttributes().get(MARK_CREATED);
+        if (cid != null) {
+            // First put wins, matching the scan's facets-then-children, top-to-bottom first-match order.
+            index.putIfAbsent(cid, c);
+        }
     }
 
     private static UIComponent findChildByTagIdFullStateSaving(FacesContext context, UIComponent parent, String id) {
@@ -268,9 +337,10 @@ public final class ComponentSupport {
             components = parent.getChildren();
         }
 
-        for (UIComponent component : components) {
-            UIComponent c = component;
-            String cid = (String) c.getAttributes().get(MARK_CREATED);
+        int len = components.size();
+        for (int i = 0; i < len; i++) {
+            c = components.get(i);
+            cid = (String) c.getAttributes().get(MARK_CREATED);
             if (id.equals(cid)) {
                 return c;
             }
@@ -376,51 +446,52 @@ public final class ComponentSupport {
      * Marks all direct children and Facets with an attribute for deletion.
      *
      * @see #finalizeForDeletion(UIComponent)
-     * @param component UIComponent to mark
+     * @param c UIComponent to mark
      */
-    public static void markForDeletion(UIComponent component) {
+    public static void markForDeletion(UIComponent c) {
         // flag this component as deleted
-        component.getAttributes().put(MARK_DELETED, Boolean.TRUE);
+        c.getAttributes().put(MARK_DELETED, Boolean.TRUE);
 
         // mark all children to be deleted
-        int index = component.getChildCount();
-        if (index > 0) {
-
-            List<UIComponent> children = component.getChildren();
-            while (--index >= 0) {
-                UIComponent child = children.get(index);
-                if (child.getAttributes().containsKey(MARK_CREATED)) {
-                    child.getAttributes().put(MARK_DELETED, Boolean.TRUE);
+        int sz = c.getChildCount();
+        if (sz > 0) {
+            UIComponent cc = null;
+            List cl = c.getChildren();
+            while (--sz >= 0) {
+                cc = (UIComponent) cl.get(sz);
+                if (cc.getAttributes().containsKey(MARK_CREATED)) {
+                    cc.getAttributes().put(MARK_DELETED, Boolean.TRUE);
                 }
             }
         }
 
-        // mark all facets to be deleted
-        if ( !component.getFacets().isEmpty() ) {
-
-            for (Entry<String, UIComponent> entries : component.getFacets().entrySet()) {
-                String facetName = entries.getKey();
-                UIComponent facet = entries.getValue();
-                Map<String, Object> facetAttributes = facet.getAttributes();
-                if (facetAttributes.containsKey(MARK_CREATED)) {
-                    facetAttributes.put(MARK_DELETED, Boolean.TRUE);
-                }
-                else if (UIComponent.COMPOSITE_FACET_NAME.equals(facetName)) {
-                    // mark the inner panel components to be deleted
-                    index = facet.getChildCount();
-                    if (index > 0) {
-
-                        List<UIComponent> children = facet.getChildren();
-                        while (--index >= 0) {
-                            UIComponent child = children.get(index);
-                            child.getAttributes().put(MARK_DELETED, Boolean.TRUE);
+        // mark all facets to be deleted (getFacetCount avoids allocating an empty FacetsMap when there are none)
+        if (c.getFacetCount() > 0) {
+            Set col = c.getFacets().entrySet();
+            UIComponent fc;
+            for (Iterator itr = col.iterator(); itr.hasNext();) {
+                Map.Entry entry = (Map.Entry) itr.next();
+                String facet = (String) entry.getKey();
+                fc = (UIComponent) entry.getValue();
+                Map<String, Object> attrs = fc.getAttributes();
+                if (attrs.containsKey(MARK_CREATED)) {
+                    attrs.put(MARK_DELETED, Boolean.TRUE);
+                } else if (UIComponent.COMPOSITE_FACET_NAME.equals(facet)) {
+                    // mark the inner pannel components to be deleted
+                    sz = fc.getChildCount();
+                    if (sz > 0) {
+                        UIComponent cc = null;
+                        List cl = fc.getChildren();
+                        while (--sz >= 0) {
+                            cc = (UIComponent) cl.get(sz);
+                            cc.getAttributes().put(MARK_DELETED, Boolean.TRUE);
                         }
                     }
-                }
-                else if (facetAttributes.containsKey(IMPLICIT_PANEL)) {
-                    List<UIComponent> implicitPanelChildren = facet.getChildren();
-                    for (UIComponent panelChild : implicitPanelChildren) {
-                        Map<String, Object> innerAttrs = panelChild.getAttributes();
+                } else if (attrs.containsKey(IMPLICIT_PANEL)) {
+                    List<UIComponent> implicitPanelChildren = fc.getChildren();
+                    Map<String, Object> innerAttrs = null;
+                    for (UIComponent cur : implicitPanelChildren) {
+                        innerAttrs = cur.getAttributes();
                         if (innerAttrs.containsKey(MARK_CREATED)) {
                             innerAttrs.put(MARK_DELETED, Boolean.TRUE);
                         }
@@ -428,7 +499,6 @@ public final class ComponentSupport {
                 }
             }
         }
-
     }
 
     public static void encodeRecursive(FacesContext context, UIComponent viewToRender) throws IOException, FacesException {
@@ -448,33 +518,34 @@ public final class ComponentSupport {
     }
 
     public static void removeTransient(UIComponent c) {
+        UIComponent d, e;
         if (c.getChildCount() > 0) {
-            for (Iterator<UIComponent> children = c.getChildren().iterator(); children.hasNext();) {
-                UIComponent child = children.next();
-                if ( !child.getFacets().isEmpty() ) {
-                    for (Iterator<UIComponent> facets = child.getFacets().values().iterator(); facets.hasNext();) {
-                        UIComponent facet = facets.next();
-                        if (facet.isTransient()) {
-                            facets.remove();
+            for (Iterator itr = c.getChildren().iterator(); itr.hasNext();) {
+                d = (UIComponent) itr.next();
+                if (d.getFacetCount() > 0) {
+                    for (Iterator jtr = d.getFacets().values().iterator(); jtr.hasNext();) {
+                        e = (UIComponent) jtr.next();
+                        if (e.isTransient()) {
+                            jtr.remove();
                         } else {
-                            removeTransient(facet);
+                            removeTransient(e);
                         }
                     }
                 }
-                if (child.isTransient()) {
-                    children.remove();
+                if (d.isTransient()) {
+                    itr.remove();
                 } else {
-                    removeTransient(child);
+                    removeTransient(d);
                 }
             }
         }
-        if ( !c.getFacets().isEmpty() ) {
-            for (Iterator<UIComponent> facets = c.getFacets().values().iterator(); facets.hasNext();) {
-                UIComponent facet = facets.next();
-                if ( facet.isTransient() ) {
-                    facets.remove();
+        if (c.getFacets().size() > 0) {
+            for (Iterator itr = c.getFacets().values().iterator(); itr.hasNext();) {
+                d = (UIComponent) itr.next();
+                if (d.isTransient()) {
+                    itr.remove();
                 } else {
-                    removeTransient(facet);
+                    removeTransient(d);
                 }
             }
         }
@@ -531,17 +602,28 @@ public final class ComponentSupport {
 
     public static boolean suppressViewModificationEvents(FacesContext ctx) {
 
+        String viewId = getViewIdForModificationEvents(ctx);
+        return viewId != null && StateContext.getStateContext(ctx).isPartialStateSaving(ctx, viewId);
+
+    }
+
+    /**
+     * Variant for callers that already hold the request's {@link StateContext}, so that a tree walk does not look it up
+     * once per component.
+     */
+    public static boolean suppressViewModificationEvents(FacesContext ctx, StateContext stateCtx) {
+
+        String viewId = getViewIdForModificationEvents(ctx);
+        return viewId != null && stateCtx.isPartialStateSaving(ctx, viewId);
+
+    }
+
+    private static String getViewIdForModificationEvents(FacesContext ctx) {
+
         // NO UIViewRoot means this was called during restore view -
         // no need to suppress events at that time
         UIViewRoot root = ctx.getViewRoot();
-        if (root != null) {
-            String viewId = root.getViewId();
-            if (viewId != null) {
-                StateContext stateCtx = StateContext.getStateContext(ctx);
-                return stateCtx.isPartialStateSaving(ctx, viewId);
-            }
-        }
-        return false;
+        return root != null ? root.getViewId() : null;
 
     }
 
@@ -553,10 +635,11 @@ public final class ComponentSupport {
 
         for (String namespace : PassThroughAttributeLibrary.NAMESPACES) {
             TagAttribute[] passthroughAttrs = t.getAttributes().getAll(namespace);
-            if (passthroughAttrs != null && passthroughAttrs.length > 0) {
+            if (null != passthroughAttrs && 0 < passthroughAttrs.length) {
                 Map<String, Object> componentPassthroughAttrs = c.getPassThroughAttributes(true);
+                Object attrValue = null;
                 for (TagAttribute cur : passthroughAttrs) {
-                    Object attrValue = cur.isLiteral() ? cur.getValue(ctx) : cur.getValueExpression(ctx, Object.class);
+                    attrValue = cur.isLiteral() ? cur.getValue(ctx) : cur.getValueExpression(ctx, Object.class);
                     componentPassthroughAttrs.put(cur.getLocalName(), attrValue);
                 }
             }

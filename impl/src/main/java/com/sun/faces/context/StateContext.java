@@ -22,13 +22,13 @@ import static com.sun.faces.util.ComponentStruct.ADD;
 import static com.sun.faces.util.ComponentStruct.REMOVE;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,6 +44,7 @@ import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.MostlySingletonSet;
 
 import jakarta.faces.component.UIComponent;
+import jakarta.faces.component.UINamingContainer;
 import jakarta.faces.component.UIViewRoot;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.AbortProcessingException;
@@ -224,35 +225,16 @@ public class StateContext {
         return parent.getAttributes().containsKey(DYNAMIC_CHILD_COUNT);
     }
 
-    private int incrementDynamicChildCount(FacesContext context, UIComponent parent) {
-        int result;
+    /**
+     * Mark {@code parent} as having a dynamically added child. Read back by {@link #hasOneOrMoreDynamicChild} to gate
+     * the dynamic-child reorder during Facelets re-apply, which tests only for the key's presence -- so this is a
+     * set-once marker, not a count.
+     */
+    private void markHasDynamicChild(UIComponent parent) {
         Map<String, Object> attrs = parent.getAttributes();
-        Integer cur = (Integer) attrs.get(DYNAMIC_CHILD_COUNT);
-        if (null != cur) {
-            result = cur++;
-        } else {
-            result = 1;
+        if (!attrs.containsKey(DYNAMIC_CHILD_COUNT)) {
+            attrs.put(DYNAMIC_CHILD_COUNT, 1);
         }
-        attrs.put(DYNAMIC_CHILD_COUNT, result);
-        context.getViewRoot().getAttributes().put(RIConstants.TREE_HAS_DYNAMIC_COMPONENTS, Boolean.TRUE);
-
-        return result;
-    }
-
-    private int decrementDynamicChildCount(FacesContext context, UIComponent parent) {
-        int result = 0;
-        Map<String, Object> attrs = parent.getAttributes();
-        Integer cur = (Integer) attrs.get(DYNAMIC_CHILD_COUNT);
-        if (null != cur) {
-            result = 0 < cur ? cur-- : 0;
-
-        }
-        if (0 == result && null != cur) {
-            attrs.remove(DYNAMIC_CHILD_COUNT);
-        }
-        context.getViewRoot().getAttributes().put(RIConstants.TREE_HAS_DYNAMIC_COMPONENTS, Boolean.TRUE);
-
-        return result;
     }
 
     /**
@@ -381,12 +363,10 @@ public class StateContext {
             if (event instanceof PreRemoveFromViewEvent) {
                 if (stateCtx.trackViewModifications()) {
                     handleRemove(ctx, ((PreRemoveFromViewEvent) event).getComponent());
-                    ctx.getViewRoot().getAttributes().put(RIConstants.TREE_HAS_DYNAMIC_COMPONENTS, Boolean.TRUE);
                 }
             } else {
                 if (stateCtx.trackViewModifications()) {
                     handleAdd(ctx, ((PostAddToViewEvent) event).getComponent());
-                    ctx.getViewRoot().getAttributes().put(RIConstants.TREE_HAS_DYNAMIC_COMPONENTS, Boolean.TRUE);
                 }
             }
         }
@@ -501,7 +481,7 @@ public class StateContext {
         private static Collection<UIComponent> getDynamicComponentCollection(Map<Object, Object> contextMap) {
             Collection<UIComponent> result = (Collection<UIComponent>) contextMap.get(DYNAMIC_COMPONENT_ADD_COLLECTION);
             if (result == null) {
-                result = new HashSet<>(8);
+                result = new HashSet<>();
                 contextMap.put(DYNAMIC_COMPONENT_ADD_COLLECTION, result);
             }
             return result;
@@ -600,12 +580,11 @@ public class StateContext {
         /**
          * Stores the list of adds/removes.
          */
-        private volatile List<ComponentStruct> dynamicActions;
-
+        private List<ComponentStruct> dynamicActions;
         /**
          * Stores the hash map of dynamic components.
          */
-        private transient volatile HashMap<String, UIComponent> dynamicComponents;
+        private transient HashMap<String, UIComponent> dynamicComponents;
 
         /**
          * Constructor.
@@ -624,11 +603,7 @@ public class StateContext {
         @Override
         public List<ComponentStruct> getDynamicActions() {
             if (dynamicActions == null) {
-                synchronized (this) {
-                    if (dynamicActions == null) {
-                        dynamicActions = new LinkedList<>(); // it's better a LinkedList because we have a lot of add/remove operations
-                    }
-                }
+                dynamicActions = new ArrayList<>();
             }
 
             return dynamicActions;
@@ -642,11 +617,7 @@ public class StateContext {
         @Override
         public Map<String, UIComponent> getDynamicComponents() {
             if (dynamicComponents == null) {
-                synchronized (this) {
-                    if (dynamicComponents == null) {
-                        dynamicComponents = new HashMap<>();
-                    }
-                }
+                dynamicComponents = new HashMap<>();
             }
 
             return dynamicComponents;
@@ -661,10 +632,9 @@ public class StateContext {
         @Override
         protected void handleRemove(FacesContext context, UIComponent component) {
             if (component.isInView()) {
-                decrementDynamicChildCount(context, component.getParent());
                 recordDynamicAction(
-                    component, 
-                    new ComponentStruct(REMOVE, findFacetNameForComponent(component), component.getClientId(context), component.getId())
+                    component,
+                    new ComponentStruct(REMOVE, findFacetNameForComponent(component), stripIterationIndex(context, component.getClientId(context)), component.getId())
                 );
            }
         }
@@ -678,37 +648,84 @@ public class StateContext {
         @Override
         protected void handleAdd(FacesContext context, UIComponent component) {
             if (component.getParent() != null && component.getParent().isInView()) {
-                String id = component.getId();
+                // The stale clientId that a reparent could leave behind is already invalidated by
+                // UIComponentBase.setParent, which runs before this event, so no setId is needed here.
+                String facetName = findFacetNameForComponent(component);
+                int index = indexInParent(component);
+                markHasDynamicChild(component.getParent());
+                component.clearInitialState();
+                component.getAttributes().put(DYNAMIC_COMPONENT, index);
 
-                /*
-                 * Since adding a component, can mean you are really reparenting it, we need to make sure the OLD clientId is not
-                 * cached, we do that by setting the id.
-                 */
-                if (id != null) {
-                    component.setId(id);
+                ComponentStruct struct = new ComponentStruct(ADD, facetName,
+                        stripIterationIndex(context, component.getParent().getClientId(context)),
+                        stripIterationIndex(context, component.getClientId(context)),
+                        component.getId());
+                struct.setIndex(index);
+
+                recordDynamicAction(component, struct);
+            }
+        }
+
+        /**
+         * Drops the iteration index of every iterating ancestor from the given client id, e.g.
+         * {@code form:table:1:group} becomes {@code form:table:group}.
+         *
+         * <p>
+         * An action is recorded whenever the tree is modified, which can be while an iterating component has a row
+         * index set -- an add performed by a command button inside a row, for instance, as {@link UIData#broadcast}
+         * sets the row index before the action runs. The client id then carries that row, but the component does
+         * not: a component inside an iterating one is a single instance shared by every row, so the modification
+         * belongs to all of them and the row says only when it happened. Recording it would key the action to a
+         * position which does not exist, which nothing can resolve it against afterwards.
+         * </p>
+         *
+         * <p>
+         * A numeric segment is unambiguous: a component id cannot be one, as {@link UIComponent#setId} requires the
+         * first character to be a letter or an underscore. Only an iterating component contributes one.
+         * </p>
+         *
+         * @param context the Faces context.
+         * @param clientId the client id to strip.
+         * @return the given client id without the iteration index of any iterating ancestor.
+         */
+        private String stripIterationIndex(FacesContext context, String clientId) {
+            char separatorChar = UINamingContainer.getSeparatorChar(context);
+            StringBuilder builder = new StringBuilder(clientId.length());
+            boolean stripped = false;
+            int segmentStart = 0;
+
+            for (int i = 0; i <= clientId.length(); i++) {
+                if (i < clientId.length() && clientId.charAt(i) != separatorChar) {
+                    continue;
                 }
 
-                String facetName = findFacetNameForComponent(component);
-                if (facetName != null) {
-                    incrementDynamicChildCount(context, component.getParent());
-                    component.clearInitialState();
-                    component.getAttributes().put(DYNAMIC_COMPONENT, indexInParent(component));
-
-                    ComponentStruct struct = new ComponentStruct(ADD, facetName, component.getParent().getClientId(context), component.getClientId(context),
-                            component.getId());
-
-                    recordDynamicAction(component, struct);
+                if (isIterationIndex(clientId, segmentStart, i)) {
+                    stripped = true;
                 } else {
-                    incrementDynamicChildCount(context, component.getParent());
-                    component.clearInitialState();
-                    component.getAttributes().put(DYNAMIC_COMPONENT, indexInParent(component));
+                    if (builder.length() > 0) {
+                        builder.append(separatorChar);
+                    }
+                    builder.append(clientId, segmentStart, i);
+                }
 
-                    ComponentStruct struct = new ComponentStruct(ADD, null, component.getParent().getClientId(context), component.getClientId(context),
-                            component.getId());
+                segmentStart = i + 1;
+            }
 
-                    recordDynamicAction(component, struct);
+            return stripped ? builder.toString() : clientId;
+        }
+
+        private boolean isIterationIndex(String clientId, int start, int end) {
+            if (start >= end) {
+                return false;
+            }
+
+            for (int i = start; i < end; i++) {
+                if (!Character.isDigit(clientId.charAt(i))) {
+                    return false;
                 }
             }
+
+            return true;
         }
 
         /**

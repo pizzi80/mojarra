@@ -16,6 +16,7 @@
 
 package com.sun.faces.renderkit;
 
+import com.sun.faces.util.Util;
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
@@ -159,7 +160,8 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
         if (kid instanceof UISelectItem ui) {
             SelectItem item = (SelectItem) ui.getValue();
             if (item == null) {
-                item = new SelectItem(ui.getItemValue(), ui.getItemLabel(), ui.getItemDescription(), ui.isItemDisabled(), ui.isItemEscaped(), ui.isNoSelectionOption());
+                item = new SelectItem(ui.getItemValue(), ui.getItemLabel(), ui.getItemDescription(), ui.isItemDisabled(), ui.isItemEscaped(),
+                        ui.isNoSelectionOption());
             }
             updateSingeItemIterator(ui, item);
             items = singleItemIterator;
@@ -410,10 +412,10 @@ public final class SelectItemsIterator<T extends SelectItem> implements Iterator
                     setValue(itemValueResult != null ? itemValueResult : value);
                     setLabel(itemLabelResult != null ? itemLabelResult.toString() : value.toString());
                     setDescription(itemDescriptionResult != null ? itemDescriptionResult.toString() : null);
-                    setEscape(itemEscapedResult != null ? Boolean.parseBoolean(itemEscapedResult.toString()) : true);
-                    setDisabled(itemDisabledResult != null ? Boolean.parseBoolean(itemDisabledResult.toString()) : false);
+                    setEscape(Util.toBoolean(itemEscapedResult, true));
+                    setDisabled(Util.toBoolean(itemDisabledResult, false));
                     if (null != noSelectionOptionResult) {
-                        setNoSelectionOption(Boolean.parseBoolean(noSelectionOptionResult.toString()));
+                        setNoSelectionOption(Util.toBoolean(noSelectionOptionResult, false));
                     } else if (null != noSelectionValueResult) {
                         setNoSelectionOption(getValue().equals(noSelectionValueResult));
                     }

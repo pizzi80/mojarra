@@ -762,6 +762,7 @@ public class HtmlOutputLink extends UIOutput implements ClientBehaviorHolder {
      */
     public void setStyleClass(java.lang.String styleClass) {
         getStateHelper().put(PropertyKeys.styleClass, styleClass);
+        handleAttribute(this, "styleClass", styleClass);
     }
 
     /**
@@ -814,6 +815,7 @@ public class HtmlOutputLink extends UIOutput implements ClientBehaviorHolder {
      */
     public void setTarget(java.lang.String target) {
         getStateHelper().put(PropertyKeys.target, target);
+        handleAttribute(this, "target", target);
     }
 
     /**

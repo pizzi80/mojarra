@@ -682,6 +682,7 @@ public class HtmlSelectBooleanCheckbox extends UISelectBoolean implements Client
      */
     public void setStyleClass(java.lang.String styleClass) {
         getStateHelper().put(PropertyKeys.styleClass, styleClass);
+        handleAttribute(this, "styleClass", styleClass);
     }
 
     /**
