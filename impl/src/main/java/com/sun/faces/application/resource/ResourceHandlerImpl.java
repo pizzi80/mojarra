@@ -39,15 +39,19 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
 import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
+
+import jakarta.faces.application.Resource;
+import jakarta.faces.application.ResourceHandler;
+import jakarta.faces.application.ResourceHandlerWrapper;
+import jakarta.faces.application.ResourceVisitOption;
+import jakarta.faces.context.ExternalContext;
+import jakarta.faces.context.FacesContext;
 
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.config.WebConfiguration;
@@ -56,13 +60,6 @@ import com.sun.faces.renderkit.html_basic.StylesheetRenderer;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.RequestStateManager;
 import com.sun.faces.util.Util;
-
-import jakarta.faces.application.Resource;
-import jakarta.faces.application.ResourceHandler;
-import jakarta.faces.application.ResourceHandlerWrapper;
-import jakarta.faces.application.ResourceVisitOption;
-import jakarta.faces.context.ExternalContext;
-import jakarta.faces.context.FacesContext;
 
 /**
  * This is the default implementation of {@link ResourceHandler}.
@@ -105,7 +102,7 @@ public class ResourceHandlerImpl extends ResourceHandler {
      * Creates a new instance of ResourceHandlerImpl
      */
     public ResourceHandlerImpl() {
-        ExternalContext extContext = FacesContext.getCurrentInstance().getExternalContext();
+        final ExternalContext extContext = FacesContext.getCurrentInstance().getExternalContext();
         creationTime = System.currentTimeMillis();
         webconfig = WebConfiguration.getInstance(extContext);
         manager = ApplicationAssociate.getInstance(extContext).getResourceManager();
@@ -294,7 +291,7 @@ public class ResourceHandlerImpl extends ResourceHandler {
 
         ExternalContext extContext = context.getExternalContext();
 
-        if (isExcluded(resourceId)) {
+        if (isExcluded(excludedExtensions, resourceId)) {
             extContext.setResponseStatus(SC_NOT_FOUND);
             return;
         }
@@ -610,13 +607,14 @@ public class ResourceHandlerImpl extends ResourceHandler {
     }
 
     /**
+     * @param excludedExtensions the excluded file extensions as returned by {@link #parseExcludedExtensions(Map, String)}
      * @param resourceId the normalized request path as returned by
      * {@link #normalizeResourceRequest(jakarta.faces.context.FacesContext)}
      * @return <code>true</code> if the request matces an excluded resource, otherwise <code>false</code>
      */
-    private boolean isExcluded(String resourceId) {
-        for (Pattern pattern : excludePatterns) {
-            if (pattern.matcher(resourceId).matches()) {
+    static boolean isExcluded(String[] excludedExtensions, String resourceId) {
+        for (String excludedExtension : excludedExtensions) {
+            if (resourceId.endsWith(excludedExtension)) {
                 return true;
             }
         }
@@ -626,21 +624,19 @@ public class ResourceHandlerImpl extends ResourceHandler {
 
     /**
      * Initialize the exclusions for this application. If no explicit exclusions are configured, the defaults of
-     * <ul>
-     * <li>.class</li>
-     * <li>.properties</li>
-     * <li>.xhtml</li>
-     * <ul>
-     * will be used.
+     * {@link ResourceHandler#RESOURCE_EXCLUDES_DEFAULT_VALUE} will be used.
      */
-    private void initExclusions() {
-        String excludesParam = webconfig.getOptionValue(ResourceExcludes);
-        String[] patterns = excludesParam.split(Util.SPACE_STRING);
+    private void initExclusions(Map<String, Object> appMap) {
+        excludedExtensions = parseExcludedExtensions(appMap, webconfig.getOptionValue(ResourceExcludes));
+    }
 
-        excludePatterns = new ArrayList<>(patterns.length);
-        for (String pattern : patterns) {
-            excludePatterns.add(Pattern.compile(".*\\" + pattern));
-        }
+    /**
+     * @param appMap the application map, used to cache the split pattern
+     * @param excludesParam the space separated list of file extensions, including the leading '.' character
+     * @return the excluded file extensions, without empty entries, as an empty entry would exclude every resource
+     */
+    static String[] parseExcludedExtensions(Map<String, Object> appMap, String excludesParam) {
+        return Stream.of(Util.split(appMap, excludesParam, " ")).filter(extension -> !extension.isEmpty()).toArray(String[]::new);
     }
 
     private void initMaxAge() {
