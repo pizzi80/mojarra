@@ -22,15 +22,15 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import com.sun.faces.renderkit.RenderKitUtils;
-
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.component.UIComponent;
-import jakarta.faces.component.html.HtmlMessage;
 import jakarta.faces.component.UIMessage;
 import jakarta.faces.component.UIOutput;
+import jakarta.faces.component.html.HtmlMessage;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.ResponseWriter;
+
+import com.sun.faces.renderkit.RenderKitUtils;
 
 /**
  * <p>
