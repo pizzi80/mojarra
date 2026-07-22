@@ -18,6 +18,7 @@ package com.sun.faces.component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.faces.application.Resource;
 import jakarta.faces.component.UIComponent;
@@ -265,7 +266,7 @@ public class CompositeComponentStackManager {
      * {@link TreeCreationStackHandler#getParentCompositeComponent} address the stack by index.
      * </p>
      */
-    private abstract class BaseStackHandler implements StackHandler {
+    private abstract static class BaseStackHandler implements StackHandler {
 
         protected List<UIComponent> stack;
 
