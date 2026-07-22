@@ -339,8 +339,8 @@ public final class ComponentSupport {
 
         int len = components.size();
         for (int i = 0; i < len; i++) {
-            c = components.get(i);
-            cid = (String) c.getAttributes().get(MARK_CREATED);
+            UIComponent c = components.get(i);
+            String cid = (String) c.getAttributes().get(MARK_CREATED);
             if (id.equals(cid)) {
                 return c;
             }
