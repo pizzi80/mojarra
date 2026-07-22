@@ -26,9 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
-
-import com.sun.faces.util.Util;
 
 import jakarta.el.ELContext;
 import jakarta.el.ELException;
@@ -37,6 +34,8 @@ import jakarta.faces.FacesException;
 import jakarta.faces.component.UIComponentBase;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.AjaxBehaviorListener;
+
+import com.sun.faces.util.Util;
 
 /**
  * <p class="changed_added_2_0">
@@ -666,16 +665,16 @@ public class AjaxBehavior extends ClientBehaviorBase {
     private void setLiteralValue(String propertyName, ValueExpression expression) {
         assert expression.isLiteralText();
 
-        Object value;
-        ELContext context = FacesContext.getCurrentInstance().getELContext();
+        final ELContext context = FacesContext.getCurrentInstance().getELContext();
 
+        final Object value;
         try {
             value = expression.getValue(context);
         } catch (ELException ele) {
             throw new FacesException(ele);
         }
 
-        if (null != propertyName) {
+        if (propertyName != null) {
             switch (propertyName) {
             case ONEVENT:
                 onevent = (String) value;
@@ -717,8 +716,8 @@ public class AjaxBehavior extends ClientBehaviorBase {
             }
 
             // We're stuck splitting up the string.
-            String[] values = SPLIT_PATTERN.split(strValue);
-            if (values == null || values.length == 0) {
+            String[] values = strValue.split(Util.SPACE_STRING);
+            if (values.length == 0) {
                 return null;
             }
 
@@ -787,8 +786,5 @@ public class AjaxBehavior extends ClientBehaviorBase {
     private static final List<String> FORM_LIST = List.of(FORM);
     private static final List<String> THIS_LIST = List.of(THIS);
     private static final List<String> NONE_LIST = List.of(NONE);
-
-    // Pattern used for execute/render string splitting
-    private static final Pattern SPLIT_PATTERN = Pattern.compile(" ");
 
 }
