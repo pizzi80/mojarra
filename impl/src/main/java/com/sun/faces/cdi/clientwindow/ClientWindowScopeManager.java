@@ -18,6 +18,7 @@ package com.sun.faces.cdi.clientwindow;
 
 import static java.util.logging.Level.FINEST;
 
+import java.util.Map;
 import java.util.logging.Logger;
 
 import jakarta.faces.context.FacesContext;
@@ -65,10 +66,11 @@ public class ClientWindowScopeManager implements HttpSessionListener {
      * @return our instance
      */
     public static ClientWindowScopeManager getInstance(FacesContext facesContext) {
-        if (!facesContext.getExternalContext().getApplicationMap().containsKey(CLIENT_WINDOW_SCOPE_MANAGER)) {
-            facesContext.getExternalContext().getApplicationMap().put(CLIENT_WINDOW_SCOPE_MANAGER, new ClientWindowScopeManager());
+        Map<String, Object> applicationMap = facesContext.getExternalContext().getApplicationMap();
+        if (!applicationMap.containsKey(CLIENT_WINDOW_SCOPE_MANAGER)) {
+            applicationMap.put(CLIENT_WINDOW_SCOPE_MANAGER, new ClientWindowScopeManager());
         }
-        return (ClientWindowScopeManager) facesContext.getExternalContext().getApplicationMap().get(CLIENT_WINDOW_SCOPE_MANAGER);
+        return (ClientWindowScopeManager) applicationMap.get(CLIENT_WINDOW_SCOPE_MANAGER);
     }
 
     /**
@@ -90,8 +92,6 @@ public class ClientWindowScopeManager implements HttpSessionListener {
     public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
         LOGGER.log(FINEST, "Cleaning up session for @ClientWindowScoped beans");
 
-        if (contextManager != null) {
-            contextManager.sessionDestroyed(httpSessionEvent);
-        }
+        contextManager.sessionDestroyed(httpSessionEvent);
     }
 }
