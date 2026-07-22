@@ -22,17 +22,11 @@ import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.Numb
 import static com.sun.faces.context.SessionMap.getMutex;
 import static java.util.logging.Level.FINEST;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.util.ConcurrentLRUMap;
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.Util;
 
 import jakarta.enterprise.context.spi.Contextual;
 import jakarta.enterprise.context.spi.CreationalContext;
@@ -41,6 +35,10 @@ import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpSessionEvent;
+
+import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.LRUMap;
 
 /**
  * The manager that deals with CDI ClientWindowScoped beans.
@@ -131,42 +129,40 @@ public class ClientWindowScopeContextManager {
      * @param create flag to indicate if we are creating the context map.
      * @return the context map.
      */
-    @SuppressWarnings("unchecked")
     private Map<String, ClientWindowScopeContextObject> getContextMap(FacesContext facesContext, boolean create) {
-        Map<String, ClientWindowScopeContextObject> result = null;
+        final ExternalContext externalContext = facesContext.getExternalContext();
+        final Object session = externalContext.getSession(create);
 
-        ExternalContext externalContext = facesContext.getExternalContext();
-        if (externalContext != null) {
+        if (session != null) {
             final Map<String, Object> sessionMap = externalContext.getSessionMap();
-            final HttpSession session = (HttpSession) externalContext.getSession(create);
+            final Map<Object, Map<String, ClientWindowScopeContextObject>> clientWindowScopeContexts = getClientWindowScopeContexts(externalContext, sessionMap, session, create);
+            final String clientWindowId = getCurrentClientWindowId(externalContext);
 
-            if (session != null) {
+            if (clientWindowScopeContexts != null && clientWindowId != null) {
+                Map<String, ClientWindowScopeContextObject> result = clientWindowScopeContexts.get(clientWindowId);
 
-                final Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>> clientWindowScopeContexts = getClientWindowScopeContexts(externalContext, sessionMap, session, create);
-                final String clientWindowId = getCurrentClientWindowId(facesContext);
+                if (result == null && create) {
+                    Map<String, ClientWindowScopeContextObject> newWindowMap = new ConcurrentHashMap<>();   // size?
 
-                if (clientWindowScopeContexts != null && clientWindowId != null && create) {
-                    clientWindowScopeContexts.computeIfAbsent(clientWindowId , _clientWindowId -> {
+                    // atomic insert
+                    result = clientWindowScopeContexts.putIfAbsent(clientWindowId, newWindowMap);
 
-                        // If we are distributable, this will result in a dirtying of the
-                        // session data, forcing replication. If we are not distributable,
-                        // this is a no-op.
+                    // if it was null, the current value is our newWindowMap
+                    if (result == null) {
+                        result = newWindowMap;
+
                         if (distributable) {
+                            // Marca la sessione come "dirty" per la replicazione in cluster
                             sessionMap.put(CLIENT_WINDOW_CONTEXTS, clientWindowScopeContexts);
                         }
-
-                        // create the new ClientWindowScope Map
-                        return new ConcurrentHashMap<>();
-                    });
+                    }
                 }
 
-                if (clientWindowScopeContexts != null && clientWindowId != null) {
-                    result = clientWindowScopeContexts.get(clientWindowId);
-                }
+                return result;
             }
         }
 
-        return result;
+        return null;
     }
 
     /**
@@ -182,8 +178,7 @@ public class ClientWindowScopeContextManager {
 
         HttpSession session = httpSessionEvent.getSession();
 
-        Map<Object, Map<String, ClientWindowScopeContextObject>> clientWindowScopeContexts = (Map<Object, Map<String, ClientWindowScopeContextObject>>)
-                session.getAttribute(CLIENT_WINDOW_CONTEXTS);
+        var clientWindowScopeContexts = (Map<Object, Map<String, ClientWindowScopeContextObject>>) session.getAttribute(CLIENT_WINDOW_CONTEXTS);
 
         if (clientWindowScopeContexts != null) {
             clientWindowScopeContexts.clear();
@@ -194,15 +189,27 @@ public class ClientWindowScopeContextManager {
     // Utils ------------------------------------------------------------------------------------------------------
 
     @SuppressWarnings("unchecked")
-    private static Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>> getClientWindowScopeContexts(
+    private static Map<Object, Map<String, ClientWindowScopeContextObject>> getClientWindowScopeContexts(
             ExternalContext externalContext, Map<String, Object> sessionMap, Object session, boolean create) {
 
-        synchronized (getMutex(session)) {
-            return (Map<Object, ConcurrentMap<String, ClientWindowScopeContextObject>>) (create ?
-                     sessionMap.computeIfAbsent(CLIENT_WINDOW_CONTEXTS, k -> new ConcurrentLRUMap<>(getNumberOfClientWindows(externalContext))) :
-                     sessionMap.get(CLIENT_WINDOW_CONTEXTS));
+        var clientWindowScopeContext = (Map<Object, Map<String, ClientWindowScopeContextObject>>) sessionMap.get(CLIENT_WINDOW_CONTEXTS);
+
+        if (clientWindowScopeContext == null && create) {
+
+            final int numberOfClientWindows = getNumberOfClientWindows(externalContext);
+
+            synchronized (getMutex(session)) {
+                // double-check-locking!
+                clientWindowScopeContext = (Map<Object, Map<String, ClientWindowScopeContextObject>>) sessionMap.get(CLIENT_WINDOW_CONTEXTS);
+                // create and store if needed
+                if ( clientWindowScopeContext == null ) {
+                    clientWindowScopeContext = Collections.synchronizedMap(new LRUMap<>(numberOfClientWindows));
+                    sessionMap.put(CLIENT_WINDOW_CONTEXTS, clientWindowScopeContext);
+                }
+            }
         }
 
+        return clientWindowScopeContext;
     }
 
     /**
@@ -222,8 +229,8 @@ public class ClientWindowScopeContextManager {
         return Integer.parseInt(NumberOfClientWindows.getDefaultValue());
     }
 
-    protected static String getCurrentClientWindowId(FacesContext facesContext) {
-        return facesContext.getExternalContext().getClientWindow().getId();
+    private static String getCurrentClientWindowId(ExternalContext externalContext) {
+        return externalContext.getClientWindow().getId();
     }
 
 }
