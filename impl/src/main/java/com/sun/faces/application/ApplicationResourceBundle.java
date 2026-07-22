@@ -19,11 +19,12 @@ package com.sun.faces.application;
 import static com.sun.faces.util.Util.coalesce;
 import static com.sun.faces.util.Util.getCurrentLoader;
 
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.sun.faces.RIConstants;
 
 /**
  * <p>
@@ -101,7 +102,7 @@ public class ApplicationResourceBundle {
             displayName = queryMap(locale, displayNames);
         }
 
-        return coalesce(displayName, "");
+        return coalesce(displayName, RIConstants.NO_VALUE);
     }
 
     /**
