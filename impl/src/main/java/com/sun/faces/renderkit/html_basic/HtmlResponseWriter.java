@@ -845,7 +845,7 @@ public class HtmlResponseWriter extends ResponseWriter {
         closeStartIfNecessary();
         String textStr = text.toString();
 
-        if (textStr.length() == 0) return;
+        if (textStr.isEmpty()) return;
 
         if (dontEscape) {
             if (writingCdata) {
