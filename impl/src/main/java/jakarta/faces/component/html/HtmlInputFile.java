@@ -175,6 +175,22 @@ public class HtmlInputFile extends UIInput implements ClientBehaviorHolder {
 
     /**
      * <p>
+     * Return the value of the <code>readonly</code> property.
+     * </p>
+     *
+     * @return the property value
+     * <p>
+     * Contents: Flag indicating that this component will prohibit changes by the user. The element may receive focus unless
+     * it has also been disabled. A value of false causes no attribute to be rendered, while a value of true causes the
+     * attribute to be rendered as readonly="readonly".
+     */
+    public boolean isReadonly() {
+        return (java.lang.Boolean) getStateHelper().eval(HtmlInputSecret.PropertyKeys.readonly, false);
+
+    }
+
+    /**
+     * <p>
      * Set the value of the <code>disabled</code> property.
      * </p>
      *
