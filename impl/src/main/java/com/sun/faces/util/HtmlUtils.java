@@ -425,7 +425,7 @@ public final class HtmlUtils {
             }
             if (buf == null) {
                 buf = new InternalByteArrayOutputStream(MAX_BYTES_PER_CHAR);
-                writer = new OutputStreamWriter(buf, "UTF-8");
+                writer = new OutputStreamWriter(buf, StandardCharsets.UTF_8);
                 charArray = new char[1];
             }
             encodeCharPercentBytes(out, ch, buf, writer, charArray);
