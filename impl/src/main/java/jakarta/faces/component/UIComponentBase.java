@@ -1221,7 +1221,7 @@ public abstract class UIComponentBase extends UIComponent {
         } else {
             if (LOGGER.isLoggable(FINE)) {
                 String id = getId();
-                LOGGER.fine("No renderer-type for component " + id != null ? id : getClass().getName());
+                LOGGER.fine("No renderer-type for component " + (id != null ? id : getClass().getName()));
             }
         }
 
@@ -1705,7 +1705,8 @@ public abstract class UIComponentBase extends UIComponent {
 
         Object[][] listeners = (Object[][]) state;
         Map<Class<? extends SystemEvent>, List<SystemEventListener>> m = new HashMap<>(Util.calculateMapCapacity(listeners.length));
-        for (Object[] source : listeners) {
+        for (int i = 0, len = listeners.length; i < len; i++) {
+            Object[] source = listeners[i];
             m.put((Class<? extends SystemEvent>) source[0], (List<SystemEventListener>) restoreAttachedState(ctx, source[1]));
         }
 
