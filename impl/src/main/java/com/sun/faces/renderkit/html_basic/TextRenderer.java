@@ -19,6 +19,7 @@
 package com.sun.faces.renderkit.html_basic;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.faces.application.FacesMessage;
