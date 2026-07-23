@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,7 +40,6 @@ import java.util.logging.Logger;
 import jakarta.faces.FacesException;
 import jakarta.faces.FactoryFinder;
 import jakarta.faces.application.ResourceHandler;
-import jakarta.faces.component.EditableValueHolder;
 import jakarta.faces.component.NamingContainer;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIViewRoot;
@@ -377,7 +375,7 @@ public class PartialViewContextImpl extends PartialViewContext {
         if (param == null) {
             return new ArrayList<>(1);
         } else {
-            String[] pcs = Util.split(FacesContext.getCurrentInstance(), param, "[ \t]+");
+            String[] pcs = Util.split(ctx, param, "[ \t]+");
             return pcs != null && pcs.length != 0 ? new ArrayList<>(Arrays.asList(pcs)) : new ArrayList<>(1);
         }
 
@@ -449,7 +447,7 @@ public class PartialViewContextImpl extends PartialViewContext {
 
     private void renderAll(FacesContext context, UIViewRoot viewRoot) throws IOException {
         // If this is a "render all via ajax" request,
-        // make sure to wrap the entire page in a <render> elemnt
+        // make sure to wrap the entire page in a <render> element
         // with the special viewStateId of VIEW_ROOT_ID. This is how the client
         // JavaScript knows how to replace the entire document with
         // this response.
