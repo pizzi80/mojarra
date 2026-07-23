@@ -18,6 +18,7 @@ package com.sun.faces.application.view;
 
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.EnableDistributable;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.NumberOfActiveViewMaps;
+import static com.sun.faces.context.SessionMap.getMutex;
 import static jakarta.faces.application.FacesMessage.SEVERITY_WARN;
 import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.WARNING;
@@ -25,18 +26,13 @@ import static java.util.logging.Level.WARNING;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
-
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.util.ConcurrentLRUMap;
 
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.application.ProjectStage;
@@ -51,6 +47,10 @@ import jakarta.faces.event.ViewMapListener;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpSessionEvent;
 import jakarta.servlet.http.HttpSessionListener;
+
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.util.ConcurrentLruMap;
 
 /**
  * The manager that deals with non-CDI and CDI ViewScoped beans.
@@ -116,39 +116,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
         final WebConfiguration config = WebConfiguration.getInstance(context.getExternalContext());
         distributable = config.isOptionEnabled(EnableDistributable);
         contextManager = new ViewScopeContextManager(context, distributable);
-        numberOfActiveViewMapsInWebXml = getOptionIntValueOrDefault(config, NumberOfActiveViewMaps, 25);
-    }
-
-    /**
-     * retrieve the NumberOfActiveViewMaps defined in the config or fallback to the defined default value
-     * or fallback to the hardcoded fallback passed parameter
-     * @param fallback hardcoded fallback value when everything fails
-     */
-    private static int getOptionIntValueOrDefault(WebConfiguration config, WebConfiguration.WebContextInitParameter param, int fallback) {
-        String valueOrAlternateValue = config.getOptionValue(param);
-        if (valueOrAlternateValue != null) {
-            // --- return the parsed value or warn ---
-            try {
-                return Integer.parseInt(valueOrAlternateValue);
-            }
-            catch (NumberFormatException e) {
-                if (LOGGER.isLoggable(WARNING)) {
-                    LOGGER.log(WARNING, "Cannot parse " + param.getQualifiedName(), e);
-                }
-
-                // --- return the parsed default value or warn ---
-                try {
-                    return Integer.parseInt(param.getDefaultValue());
-                }
-                catch (NumberFormatException nre) {
-                    if (LOGGER.isLoggable(WARNING)) {
-                        LOGGER.log(WARNING, "Cannot parse the default value of " + param.getQualifiedName(), nre);
-                    }
-                }
-            }
-        }
-        // return the passed hardcoded fallback value
-        return fallback;
+        numberOfActiveViewMapsInWebXml = WebConfiguration.getOptionIntValueOrDefault(config, NumberOfActiveViewMaps, 25);
     }
 
 //    /**
@@ -259,6 +227,8 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
         return contextManager;
     }
 
+    private static final Object VIEW_SCOPE_MANAGER_LOCK = new Object();
+
     /**
      * Get our instance.
      *
@@ -266,7 +236,18 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
      * @return our instance.
      */
     public static ViewScopeManager getInstance(FacesContext facesContext) {
-        return (ViewScopeManager) facesContext.getExternalContext().getApplicationMap().computeIfAbsent(VIEW_SCOPE_MANAGER , k -> new ViewScopeManager());
+        final Map<String, Object> appMap = facesContext.getExternalContext().getApplicationMap();
+        ViewScopeManager viewScopeManager = (ViewScopeManager) appMap.get(VIEW_SCOPE_MANAGER);
+        if (viewScopeManager == null) {
+            synchronized (VIEW_SCOPE_MANAGER_LOCK) {
+                viewScopeManager = (ViewScopeManager) appMap.get(VIEW_SCOPE_MANAGER);
+                if (viewScopeManager == null) {
+                    viewScopeManager = new ViewScopeManager();
+                    appMap.put(VIEW_SCOPE_MANAGER, viewScopeManager);
+                }
+            }
+        }
+        return viewScopeManager;
     }
 
     /**
@@ -302,7 +283,6 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
      *
      * @param systemEvent the system event.
      */
-    @SuppressWarnings("unchecked")
     private void processPostConstructViewMap(SystemEvent systemEvent) {
         LOGGER.log(FINEST, "Handling PostConstructViewMapEvent");
 
@@ -310,7 +290,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
         final Map<String, Object> viewMap = viewRoot.getViewMap(false);
 
         if (viewMap != null) {
-            final FacesContext context = FacesContext.getCurrentInstance();
+            final FacesContext context = systemEvent.getFacesContext();
 
             // ViewScoped Bean used inside a stateless view -> warn the developer
             if (viewRoot.isTransient() && context.isProjectStage(ProjectStage.Development)) {
@@ -323,21 +303,21 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
 
             if (session != null) {
                 final Map<String, Object> sessionMap = context.getExternalContext().getSessionMap();
-                final int maxNumberOfViewMaps = (int) sessionMap.computeIfAbsent(ACTIVE_VIEW_MAPS_SIZE, $ -> numberOfActiveViewMapsInWebXml);
-                final ConcurrentLRUMap<String, Object> viewMaps = (ConcurrentLRUMap<String, Object>) sessionMap.computeIfAbsent(ACTIVE_VIEW_MAPS, $ -> new ConcurrentLRUMap<>(maxNumberOfViewMaps));
+                final int maxNumberOfViewMaps = getOrInitActiveViewMapsSize(sessionMap, numberOfActiveViewMapsInWebXml);
+                final ConcurrentLruMap<String,Object> viewMaps = getOrInitActiveViewMaps(session, sessionMap, numberOfActiveViewMapsInWebXml);
 
                 synchronized (viewMaps) {
 
-                    if (viewMaps.size() == size) {
+                    if (viewMaps.size() == maxNumberOfViewMaps) {
                         evictEldestViewMap(context, viewMaps);
                     }
 
                     // insert new element
-                    final String viewMapId = generateRandomKey(viewMaps.keySet());
+                    final String viewMapId = generateViewKey(viewMaps.keySet());
                     viewMaps.put(viewMapId, viewMap);
                     viewRoot.getTransientStateHelper().putTransient(VIEW_MAP_ID, viewMapId);
                     viewRoot.getTransientStateHelper().putTransient(VIEW_MAP, viewMap);
-                    acquireViewMap(facesContext, viewMapId);
+                    acquireViewMap(context, viewMapId);
                     if (distributable) {
                         // If we are distributable, this will result in a dirtying of the
                         // session data, forcing replication. If we are not distributable,
@@ -366,7 +346,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
         String viewMapId = (String) viewRoot.getTransientStateHelper().getTransient(VIEW_MAP_ID);
 
         if (viewMap != null && viewMapId != null && !viewMap.isEmpty()) {
-            FacesContext facesContext = FacesContext.getCurrentInstance();
+            FacesContext facesContext = event.getFacesContext();
 
             if (contextManager != null) {
                 contextManager.clear(facesContext, viewMapId, viewMap);
@@ -672,15 +652,57 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
 
     // ------------------------------------------------------------------------- UTILS
 
-    /**
-     * @return a random {@link UUID} key that is not contained in the passes keys
-     */
-    private static String generateRandomKey(Set<String> keys) {
-        String uuid = UUID.randomUUID().toString();
-        while (keys.contains(uuid)) {
-            uuid = UUID.randomUUID().toString();
+    private static int getOrInitActiveViewMapsSize(Map<String,Object> sessionMap, int initValue) {
+        Integer value = (Integer) sessionMap.get(ACTIVE_VIEW_MAPS_SIZE);
+        if (value == null) {
+            value = initValue;
+            sessionMap.put(ACTIVE_VIEW_MAPS_SIZE, initValue);
         }
-        return uuid;
+        return value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ConcurrentLruMap<String,Object> getOrInitActiveViewMaps(Object session, Map<String,Object> sessionMap, int maxCapacity) {
+        ConcurrentLruMap<String,Object> viewMaps = (ConcurrentLruMap<String,Object>) sessionMap.get(ACTIVE_VIEW_MAPS);
+        if (viewMaps == null) {
+            synchronized (getMutex(session)) {
+                viewMaps = (ConcurrentLruMap<String, Object>) sessionMap.get(ACTIVE_VIEW_MAPS);
+                if (viewMaps == null) {
+                    viewMaps = new ConcurrentLruMap<>(maxCapacity);
+                    sessionMap.put(ACTIVE_VIEW_MAPS, viewMaps);
+                }
+            }
+        }
+        return viewMaps;
+    }
+
+    /**
+     * @return a random key that is not contained in the passes keys
+     */
+    private static String generateViewKey(final Set<String> keys) {
+        String key = generateRandomKey();
+        while (keys.contains(key)) {
+            key = generateRandomKey();
+        }
+        return key;
+    }
+
+    /**
+     * Generates a key for the session-scoped active view map registry.
+     * <p>
+     * The registry is per-session and bounded (default 25 entries), so 64 random bits
+     * are already overkill: birthday collision probability is ~3e-18 at full capacity.
+     * <p>
+     * {@code ThreadLocalRandom} has no shared state, unlike the {@code SecureRandom}
+     * instance behind {@code UUID.randomUUID()}, which serializes under load.
+     * <p>
+     * The caller must still check for absence under the session lock — that check,
+     * not this method, is the actual uniqueness guarantee.
+     *
+     * @return a base-36 key, at most 13 characters
+     */
+    private static String generateRandomKey() {
+        return Long.toUnsignedString(ThreadLocalRandom.current().nextLong(), Character.MAX_RADIX);
     }
 
 }
