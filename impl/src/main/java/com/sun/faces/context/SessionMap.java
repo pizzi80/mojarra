@@ -73,13 +73,17 @@ public class SessionMap extends BaseContextMap<Object> {
         HttpSession session = getSessionOrCreate();
         for (Map.Entry<? extends String, ?> entry : map.entrySet()) {
             String key = entry.getKey();
-            Object value = entry.getValue();
-            if (ProjectStage.Development.equals(stage) && !(value instanceof Serializable)) {
-                if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[]{key, value.getClass().getName()});
+            if (key != null) {
+                Object value = entry.getValue();
+                session.setAttribute(key, value);
+
+                // Development warning
+                if (ProjectStage.Development.equals(stage) && !(value instanceof Serializable)) {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING, "faces.context.extcontext.sessionmap.nonserializable", new Object[]{key, value.getClass().getName()});
+                    }
                 }
             }
-            session.setAttribute(key, value);
         }
     }
 
@@ -209,15 +213,22 @@ public class SessionMap extends BaseContextMap<Object> {
     // ----------------------------------------------------------- Session Mutex
 
     // PENDING: to be used when the session is null or invalidated during getMutex access
-    // NOTE: we have to use ReentrantLock instead of the interface Lock because the latter is not Serializable
     private static final Object shared_mutex = new Object();
 
     public static void createMutex(HttpSession session) {
-        session.setAttribute(MUTEX, new ReentrantLock());
+        session.setAttribute(MUTEX, new Object());
     }
 
+    /**
+     * Retrieve and return an Object from Session
+     * that can be used as a mutex to synchronize operations between threads
+     * <p>
+     * NOTE: this method must never return a null value otherwise
+     * it will cause a {@link NullPointerException}
+     * in the synchronized block that is using the mutex.
+     */
     public static Object getMutex(Object session) {
-        if ( session == null ) return shared_mutex;             // PENDING: to avoid NPE in synchronized blocks
+        if ( session == null ) return shared_mutex;             // to avoid NPE in synchronized blocks
         if ( session instanceof HttpSession httpSession ) {
             try {
                 final Object mutex = httpSession.getAttribute(MUTEX);
