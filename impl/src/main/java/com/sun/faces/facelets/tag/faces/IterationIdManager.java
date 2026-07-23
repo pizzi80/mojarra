@@ -88,7 +88,7 @@ public class IterationIdManager {
             // to suspend Id tracking
             // (see the startNamingContainer method)
             stack = new LinkedList<>();
-            ctx.setAttribute(_STACK_OF_TRACKED_IDS, stack);
+            context.setAttribute(_STACK_OF_TRACKED_IDS, stack);
         }
         return stack;
     }
