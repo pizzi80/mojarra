@@ -67,6 +67,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -158,21 +159,41 @@ public class Util {
         throw new IllegalStateException();
     }
 
-    private static final int PATTERN_CACHE_SIZE = 64;
-
-    private static LRUCache<String,Pattern> getPatternCache(FacesContext context) {
+    private static Map<String,Pattern> getPatternCache(FacesContext context) {
         ServletContext sc = (ServletContext) context.getExternalContext().getContext();
         return getPatternCache(sc);
     }
 
+    private static final Object PATTERN_CACHE_LOCK = new Object();
+
     @SuppressWarnings("unchecked")
-    private static LRUCache<String,Pattern> getPatternCache(ServletContext sc) {
-        LRUCache<String, Pattern> cache = (LRUCache<String, Pattern>) sc.getAttribute(PATTERN_CACHE_KEY);
+    private static Map<String,Pattern> getPatternCache(Map<String, Object> appMap) {
+        Map<String, Pattern> cache = (Map<String, Pattern>) appMap.get(PATTERN_CACHE_KEY);
         if (cache == null) {
-            cache = new LRUCache<>(Pattern::compile, PATTERN_CACHE_SIZE);
-            sc.setAttribute(PATTERN_CACHE_KEY, cache);
+            synchronized (PATTERN_CACHE_LOCK) {
+                cache = (Map<String, Pattern>) appMap.get(PATTERN_CACHE_KEY);
+                if (cache == null) {
+                    cache = new ConcurrentHashMap<>();
+                    appMap.put(PATTERN_CACHE_KEY, cache);
+                }
+            }
         }
 
+        return cache;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Pattern> getPatternCache(ServletContext sc) {
+        Map<String, Pattern> cache = (Map<String, Pattern>) sc.getAttribute(PATTERN_CACHE_KEY);
+        if (cache == null) {
+            synchronized (PATTERN_CACHE_LOCK) {
+                cache = (Map<String, Pattern>) sc.getAttribute(PATTERN_CACHE_KEY);
+                if (cache == null) {
+                    cache = new ConcurrentHashMap<>();
+                    sc.setAttribute(PATTERN_CACHE_KEY, cache);
+                }
+            }
+        }
         return cache;
     }
 
@@ -764,7 +785,7 @@ public class Util {
     }
 
     /**
-     * Returns the first argument if it is non-null and otherwise returns the second argument.
+     * Returns the first argument if is non-null, otherwise the second argument.
      *
      * @param <T> The generic object type.
      * @param o1 The value to be tested for to be tested for non-<code>null</code>.
@@ -836,10 +857,9 @@ public class Util {
 
     /**
      * Ported from Java 19+
-     * todo: remove when Faces will be Java 19+
      *
      * @param numMappings number of expected elements to be stored in the Map
-     * @return the correct initial capacity for a {@link Map} to contain numMappings elements to avoid rehash
+     * @return the correct initial capacity for a {@link Map} to contain numMappings elements without rehashing
      */
     public static int calculateMapCapacity(int numMappings) {
         return (int) Math.ceil( numMappings / 0.75 );
@@ -1154,7 +1174,7 @@ public class Util {
     /**
      * <p>A slightly more efficient version of
      * <code>String.split()</code> which caches
-     * the <code>Pattern</code>s in an LRUMap instead of
+     * the <code>Pattern</code>s in a cache instead of
      * creating a new <code>Pattern</code> on each
      * invocation. Limited by splitLimit.</p>
      *
@@ -1173,8 +1193,7 @@ public class Util {
             return toSplit.split(regex, splitLimit);
         }
 
-        Pattern pattern = getPatternCache(context).get(regex, Pattern::compile);
-        return pattern.split(toSplit, splitLimit);
+        return split(getPatternCache(context), toSplit, regex, splitLimit);
     }
 
     public static String[] split(ServletContext sc, String toSplit, String regex) {
@@ -1183,8 +1202,14 @@ public class Util {
             return toSplit.split(regex);
         }
 
-        Pattern pattern = getPatternCache(sc).get(regex, Pattern::compile);
-        return pattern.split(toSplit, 0);
+        return split(getPatternCache(sc), toSplit, regex, 0);
+    }
+
+    private static String[] split(Map<String,Pattern> cache, String toSplit, String regex, int limit) {
+        Pattern pattern = cache.get(regex);
+        if (pattern == null) pattern = cache.computeIfAbsent(regex, Pattern::compile);
+
+        return pattern.split(toSplit, limit);
     }
 
     /**
