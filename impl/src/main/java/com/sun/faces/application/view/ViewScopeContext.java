@@ -78,13 +78,8 @@ public class ViewScopeContext implements Context, Serializable {
      */
     @Override
     public <T> T get(Contextual<T> contextual) {
-        FacesContext facesContext = getActiveFacesContext();
-        ViewScopeManager manager = ViewScopeManager.getInstance(facesContext);
-
-        if (manager == null) {
-            return null;
-        }
-
+        final FacesContext facesContext = getActiveFacesContext();
+        final ViewScopeManager manager = ViewScopeManager.getInstance(facesContext);
         ViewScopeManager.acquireViewMap(facesContext);
         return manager.getContextManager().getBean(facesContext, contextual);
     }
@@ -100,11 +95,8 @@ public class ViewScopeContext implements Context, Serializable {
      */
     @Override
     public <T> T get(Contextual<T> contextual, CreationalContext<T> creational) {
-        FacesContext facesContext = getActiveFacesContext();
-        ViewScopeManager manager = ViewScopeManager.getInstance(facesContext);
-        if (manager == null) {
-            return null;
-        }
+        final FacesContext facesContext = getActiveFacesContext();
+        final ViewScopeManager manager = ViewScopeManager.getInstance(facesContext);
 
         ViewScopeManager.acquireViewMap(facesContext);
 
