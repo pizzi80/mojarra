@@ -20,7 +20,6 @@ import static com.sun.faces.application.view.ViewScopeManager.ACTIVE_VIEW_MAPS;
 import static com.sun.faces.application.view.ViewScopeManager.VIEW_SCOPE_MANAGER;
 import static com.sun.faces.cdi.clientwindow.ClientWindowScopeManager.CLIENT_WINDOW_SCOPE_MANAGER;
 import static com.sun.faces.config.WebConfiguration.BooleanWebContextInitParameter.EnableDistributable;
-import static java.util.Arrays.asList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +52,8 @@ import jakarta.servlet.http.HttpSessionListener;
  * </p>
  */
 public class WebappLifecycleListener {
+
+    private static final String[] SESSION_LISTENERS = {VIEW_SCOPE_MANAGER, CLIENT_WINDOW_SCOPE_MANAGER};
 
     private ServletContext servletContext;
     private ApplicationAssociate applicationAssociate;
@@ -139,9 +140,8 @@ public class WebappLifecycleListener {
         activeSessions.remove(event.getSession());
         FlowCDIContext.sessionDestroyed(event);
 
-        for (HttpSessionListener listener :
-                asList((HttpSessionListener)servletContext.getAttribute(VIEW_SCOPE_MANAGER),
-                        (HttpSessionListener)servletContext.getAttribute(CLIENT_WINDOW_SCOPE_MANAGER))) {
+        for (String listenerName : SESSION_LISTENERS) {
+            HttpSessionListener listener = (HttpSessionListener)servletContext.getAttribute(listenerName);
             if (listener != null) {
                 listener.sessionDestroyed(event);
             }
