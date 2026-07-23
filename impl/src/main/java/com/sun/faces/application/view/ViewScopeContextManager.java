@@ -22,13 +22,10 @@ import static com.sun.faces.cdi.CdiUtils.getBeanReference;
 import static com.sun.faces.context.SessionMap.getMutex;
 import static com.sun.faces.util.Util.getCdiBeanManager;
 import static java.util.logging.Level.FINEST;
-import static java.util.logging.Level.WARNING;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 import jakarta.enterprise.context.spi.Contextual;
@@ -43,7 +40,6 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpSessionEvent;
 
 import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.Util;
 
 /**
  * The manager that deals with CDI ViewScoped beans.
@@ -240,63 +236,57 @@ public class ViewScopeContextManager {
     private Map<String, ViewScopeContextObject> getContextMap(FacesContext facesContext, boolean create) {
         Map<String, ViewScopeContextObject> result = null;
 
-        final ExternalContext externalContext = facesContext.getExternalContext();
-        if (externalContext != null) {
-            try {
-                // get the current session or create a new one
-                // note that in some remote circumstances the response could be committed,
-                // and we will get an IllegalStateException ...
-                final Object session = externalContext.getSession(create);
+        try {
+            final ExternalContext externalContext = facesContext.getExternalContext();
+            final Object session = externalContext.getSession(create);
 
-                if (session != null) {
-                    final Map<String, Object> sessionMap = externalContext.getSessionMap();
+            if (session != null) {
+                final Map<String, Object> sessionMap = externalContext.getSessionMap();
 
-                    // get (or create) the global ViewScope Map
-                    final Map<Object, ConcurrentMap<String, ViewScopeContextObject>> activeViewScopeContexts = getViewScopeContextMap(sessionMap, session, create);
+                // get (or create) the global ViewScope Map
+                final Map<Object, ConcurrentMap<String, ViewScopeContextObject>> activeViewScopeContexts = getViewScopeContextMap(sessionMap, session, create);
 
-                    // get / create the ViewScope for the current View
-                    final String viewMapId = (String) facesContext.getViewRoot().getTransientStateHelper().getTransient(VIEW_MAP_ID);
-                    if (activeViewScopeContexts != null && viewMapId != null && create) {
-                        activeViewScopeContexts.computeIfAbsent( viewMapId , $ -> {
+                // get / create the ViewScope for the current View
+                final String viewMapId = (String) facesContext.getViewRoot().getTransientStateHelper().getTransient(VIEW_MAP_ID);
 
-                            // If we are distributable, this will result in a dirtying of the
-                            // session data, forcing replication. If we are not distributable,
-                            // this is a no-op.
+                if (activeViewScopeContexts != null && viewMapId != null && create) {
+                    synchronized (activeViewScopeContexts) {
+                        if (!activeViewScopeContexts.containsKey(viewMapId)) {
+                            activeViewScopeContexts.put(viewMapId, new ConcurrentHashMap<>());
                             if (distributable) {
+                                // If we are distributable, this will result in a dirtying of the
+                                // session data, forcing replication. If we are not distributable,
+                                // this is a no-op.
                                 sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewScopeContexts);
                             }
-
-                            // create the ViewScope Map for the current View
-                            return new ConcurrentHashMap<>();
-                        });
-                    }
-
-                    if (activeViewScopeContexts != null && viewMapId != null) {
-                        result = activeViewScopeContexts.get(viewMapId);
+                        }
                     }
                 }
-            }
-            // Session already invalidated or response committed
-            catch (Throwable e) {
-                LOGGER.log(WARNING, e.getMessage());
-                return null;
+
+                if (activeViewScopeContexts != null && viewMapId != null) {
+                    result = activeViewScopeContexts.get(viewMapId);
+                }
             }
         }
+        // Session already invalidated or response committed
+        catch (IllegalStateException expiredOrReleased) {}
 
         return result;
     }
 
     @SuppressWarnings("unchecked")
     private static Map<Object, ConcurrentMap<String, ViewScopeContextObject>> getViewScopeContextMap(Map<String, Object> sessionMap, Object session, boolean create) {
-
-        final Object lock = getMutex(session);
-
-        synchronized (lock) {
-            return (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>) (create ?
-                    sessionMap.computeIfAbsent(ACTIVE_VIEW_CONTEXTS, $ -> new ConcurrentHashMap<>()) :
-                    sessionMap.get(ACTIVE_VIEW_CONTEXTS));
+        var activeViewContextMap = sessionMap.get(ACTIVE_VIEW_CONTEXTS);
+        if (activeViewContextMap == null && create) {
+            synchronized (getMutex(session)) {
+                activeViewContextMap = sessionMap.get(ACTIVE_VIEW_CONTEXTS);
+                if (activeViewContextMap == null) {
+                    activeViewContextMap = new ConcurrentHashMap<>();
+                    sessionMap.put(ACTIVE_VIEW_CONTEXTS, activeViewContextMap);
+                }
+            }
         }
-
+        return (Map<Object, ConcurrentMap<String, ViewScopeContextObject>>) activeViewContextMap;
     }
 
     /**
@@ -306,20 +296,19 @@ public class ViewScopeContextManager {
      * @param viewMapId The viewMapId of the map.
      * @return the context map.
      */
+    @SuppressWarnings("unchecked")
     private Map<String, ViewScopeContextObject> getContextMap(FacesContext facesContext, String viewMapId) {
         Map<String, ViewScopeContextObject> result = null;
 
-        ExternalContext externalContext = facesContext.getExternalContext();
-        if (externalContext != null) {
+        try {
+            ExternalContext externalContext = facesContext.getExternalContext();
             Map<String, Object> sessionMap = externalContext.getSessionMap();
-            @SuppressWarnings("unchecked")
-            Map<Object, Map<String, ViewScopeContextObject>> activeViewScopeContexts =
-                    (Map<Object, Map<String, ViewScopeContextObject>>) sessionMap.get(ACTIVE_VIEW_CONTEXTS);
-
+            var activeViewScopeContexts = (Map<Object, Map<String, ViewScopeContextObject>>) sessionMap.get(ACTIVE_VIEW_CONTEXTS);
             if (activeViewScopeContexts != null) {
                 result = activeViewScopeContexts.get(viewMapId);
             }
         }
+        catch (IllegalStateException expiredOrReleased) {}
 
         return result;
     }
@@ -361,8 +350,8 @@ public class ViewScopeContextManager {
 
         HttpSession session = httpSessionEvent.getSession();
 
-        Map<Object, Map<String, ViewScopeContextObject>> activeViewScopeContexts = (Map<Object, Map<String, ViewScopeContextObject>>)
-                session.getAttribute(ACTIVE_VIEW_CONTEXTS);
+        var activeViewScopeContexts = (Map<Object, Map<String, ViewScopeContextObject>>) session.getAttribute(ACTIVE_VIEW_CONTEXTS);
+
         if (activeViewScopeContexts != null) {
             destroyAllBeans((Map<String, ?>) session.getAttribute(ViewScopeManager.ACTIVE_VIEW_MAPS), activeViewScopeContexts);
             destroyAllBeans(ViewScopeManager.getEvictedViewMaps(session), activeViewScopeContexts);
