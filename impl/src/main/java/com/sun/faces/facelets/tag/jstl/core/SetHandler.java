@@ -60,7 +60,7 @@ public class SetHandler extends TagHandlerImpl {
     @Override
     public void apply(FaceletContext context, UIComponent parent) throws IOException {
 
-        markDynamicTransientBuild(ctx);
+        markDynamicTransientBuild(context);
 
         StringBuilder bodyValue = new StringBuilder();
 
