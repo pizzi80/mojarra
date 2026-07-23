@@ -38,7 +38,6 @@ import java.io.ObjectOutputStream;
 import java.security.SecureRandom;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -51,7 +50,7 @@ import jakarta.faces.context.ResponseWriter;
 
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.config.WebConfiguration.WebContextInitParameter;
-import com.sun.faces.util.ConcurrentLRUMap;
+import com.sun.faces.util.ConcurrentLruMap;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.RequestStateManager;
 import com.sun.faces.util.TypedCollections;
@@ -156,7 +155,7 @@ public class ServerSideStateHelper extends StateHelper {
 
                     Map<String, Map> logicalMap = TypedCollections.dynamicallyCastMap((Map) sessionMap.get(LOGICAL_VIEW_MAP), String.class, Map.class);
                     if (logicalMap == null) {
-                        logicalMap = new ConcurrentLRUMap<>(numberOfLogicalViews);
+                        logicalMap = new ConcurrentLruMap<>(numberOfLogicalViews);
                         sessionMap.put(LOGICAL_VIEW_MAP, logicalMap);
                     }
 
@@ -178,7 +177,7 @@ public class ServerSideStateHelper extends StateHelper {
                     }
                     Map<String, Object[]> actualMap = TypedCollections.dynamicallyCastMap(logicalMap.get(idInLogicalMap), String.class, Object[].class);
                     if (actualMap == null) {
-                        actualMap = new ConcurrentLRUMap<>(numberOfViews);
+                        actualMap = new ConcurrentLruMap<>(numberOfViews);
                         logicalMap.put(idInLogicalMap, actualMap);
                     }
 
