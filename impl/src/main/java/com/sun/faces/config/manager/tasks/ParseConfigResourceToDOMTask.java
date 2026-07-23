@@ -91,7 +91,6 @@ public class ParseConfigResourceToDOMTask implements Callable<DocumentInfo> {
 
     private final ServletContext servletContext;
     private final URI documentURI;
-    private DocumentBuilderFactory factory;
     private final boolean validating;
 
 
@@ -288,7 +287,7 @@ public class ParseConfigResourceToDOMTask implements Callable<DocumentInfo> {
 
         while (!isZeroLengthOrEmpty && -1 != is.read(buffer, 0, size)) {
             String bufferAsString = new String(buffer, CHAR_ENCODING).trim();
-            isZeroLengthOrEmpty = 0 == bufferAsString.length();
+            isZeroLengthOrEmpty = bufferAsString.isEmpty();
             buffer[0] = 0;
             for (int i = 1; i < size; i += i) {
                 arraycopy(buffer, 0, buffer, i, size - i < i ? size - i : i);
@@ -312,8 +311,8 @@ public class ParseConfigResourceToDOMTask implements Callable<DocumentInfo> {
     /**
      * Obtain a <code>Transformer</code> using the style sheet referenced by the <code>XSL</code> constant.
      *
-     * @return a new Tranformer instance
-     * @throws Exception if a Tranformer instance could not be created
+     * @return a new Transformer instance
+     * @throws Exception if a Transformer instance could not be created
      */
     private static Transformer getTransformer(String documentNS) throws Exception {
         String xslToApply;
@@ -352,7 +351,7 @@ public class ParseConfigResourceToDOMTask implements Callable<DocumentInfo> {
     }
 
     private DocumentBuilder getBuilderForSchema(Schema schema) throws Exception {
-        factory = DbfFactory.getFactory();
+        DocumentBuilderFactory factory = DbfFactory.getFactory();
 
         try {
             factory.setSchema(schema);
