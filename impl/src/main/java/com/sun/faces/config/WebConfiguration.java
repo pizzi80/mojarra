@@ -18,10 +18,12 @@
 package com.sun.faces.config;
 
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsSuffix;
+import static com.sun.faces.util.Util.SPACE_STRING;
 import static com.sun.faces.util.Util.split;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 
@@ -75,12 +77,6 @@ import com.sun.faces.util.MojarraVersion;
 import com.sun.faces.util.Util;
 
 import com.sun.faces.RIConstants;
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.application.view.FaceletViewHandlingStrategy;
-import com.sun.faces.facelets.util.Classpath;
-import com.sun.faces.lifecycle.HttpMethodRestrictionsPhaseListener;
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.Util;
 
 /**
  * Class Documentation
@@ -142,9 +138,9 @@ public class WebConfiguration {
         // build the cache of list type params
         cachedListParams = new HashMap<>(Util.calculateMapCapacity(6)); // make room for other Faces options
 
-        getOptionValue(WebContextInitParameter.ResourceExcludes, " ");
+        getOptionValue(WebContextInitParameter.ResourceExcludes, SPACE_STRING);
         getOptionValue(WebContextInitParameter.FaceletsViewMappings, ";");
-        getOptionValue(WebContextInitParameter.FaceletsSuffix, " ");
+        getOptionValue(WebContextInitParameter.FaceletsSuffix, SPACE_STRING);
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -299,6 +295,46 @@ public class WebConfiguration {
         }
 
         return result;
+    }
+
+    /**
+     * retrieve the param value defined in the config param
+     * or fallback to the defined default value of the config param
+     */
+    public static int getOptionIntValueOrDefault(WebConfiguration config, WebContextInitParameter param) {
+        return getOptionIntValueOrDefault(config, param, 0);
+    }
+
+    /**
+     * retrieve the param value defined in the config or fallback to the defined default value
+     * or fallback to the hardcoded fallback passed parameter
+     * @param fallback hardcoded fallback value when everything fails
+     */
+    public static int getOptionIntValueOrDefault(WebConfiguration config, WebContextInitParameter param, int fallback) {
+        String valueOrAlternateValue = config.getOptionValue(param);
+        if (valueOrAlternateValue != null) {
+            // --- return the parsed value or warn ---
+            try {
+                return Integer.parseInt(valueOrAlternateValue);
+            }
+            catch (NumberFormatException e) {
+                if (LOGGER.isLoggable(WARNING)) {
+                    LOGGER.log(WARNING, "Cannot parse " + param.getQualifiedName(), e);
+                }
+
+                // --- return the parsed default value or warn ---
+                try {
+                    return Integer.parseInt(param.getDefaultValue());
+                }
+                catch (NumberFormatException nre) {
+                    if (LOGGER.isLoggable(WARNING)) {
+                        LOGGER.log(WARNING, "Cannot parse the default value of " + param.getQualifiedName(), nre);
+                    }
+                }
+            }
+        }
+        // return the passed hardcoded fallback value
+        return fallback;
     }
 
     /**
