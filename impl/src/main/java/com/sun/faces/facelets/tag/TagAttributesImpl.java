@@ -38,7 +38,7 @@ import jakarta.faces.view.facelets.TagAttributes;
  * @version $Id$
  */
 public final class TagAttributesImpl extends TagAttributes {
-    private final static TagAttribute[] EMPTY = new TagAttribute[0];
+    private final static TagAttribute[] EMPTY = {};
 
 //    private final Map<String,Integer> nsIndex;
 
