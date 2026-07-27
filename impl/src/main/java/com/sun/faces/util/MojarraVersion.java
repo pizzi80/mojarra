@@ -62,7 +62,15 @@ public final class MojarraVersion {
         } catch (IOException e) {
             return null;
         }
-        return props.getProperty("version");
+
+        String v = props.getProperty("version");
+        if (v != null) {
+            int snapshotStart = v.indexOf("-SNAPSHOT");
+            if (snapshotStart >= 0) {
+                v = v.substring(0, snapshotStart);
+            }
+        }
+        return v;
     }
 
     private static String stripPatch(String v) {
