@@ -31,6 +31,14 @@
 
     <name>Mojarra ${project.version} - CDI</name>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>17</maven.compiler.source> <!-- for jitpack -->
+        <maven.compiler.target>17</maven.compiler.target> <!-- for jitpack -->
+        <maven.compiler.release>17</maven.compiler.release>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>jakarta.enterprise</groupId>

@@ -19,21 +19,21 @@
 -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-   <modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-   <parent>
+    <parent>
         <groupId>org.eclipse.ee4j</groupId>
         <artifactId>project</artifactId>
         <version>2.0.1</version>
     </parent>
 
-   <groupId>org.glassfish</groupId>
-   <artifactId>mojarra-parent</artifactId>
-   <version>4.2.11-SNAPSHOT</version>
-   <packaging>pom</packaging>
+    <groupId>org.glassfish</groupId>
+    <artifactId>mojarra-parent</artifactId>
+    <version>4.2.11-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
-   <name>Mojarra ${project.version} - Project</name>
-   <licenses>
+    <name>Mojarra ${project.version} - Project</name>
+    <licenses>
         <license>
             <name>EPL 2.0</name>
             <url>https://www.eclipse.org/legal/epl-2.0</url>
@@ -46,7 +46,7 @@
         </license>
     </licenses>
 
-   <modules>
+    <modules>
         <module>cdi</module>
         <module>impl</module>
 <!--        <module>action</module>-->
@@ -54,14 +54,15 @@
         <module>test</module>
     </modules>
 
-   <properties>
+    <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        
+        <maven.compiler.source>17</maven.compiler.source> <!-- for jitpack -->
+        <maven.compiler.target>17</maven.compiler.target> <!-- for jitpack -->
         <maven.compiler.release>17</maven.compiler.release>
     </properties>
 
-   <build>
+    <build>
         <plugins>
             <!-- Sets minimal Maven version to 3.8.6 -->
             <plugin>

@@ -24,23 +24,22 @@
 
  -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-   <modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-   <parent>
+    <parent>
         <groupId>org.glassfish</groupId>
         <artifactId>mojarra-parent</artifactId>
         <version>4.2.11-SNAPSHOT</version>
     </parent>
 
-   <artifactId>jakarta.faces</artifactId>
-   <packaging>jar</packaging>
+    <artifactId>jakarta.faces</artifactId>
+    <packaging>jar</packaging>
 
-   <name>Mojarra ${project.version}</name>
-   <description>EE4J Compatible Implementation for Jakarta Faces API</description>
-
-   <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+    <name>Mojarra ${project.version}</name>
+    <description>EE4J Compatible Implementation for Jakarta Faces API</description>
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source> <!-- for jitpack -->
+        <maven.compiler.target>17</maven.compiler.target> <!-- for jitpack -->
         <maven.compiler.release>17</maven.compiler.release>
         <mojarra.logstrings.version>${project.version}</mojarra.logstrings.version>
     </properties>
