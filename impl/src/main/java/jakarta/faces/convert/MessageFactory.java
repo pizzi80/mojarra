@@ -106,7 +106,7 @@ class MessageFactory {
      *
      * @param locale - the target <code>Locale</code>
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
