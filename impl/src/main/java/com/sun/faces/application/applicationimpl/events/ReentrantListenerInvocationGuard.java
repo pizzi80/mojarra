@@ -16,11 +16,9 @@
 
 package com.sun.faces.application.applicationimpl.events;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
-
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.SystemEvent;
@@ -36,28 +34,26 @@ public final class ReentrantListenerInvocationGuard {
     private ReentrantListenerInvocationGuard() {}
 
     public static boolean isGuardSet(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
-        Boolean result = getGuardHolder(context).get(systemEventClass);
-
-        return TRUE.equals(result);
+        return getGuardHolder(context).contains(systemEventClass);
     }
 
     public static void setGuard(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
-        getGuardHolder(context).put(systemEventClass, TRUE);
+        getGuardHolder(context).add(systemEventClass);
     }
 
     public static void clearGuard(FacesContext context, Class<? extends SystemEvent> systemEventClass) {
-        getGuardHolder(context).put(systemEventClass, FALSE);
+        getGuardHolder(context).remove(systemEventClass);
     }
 
     private static final String IS_PROCESSING_LISTENERS_KEY = ApplicationImpl.class.getName()+".IS_PROCESSING_LISTENERS";
 
     @SuppressWarnings("unchecked")
-    private static Map<Class<? extends SystemEvent>, Boolean> getGuardHolder(FacesContext context) {
+    private static Set<Class<? extends SystemEvent>> getGuardHolder(FacesContext context) {
         final Map<Object, Object> attributes = context.getAttributes();
 
-        var result = (Map<Class<? extends SystemEvent>, Boolean>) attributes.get(IS_PROCESSING_LISTENERS_KEY);
+        var result = (Set<Class<? extends SystemEvent>>) attributes.get(IS_PROCESSING_LISTENERS_KEY);
         if (result == null) {
-            result = new HashMap<>();
+            result = new HashSet<>();
             attributes.put(IS_PROCESSING_LISTENERS_KEY, result);
         }
 
