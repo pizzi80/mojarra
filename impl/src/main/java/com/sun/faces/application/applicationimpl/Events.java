@@ -233,7 +233,7 @@ public class Events {
     private static SystemEvent processListeners(Collection<SystemEventListener> listeners, SystemEvent event, Object source, EventInfo eventInfo) {
 
         if (listeners != null && !listeners.isEmpty()) {
-            List<SystemEventListener> list = new ArrayList<>(listeners);
+            final SystemEventListener[] list = listeners.toArray(SystemEventListener[]::new);
 
             for (SystemEventListener curListener : list) {
                 if (curListener != null && curListener.isListenerForSource(source)) {
