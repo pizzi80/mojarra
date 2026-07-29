@@ -18,13 +18,12 @@ package com.sun.faces.application.applicationimpl.events;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sun.faces.util.Cache;
 import com.sun.faces.util.FacesLogger;
 
 import jakarta.faces.FacesException;
@@ -42,7 +41,7 @@ public class EventInfo {
     private final Class<? extends SystemEvent> systemEvent;
     private final Class<?> sourceClass;
     private final Set<SystemEventListener> listeners;
-    private final Map<Class<?>, Constructor<?>> constructorMap;
+    private final Cache<Class<?>, Constructor<?>> constructorCache;
     private Constructor<?> eventConstructor;
 
     // -------------------------------------------------------- Constructors
@@ -51,7 +50,7 @@ public class EventInfo {
         this.systemEvent = systemEvent;
         this.sourceClass = sourceClass;
         this.listeners = new CopyOnWriteArraySet<>();
-        this.constructorMap = new HashMap<>();
+        this.constructorCache = new Cache<>(this::getEventConstructor);
         if (!sourceClass.equals(Void.class)) {
             eventConstructor = getEventConstructor(sourceClass);
         }
@@ -78,9 +77,8 @@ public class EventInfo {
     // ----------------------------------------------------- Private Methods
 
     private Constructor<?> getCachedConstructor(Class<?> source) {
-        return eventConstructor != null ?
-                eventConstructor :
-                constructorMap.computeIfAbsent(source, this::getEventConstructor);
+        if (eventConstructor != null) return eventConstructor;
+        return constructorCache.get(source);
     }
 
     private Constructor<?> getEventConstructor(Class<?> source) {
