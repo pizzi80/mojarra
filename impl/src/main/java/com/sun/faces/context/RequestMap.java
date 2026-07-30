@@ -50,7 +50,9 @@ public class RequestMap extends BaseContextMap<Object> {
     // Supported by maps if overridden
     @Override
     public void putAll(Map<? extends String, ?> map) {
-        map.forEach(request::setAttribute);
+        for (Map.Entry<? extends String, ?> entry : map.entrySet()) {
+            request.setAttribute(entry.getKey(), entry.getValue());
+        }
     }
 
     @Override
@@ -90,7 +92,11 @@ public class RequestMap extends BaseContextMap<Object> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(request, entrySet());
+        int hashCode = 7 * request.hashCode();
+        for (Map.Entry<String, Object> stringObjectEntry : entrySet()) {
+            hashCode += stringObjectEntry.hashCode();
+        }
+        return hashCode;
     }
 
     // --------------------------------------------- Methods from BaseContextMap
