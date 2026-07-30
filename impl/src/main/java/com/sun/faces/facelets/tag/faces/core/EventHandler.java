@@ -110,17 +110,19 @@ class DeclarativeSystemEventListener implements ComponentSystemEventListener, Se
             oneArgListener.invoke(elContext, new Object[] { event });
         }
     }
+
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof DeclarativeSystemEventListener listener)) return false;
-
-        return Objects.equals(oneArgListener, listener.oneArgListener)
+        return object instanceof DeclarativeSystemEventListener listener
+            && Objects.equals(oneArgListener, listener.oneArgListener)
             && Objects.equals(noArgListener, listener.noArgListener);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(oneArgListener, noArgListener);
+        int result = oneArgListener != null ? oneArgListener.hashCode() : 0;
+        result = 31 * result + (noArgListener != null ? noArgListener.hashCode() : 0);
+        return result;
     }
 
 }
