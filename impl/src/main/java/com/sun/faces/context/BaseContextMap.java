@@ -298,7 +298,7 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
         @Override
         public int hashCode() {
-            return Objects.hash(key, value);
+            return (key == null ? 0 : key.hashCode()) ^ (value == null ? 0 : value.hashCode());
         }
 
         @Override
