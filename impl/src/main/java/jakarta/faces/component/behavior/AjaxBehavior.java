@@ -424,10 +424,12 @@ public class AjaxBehavior extends ClientBehaviorBase {
                 if (bindings == null) {
 
                     // We use a very small initial capacity on this HashMap.
-                    // The goal is to keep the memory footprint small.
-                    // It is very unlikely that an AjaxBehavior would have
-                    // more than 1 or 2 bound properties
-                    bindings = new HashMap<>(Util.calculateMapCapacity(2));
+                    // The goal is not to reduce collisions, but to keep the
+                    // memory footprint small. It is very unlikely that an
+                    // an AjaxBehavior would have more than 1 or 2 bound
+                    // properties - and even if more are present, it's okay
+                    // if we have some collisions - will still be fast.
+                    bindings = new HashMap<>(6, 1.0f);
                 }
 
                 bindings.put(name, binding);
