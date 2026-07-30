@@ -329,7 +329,9 @@ final class CurrentThreadToServletContext {
 
         @Override
         public int hashCode() {
-            return Objects.hash(classLoader, marker);
+            int hash = 7;
+            hash = 97 * hash + (classLoader != null ? classLoader.hashCode() : 0);
+            return 97 * hash + (marker != null ? marker.hashCode() : 0);
         }
 
     }
