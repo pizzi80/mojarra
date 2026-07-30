@@ -37,7 +37,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -131,7 +130,8 @@ public abstract class ResourceHelper {
 
         InputStream in = null;
 
-        if (toStream instanceof ClientResourceInfo resource) {
+        if (toStream instanceof ClientResourceInfo) {
+            ClientResourceInfo resource = (ClientResourceInfo) toStream;
 
             in = getInputStreamFromClientInfo(resource, ctx);
             if (null == in) {
