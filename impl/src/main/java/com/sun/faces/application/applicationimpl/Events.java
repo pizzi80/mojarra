@@ -20,12 +20,9 @@ import static com.sun.faces.util.Util.notNull;
 import static jakarta.faces.application.ProjectStage.Development;
 import static java.util.logging.Level.WARNING;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -35,6 +32,7 @@ import com.sun.faces.application.applicationimpl.events.EventInfo;
 import com.sun.faces.application.applicationimpl.events.ReentrantListenerInvocationGuard;
 import com.sun.faces.application.applicationimpl.events.SystemEventHelper;
 import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.Util;
 
 import jakarta.faces.application.Application;
 import jakarta.faces.application.ProjectStage;
@@ -180,26 +178,28 @@ public class Events {
     }
 
     private SystemEvent invokeViewListenersFor(FacesContext context, Class<? extends SystemEvent> systemEventClass, SystemEvent event, Object source) {
-        UIViewRoot root = context.getViewRoot();
+        final UIViewRoot root = context.getViewRoot();
         if (root == null) {
             return event;
         }
 
         // Resolve the view listeners before touching the reentrancy guard: the common case has none,
         // and the guard's bookkeeping (a per-request map) is only needed while actually invoking them.
-        List<SystemEventListener> listeners = root.getViewListenersForEventClass(systemEventClass);
-        if (null == listeners) {
+        final List<SystemEventListener> listeners = root.getViewListenersForEventClass(systemEventClass);
+        if (listeners == null) {
             return null;
         }
 
         if (ReentrantListenerInvocationGuard.isGuardSet(context, systemEventClass)) {
             return event;
         }
+
         ReentrantListenerInvocationGuard.setGuard(context, systemEventClass);
         try {
             EventInfo rootEventInfo = systemEventHelper.getEventInfo(systemEventClass, UIViewRoot.class);
             return processListenersAccountingForAdds(listeners, event, source, rootEventInfo);
-        } finally {
+        }
+        finally {
             ReentrantListenerInvocationGuard.clearGuard(context, systemEventClass);
         }
     }
@@ -296,17 +296,14 @@ public class Events {
         // if original differs from copy, make a new copy.
         // The new copy consists of the original list - processed
 
-        SystemEventListener[] listenersCopy = new SystemEventListener[listeners.size()];
-        int i = 0;
-        for (i = 0; i < listenersCopy.length; i++) {
-            listenersCopy[i] = listeners.get(i);
-        }
+        SystemEventListener[] listenersCopy = listeners.toArray(SystemEventListener[]::new);
 
-        Map<SystemEventListener, Boolean> processedListeners = new HashMap<>(listeners.size());
-        boolean processedSomeEvents = false, originalDiffersFromCopy = false;
+        final Set<SystemEventListener> processedListeners = new HashSet<>(Util.calculateMapCapacity(listeners.size()));
+        boolean processedSomeEvents = false;
+        boolean originalDiffersFromCopy = false;
 
         do {
-            i = 0;
+            int i = 0;
             originalDiffersFromCopy = false;
             if (0 < listenersCopy.length) {
                 for (i = 0; i < listenersCopy.length; i++) {
@@ -316,10 +313,10 @@ public class Events {
                             event = eventInfo.createSystemEvent(source);
                         }
                         assert event != null;
-                        if (!processedListeners.containsKey(curListener) && event.isAppropriateListener(curListener)) {
+                        if (!processedListeners.contains(curListener) && event.isAppropriateListener(curListener)) {
                             processedSomeEvents = true;
                             event.processListener(curListener);
-                            processedListeners.put(curListener, Boolean.TRUE);
+                            processedListeners.add(curListener);
                         }
                     }
                 }
@@ -334,35 +331,32 @@ public class Events {
     }
 
     private static boolean originalDiffersFromCopy(Collection<SystemEventListener> original, SystemEventListener[] copy) {
-        boolean foundDifference = false;
-        int i = 0, originalLen = original.size(), copyLen = copy.length;
-
-        if (originalLen == copyLen) {
-            SystemEventListener originalItem, copyItem;
-            Iterator<SystemEventListener> iter = original.iterator();
-            while (iter.hasNext() && !foundDifference) {
-                originalItem = iter.next();
-                copyItem = copy[i++];
-                foundDifference = originalItem != copyItem;
-            }
-        } else {
-            foundDifference = true;
+        if (original.size() != copy.length) {
+            return true;
         }
 
-        return foundDifference;
+        int i = 0;
+        for (SystemEventListener originalItem : original) {
+            if (originalItem != copy[i++]) {
+                return true; // <-- mismatch found
+            }
+        }
+
+        return false; // equals
     }
 
-    private static SystemEventListener[] copyListWithExclusions(Collection<SystemEventListener> original, Map<SystemEventListener, Boolean> excludes) {
-        SystemEventListener[] result = null, temp = new SystemEventListener[original.size()];
-        int i = 0;
-        for (SystemEventListener cur : original) {
-            if (!excludes.containsKey(cur)) {
-                temp[i++] = cur;
+    private static SystemEventListener[] copyListWithExclusions(Collection<SystemEventListener> collection, Set<SystemEventListener> excludes) {
+
+        final SystemEventListener[] filtered = new SystemEventListener[collection.size()];
+        int size = 0;
+        for (SystemEventListener listener : collection) {
+            if (!excludes.contains(listener)) {
+                filtered[size++] = listener;
             }
         }
-        result = new SystemEventListener[i];
-        System.arraycopy(temp, 0, result, 0, i);
 
+        final SystemEventListener[] result = new SystemEventListener[size];
+        System.arraycopy(filtered, 0, result, 0, size);
         return result;
     }
 
