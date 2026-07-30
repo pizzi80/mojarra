@@ -31,6 +31,9 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.util.FacesLogger;
+
 import jakarta.faces.application.NavigationHandler;
 import jakarta.faces.application.ResourceHandler;
 import jakarta.faces.application.StateManager;
@@ -38,9 +41,6 @@ import jakarta.faces.application.ViewHandler;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.ActionListener;
 import jakarta.faces.flow.FlowHandler;
-
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.util.FacesLogger;
 
 public class Singletons {
 
