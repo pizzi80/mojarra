@@ -96,11 +96,8 @@ public final class WebsocketEvent implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        if ( !(object instanceof WebsocketEvent event) ) {
-            return false;
-        }
-
-        return Objects.equals(channel, event.channel)
+        return object instanceof WebsocketEvent event
+            && Objects.equals(channel, event.channel)
             && Objects.equals(user, event.user)
             && Objects.equals(code, event.code);
     }
