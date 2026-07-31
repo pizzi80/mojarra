@@ -331,11 +331,8 @@ public class FacesMessage implements Serializable {
             return true;
         }
 
-        if ( ! (object instanceof FacesMessage message) ) {
-            return false;
-        }
-
-        return Objects.equals(severity, message.severity)
+        return object instanceof FacesMessage message
+            && Objects.equals(severity, message.severity)
             && Objects.equals(summary, message.summary)
             && Objects.equals(detail, message.detail);
     }
