@@ -17,6 +17,7 @@
 package com.sun.faces.util;
 
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Objects;
@@ -29,6 +30,8 @@ import jakarta.faces.application.ApplicationFactory;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
+
+import com.sun.faces.RIConstants;
 
 /**
  *
@@ -107,7 +110,7 @@ public final class MessageFactory {
      *
      * @param locale - the target <code>Locale</code>
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
@@ -229,16 +232,16 @@ public final class MessageFactory {
         return o;
     }
 
-    protected static Application getApplication() {
+    private static Application getApplication() {
         FacesContext context = FacesContext.getCurrentInstance();
         if (context != null) {
-            return FacesContext.getCurrentInstance().getApplication();
+            return context.getApplication();
         }
-        ApplicationFactory afactory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
-        return afactory.getApplication();
+        ApplicationFactory factory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
+        return factory.getApplication();
     }
 
-    protected static ClassLoader getCurrentLoader(Class<?> fallbackClass) {
+    private static ClassLoader getCurrentLoader(Class<?> fallbackClass) {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         if (loader == null) {
             loader = fallbackClass.getClassLoader();
@@ -258,6 +261,11 @@ public final class MessageFactory {
          *
          */
         private static final long serialVersionUID = -6716573928931526997L;
+
+        private final Locale locale;
+        private final Object[] parameters;
+        private final Object[] resolvedParameters;
+
         BindingFacesMessage(Locale locale, String messageFormat, String detailMessageFormat,
                 // array of parameters, both Strings and ValueBindings
                 Object[] parameters) {
@@ -267,6 +275,8 @@ public final class MessageFactory {
             this.parameters = parameters;
             if (parameters != null) {
                 resolvedParameters = new Object[parameters.length];
+            } else {
+                resolvedParameters = null;
             }
         }
 
@@ -297,7 +307,7 @@ public final class MessageFactory {
                     }
                     // to avoid 'null' appearing in message
                     if (o == null) {
-                        o = "";
+                        o = RIConstants.NO_VALUE;
                     }
                     resolvedParameters[i] = o;
                 }
@@ -305,36 +315,34 @@ public final class MessageFactory {
         }
 
         private String getFormattedString(String msgtext, Object[] params) {
-            String localizedStr = null;
-
             if (params == null || msgtext == null) {
                 return msgtext;
             }
-            StringBuilder b = new StringBuilder(100);
-            MessageFormat mf = new MessageFormat(msgtext);
+
+            // todo: why we are returning null if locale is null?
+            final String localizedStr;
             if (locale != null) {
-                mf.setLocale(locale);
-                b.append(mf.format(params));
-                localizedStr = b.toString();
+                final MessageFormat mf = new MessageFormat(msgtext, locale);
+                localizedStr = mf.format(params);
+            } else {
+                localizedStr = null;
             }
+
             return localizedStr;
         }
 
-        private final Locale locale;
-        private final Object[] parameters;
-        private Object[] resolvedParameters;
-        
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), locale, parameters, resolvedParameters);
+            return Objects.hash(super.hashCode(), locale, Arrays.hashCode(parameters), Arrays.hashCode(resolvedParameters));
         }
 
         @Override
         public boolean equals(Object object) {
             return super.equals(object)
-                && Objects.equals(locale, ((BindingFacesMessage) object).locale)
-                && Objects.equals(parameters, ((BindingFacesMessage) object).parameters)
-                && Objects.equals(resolvedParameters, ((BindingFacesMessage) object).resolvedParameters);
+                && object instanceof BindingFacesMessage bindingFacesMessage
+                && Objects.equals(locale, bindingFacesMessage.locale)
+                && Arrays.equals(parameters, bindingFacesMessage.parameters)
+                && Arrays.equals(resolvedParameters, bindingFacesMessage.resolvedParameters);
         }
     }
 
