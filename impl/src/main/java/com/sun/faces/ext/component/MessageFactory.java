@@ -179,7 +179,7 @@ public final class MessageFactory {
     private static Application getApplication() {
         FacesContext context = FacesContext.getCurrentInstance();
         if (context != null) {
-            return FacesContext.getCurrentInstance().getApplication();
+            return context.getApplication();
         }
         ApplicationFactory factory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
         return factory.getApplication();
@@ -206,18 +206,16 @@ public final class MessageFactory {
 
         private final Locale locale;
         private final Object[] parameters;
-        private Object[] resolvedParameters;
+        private final Object[] resolvedParameters;
 
         BindingFacesMessage(Locale locale, String messageFormat, String detailMessageFormat,
-                // array of parameters, both Strings and ValueBindings
-                Object[] parameters) {
+                            // array of parameters, both Strings and ValueBindings
+                            Object[] parameters) {
 
             super(messageFormat, detailMessageFormat);
             this.locale = locale;
             this.parameters = parameters;
-            if (parameters != null) {
-                resolvedParameters = new Object[parameters.length];
-            }
+            this.resolvedParameters = parameters != null ? new Object[parameters.length] : null;
         }
 
         @Override
@@ -254,18 +252,20 @@ public final class MessageFactory {
             }
         }
 
-        private String getFormattedString(String msgtext, Object[] params) {
-            if (params == null || msgtext == null) {
-                return msgtext;
+        private String getFormattedString(String text, Object[] params) {
+            if (params == null || text == null) {
+                return text;
             }
-            StringBuilder b = new StringBuilder(100);
-            MessageFormat mf = new MessageFormat(msgtext);
-            String localizedStr = null;
+
+            // todo: why we are returning null if locale is null?
+            final String localizedStr;
             if (locale != null) {
-                mf.setLocale(locale);
-                b.append(mf.format(params));
-                localizedStr = b.toString();
+                final MessageFormat mf = new MessageFormat(text, locale);
+                localizedStr = mf.format(params);
+            } else {
+                localizedStr = null;
             }
+
             return localizedStr;
         }
 

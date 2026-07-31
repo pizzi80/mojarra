@@ -257,9 +257,7 @@ public final class MessageFactory {
      * the expression to be evaluated when that property is available.
      */
     static class BindingFacesMessage extends FacesMessage {
-        /**
-         *
-         */
+
         private static final long serialVersionUID = -6716573928931526997L;
 
         private final Locale locale;
@@ -267,17 +265,13 @@ public final class MessageFactory {
         private final Object[] resolvedParameters;
 
         BindingFacesMessage(Locale locale, String messageFormat, String detailMessageFormat,
-                // array of parameters, both Strings and ValueBindings
-                Object[] parameters) {
+                            // array of parameters, both Strings and ValueBindings
+                            Object[] parameters) {
 
             super(messageFormat, detailMessageFormat);
             this.locale = locale;
             this.parameters = parameters;
-            if (parameters != null) {
-                resolvedParameters = new Object[parameters.length];
-            } else {
-                resolvedParameters = null;
-            }
+            this.resolvedParameters = parameters != null ? new Object[parameters.length] : null;
         }
 
         @Override
@@ -314,15 +308,15 @@ public final class MessageFactory {
             }
         }
 
-        private String getFormattedString(String msgtext, Object[] params) {
-            if (params == null || msgtext == null) {
-                return msgtext;
+        private String getFormattedString(String text, Object[] params) {
+            if (params == null || text == null) {
+                return text;
             }
 
             // todo: why we are returning null if locale is null?
             final String localizedStr;
             if (locale != null) {
-                final MessageFormat mf = new MessageFormat(msgtext, locale);
+                final MessageFormat mf = new MessageFormat(text, locale);
                 localizedStr = mf.format(params);
             } else {
                 localizedStr = null;
