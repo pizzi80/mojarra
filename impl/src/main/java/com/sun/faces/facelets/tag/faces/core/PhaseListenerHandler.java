@@ -43,9 +43,7 @@ import jakarta.faces.view.facelets.TagException;
 public class PhaseListenerHandler extends TagHandlerImpl {
 
     private final TagAttribute binding;
-
     private final String listenerType;
-
     private final TagAttribute typeAttribute;
 
     public PhaseListenerHandler(TagConfig config) {
@@ -111,14 +109,14 @@ public class PhaseListenerHandler extends TagHandlerImpl {
         }
 
         private PhaseListener getInstance() {
-            FacesContext faces = FacesContext.getCurrentInstance();
-            if (faces == null) {
+            FacesContext context = FacesContext.getCurrentInstance();
+            if (context == null) {
                 return null;
             }
 
             PhaseListener instance = null;
             if (binding != null) {
-                instance = binding.getValue(faces.getELContext());
+                instance = binding.getValue(context.getELContext());
             }
             if (instance == null && type != null) {
                 try {
@@ -127,7 +125,7 @@ public class PhaseListenerHandler extends TagHandlerImpl {
                     throw new AbortProcessingException("Couldn't Lazily instantiate PhaseListener", e);
                 }
                 if (binding != null) {
-                    binding.setValue(faces.getELContext(), instance);
+                    binding.setValue(context.getELContext(), instance);
                 }
             }
             return instance;
@@ -157,15 +155,16 @@ public class PhaseListenerHandler extends TagHandlerImpl {
 
         @Override
         public boolean equals(Object object) {
-            if (!(object instanceof LazyPhaseListener listener)) return false;
-
-            return Objects.equals(type, listener.type)
+            return object instanceof LazyPhaseListener listener
+                && Objects.equals(type, listener.type)
                 && Objects.equals(binding, listener.binding);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(type, binding);
+            int result = type != null ? type.hashCode() : 0;
+            result = 31 * result + (binding != null ? binding.hashCode() : 0);
+            return result;
         }
 
     }
