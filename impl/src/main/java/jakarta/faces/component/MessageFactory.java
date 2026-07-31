@@ -226,16 +226,16 @@ final class MessageFactory {
         return o;
     }
 
-    protected static Application getApplication() {
+    private static Application getApplication() {
         FacesContext context = FacesContext.getCurrentInstance();
         if (context != null) {
-            return FacesContext.getCurrentInstance().getApplication();
+            return context.getApplication();
         }
-        ApplicationFactory afactory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
-        return afactory.getApplication();
+        ApplicationFactory factory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
+        return factory.getApplication();
     }
 
-    protected static ClassLoader getCurrentLoader(Class fallbackClass) {
+    private static ClassLoader getCurrentLoader(Class fallbackClass) {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         if (loader == null) {
             loader = fallbackClass.getClassLoader();
@@ -251,10 +251,13 @@ final class MessageFactory {
      * the expression to be evaluated when that property is available.
      */
     static class BindingFacesMessage extends FacesMessage {
-        /**
-         *
-         */
+
         private static final long serialVersionUID = -124099152627362643L;
+
+        private final Locale locale;
+        private final Object[] parameters;
+        private final Object[] resolvedParameters;
+
         BindingFacesMessage(Locale locale, String messageFormat, String detailMessageFormat,
                 // array of parameters, both Strings and ValueBindings
                 Object[] parameters) {
@@ -262,9 +265,7 @@ final class MessageFactory {
             super(messageFormat, detailMessageFormat);
             this.locale = locale;
             this.parameters = parameters;
-            if (parameters != null) {
-                resolvedParameters = new Object[parameters.length];
-            }
+            this.resolvedParameters = parameters != null ? new Object[parameters.length] : null;
         }
 
         @Override
@@ -301,25 +302,23 @@ final class MessageFactory {
             }
         }
 
-        private String getFormattedString(String msgtext, Object[] params) {
-            String localizedStr = null;
+        private String getFormattedString(String text, Object[] params) {
+            if (params == null || text == null) {
+                return text;
+            }
 
-            if (params == null || msgtext == null) {
-                return msgtext;
-            }
-            StringBuilder b = new StringBuilder(100);
-            MessageFormat mf = new MessageFormat(msgtext);
+            // todo: why we are returning null if locale is null?
+            final String localizedStr;
             if (locale != null) {
-                mf.setLocale(locale);
-                b.append(mf.format(params));
-                localizedStr = b.toString();
+                final MessageFormat mf = new MessageFormat(text, locale);
+                localizedStr = mf.format(params);
+            } else {
+                localizedStr = null;
             }
+
             return localizedStr;
         }
 
-        private final Locale locale;
-        private final Object[] parameters;
-        private Object[] resolvedParameters;
     }
 
 } // end of class MessageFactory

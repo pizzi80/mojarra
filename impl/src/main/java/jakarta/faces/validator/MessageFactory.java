@@ -17,6 +17,7 @@
 package jakarta.faces.validator;
 
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Objects;
@@ -80,7 +81,7 @@ final class MessageFactory {
      * </p>
      *
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
@@ -107,7 +108,7 @@ final class MessageFactory {
      *
      * @param locale - the target <code>Locale</code>
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
@@ -177,7 +178,7 @@ final class MessageFactory {
      *
      * @param context - the <code>FacesContext</code> for the current request
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
@@ -229,16 +230,16 @@ final class MessageFactory {
         return o;
     }
 
-    protected static Application getApplication() {
+    private static Application getApplication() {
         FacesContext context = FacesContext.getCurrentInstance();
         if (context != null) {
-            return FacesContext.getCurrentInstance().getApplication();
+            return context.getApplication();
         }
         ApplicationFactory afactory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
         return afactory.getApplication();
     }
 
-    protected static ClassLoader getCurrentLoader(Class fallbackClass) {
+    private static ClassLoader getCurrentLoader(Class fallbackClass) {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         if (loader == null) {
             loader = fallbackClass.getClassLoader();
@@ -254,20 +255,21 @@ final class MessageFactory {
      * the expression to be evaluated when that property is available.
      */
     static class BindingFacesMessage extends FacesMessage {
-        /**
-         *
-         */
+
         private static final long serialVersionUID = 4366606527898951802L;
+
+        private final Locale locale;
+        private final Object[] parameters;
+        private final Object[] resolvedParameters;
+
         BindingFacesMessage(Locale locale, String messageFormat, String detailMessageFormat,
-                // array of parameters, both Strings and ValueBindings
-                Object[] parameters) {
+                            // array of parameters, both Strings and ValueBindings
+                            Object[] parameters) {
 
             super(messageFormat, detailMessageFormat);
             this.locale = locale;
             this.parameters = parameters;
-            if (parameters != null) {
-                resolvedParameters = new Object[parameters.length];
-            }
+            this.resolvedParameters = parameters != null ? new Object[parameters.length] : null;
         }
 
         @Override
@@ -304,29 +306,26 @@ final class MessageFactory {
             }
         }
 
-        private String getFormattedString(String msgtext, Object[] params) {
-            String localizedStr = null;
+        private String getFormattedString(String text, Object[] params) {
+            if (params == null || text == null) {
+                return text;
+            }
 
-            if (params == null || msgtext == null) {
-                return msgtext;
-            }
-            StringBuilder b = new StringBuilder(100);
-            MessageFormat mf = new MessageFormat(msgtext);
+            // todo: why we are returning null if locale is null?
+            final String localizedStr;
             if (locale != null) {
-                mf.setLocale(locale);
-                b.append(mf.format(params));
-                localizedStr = b.toString();
+                final MessageFormat mf = new MessageFormat(text, locale);
+                localizedStr = mf.format(params);
+            } else {
+                localizedStr = null;
             }
+
             return localizedStr;
         }
 
-        private final Locale locale;
-        private final Object[] parameters;
-        private Object[] resolvedParameters;
-
         @Override
         public int hashCode() {
-            return Objects.hash(super.hashCode(), locale, parameters, resolvedParameters);
+            return Objects.hash(super.hashCode(), locale, Arrays.hashCode(parameters), Arrays.hashCode(resolvedParameters));
         }
 
         @Override

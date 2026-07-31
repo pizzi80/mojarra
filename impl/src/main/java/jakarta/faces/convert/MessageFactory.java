@@ -176,7 +176,7 @@ class MessageFactory {
      *
      * @param context - the <code>FacesContext</code> for the current request
      * @param messageId - the key of the message in the resource bundle
-     * @param params - substittion parameters
+     * @param params - substitution parameters
      *
      * @return a localized <code>FacesMessage</code> with the severity of FacesMessage.SEVERITY_ERROR
      */
@@ -231,10 +231,10 @@ class MessageFactory {
     protected static Application getApplication() {
         FacesContext context = FacesContext.getCurrentInstance();
         if (context != null) {
-            return FacesContext.getCurrentInstance().getApplication();
+            return context.getApplication();
         }
-        ApplicationFactory afactory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
-        return afactory.getApplication();
+        ApplicationFactory factory = (ApplicationFactory) FactoryFinder.getFactory(FactoryFinder.APPLICATION_FACTORY);
+        return factory.getApplication();
     }
 
     protected static ClassLoader getCurrentLoader(Class fallbackClass) {
@@ -253,34 +253,35 @@ class MessageFactory {
      * the expression to be evaluated when that property is available.
      */
     static class BindingFacesMessage extends FacesMessage {
-        /**
-         *
-         */
+
         private static final long serialVersionUID = 8130667630255924749L;
+
+        private final Locale locale;
+        private final Object[] parameters;
+        private final Object[] resolvedParameters;
+
         BindingFacesMessage(Locale locale, String messageFormat, String detailMessageFormat,
-                // array of parameters, both Strings and ValueBindings
-                Object[] parameters) {
+                            // array of parameters, both Strings and ValueBindings
+                            Object[] parameters) {
 
             super(messageFormat, detailMessageFormat);
             this.locale = locale;
             this.parameters = parameters;
-            if (parameters != null) {
-                resolvedParameters = new Object[parameters.length];
-            }
+            this.resolvedParameters = parameters != null ? new Object[parameters.length] : null;
         }
 
         @Override
         public String getSummary() {
             String pattern = super.getSummary();
             resolveBindings();
-            return format(pattern, locale, resolvedParameters);
+            return getFormattedString(pattern, resolvedParameters);
         }
 
         @Override
         public String getDetail() {
             String pattern = super.getDetail();
             resolveBindings();
-            return format(pattern, locale, resolvedParameters);
+            return getFormattedString(pattern, resolvedParameters);
         }
 
         private void resolveBindings() {
@@ -303,22 +304,23 @@ class MessageFactory {
             }
         }
 
-        private final Locale locale;
-        private final Object[] parameters;
-        private Object[] resolvedParameters;
-    }
+        private String getFormattedString(String text, Object[] params) {
+            if (params == null || text == null) {
+                return text;
+            }
 
-    // ----------------------------------------------------------------- UTILS
+            // todo: why we are returning null if locale is null?
+            final String localizedStr;
+            if (locale != null) {
+                final MessageFormat mf = new MessageFormat(text, locale);
+                localizedStr = mf.format(params);
+            } else {
+                localizedStr = null;
+            }
 
-    // todo: if approved, move to Util and use in every MessageFactory
-    public static String format(String text, Locale locale, Object... params) {
-        if ( params == null || params.length == 0 || text == null || text.isBlank() ) {
-            return text;
+            return localizedStr;
         }
 
-        final MessageFormat mf = locale == null ? new MessageFormat(text) : new MessageFormat(text,locale);
-
-        return mf.format(params);
     }
 
 } // end of class MessageFactory
