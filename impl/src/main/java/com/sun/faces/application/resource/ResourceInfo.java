@@ -74,23 +74,30 @@ public class ResourceInfo {
         if ( this == obj ) {
             return true;
         }
-        if ( ! (obj instanceof ResourceInfo info) ) {
-            return false;
-        }
 
-        return  Objects.equals(helper, info.helper) &&
-                Objects.equals(library, info.library) &&
-                Objects.equals(libraryName, info.libraryName) &&
-                Objects.equals(localePrefix, info.localePrefix) &&
-                Objects.equals(name, info.name) &&
-                Objects.equals(path, info.path) &&
-                Objects.equals(version, info.version) &&
-                doNotCache == info.doNotCache;
+        return obj instanceof ResourceInfo info
+            && Objects.equals(helper, info.helper)
+            && Objects.equals(library, info.library)
+            && Objects.equals(libraryName, info.libraryName)
+            && Objects.equals(localePrefix, info.localePrefix)
+            && Objects.equals(name, info.name)
+            && Objects.equals(path, info.path)
+            && Objects.equals(version, info.version)
+            && doNotCache == info.doNotCache;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(helper, library, contract, libraryName, localePrefix, name, path, version, doNotCache);
+        int hash = 7;
+        hash = 17 * hash + (helper != null ? helper.hashCode() : 0);
+        hash = 17 * hash + (library != null ? library.hashCode() : 0);
+        hash = 17 * hash + (libraryName != null ? libraryName.hashCode() : 0);
+        hash = 17 * hash + (localePrefix != null ? localePrefix.hashCode() : 0);
+        hash = 17 * hash + (name != null ? name.hashCode() : 0);
+        hash = 17 * hash + (path != null ? path.hashCode() : 0);
+        hash = 17 * hash + (version != null ? version.hashCode() : 0);
+        hash = 17 * hash + (doNotCache ? 1 : 0);
+        return hash;
     }
 
     public boolean isDoNotCache() {
