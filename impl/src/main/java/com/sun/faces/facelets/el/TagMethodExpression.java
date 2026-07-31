@@ -89,17 +89,16 @@ public final class TagMethodExpression extends MethodExpression implements Exter
             return true;
         }
 
-        if ( !(o instanceof TagMethodExpression expression) ) {
-            return false;
-        }
-
-        return Objects.equals(attr, expression.attr)
+        return o instanceof TagMethodExpression expression
+            && Objects.equals(attr, expression.attr)
             && Objects.equals(orig, expression.orig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(attr, orig);
+        int result = attr != null ? attr.hashCode() : 0;
+        result = 31 * result + (orig != null ? orig.hashCode() : 0);
+        return result;
     }
 
     @Override
@@ -123,5 +122,4 @@ public final class TagMethodExpression extends MethodExpression implements Exter
     public String toString() {
         return attr + ": " + orig;
     }
-
 }
