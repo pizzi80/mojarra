@@ -19,7 +19,6 @@ package com.sun.faces.context;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 
 import com.sun.faces.util.Util;
 
@@ -95,7 +94,11 @@ public class ApplicationMap extends BaseContextMap<Object> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(servletContext, entrySet());
+        int hashCode = 7 * servletContext.hashCode();
+        for (Map.Entry<String,Object> entry : entrySet()) {
+            hashCode += entry.hashCode();
+        }
+        return hashCode;
     }
 
     // --------------------------------------------- Methods from BaseContextMap
