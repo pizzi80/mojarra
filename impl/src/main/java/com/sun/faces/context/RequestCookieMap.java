@@ -22,7 +22,6 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 
 import com.sun.faces.util.Util;
@@ -88,7 +87,11 @@ public class RequestCookieMap extends BaseContextMap<Object> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(request, entrySet());
+        int hashCode = 7 * request.hashCode();
+        for (Map.Entry<String, Object> stringObjectEntry : entrySet()) {
+            hashCode += stringObjectEntry.hashCode();
+        }
+        return hashCode;
     }
 
     // --------------------------------------------- Methods from BaseContextMap
@@ -113,8 +116,8 @@ public class RequestCookieMap extends BaseContextMap<Object> {
     private static class CookieArrayEnumerator implements Enumeration {
 
         final Cookie[] cookies;
-        int curIndex = -1;
         final int upperBound;
+        int curIndex = -1;
 
         public CookieArrayEnumerator(Cookie[] cookies) {
             this.cookies = cookies;
