@@ -63,22 +63,14 @@ public class VersionInfo implements Comparable<VersionInfo> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(version, extension);
+        return 31 * version.hashCode() + Objects.hashCode(extension);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-
-        if (!(obj instanceof VersionInfo passed)) {
-            return false;
-        }
-
-        boolean versionsEqual = version.equals(passed.version);
-        boolean extensionEqual = Objects.equals(extension, passed.extension);
-        return versionsEqual && extensionEqual;
+        return obj instanceof VersionInfo info
+            && version.equals(info.version)
+            && Objects.equals(extension, info.extension);
     }
 
     // ------------------------------------------------- Methods from Comparable
@@ -88,5 +80,4 @@ public class VersionInfo implements Comparable<VersionInfo> {
         assert versionInfo != null;
         return version.compareTo(versionInfo.version);
     }
-
 }
