@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import com.sun.faces.util.Util;
@@ -76,7 +75,11 @@ public class InitParameterMap extends BaseContextMap<String> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(servletContext, entrySet());
+        int hashCode = 7 * servletContext.hashCode();
+        for (Map.Entry<String, String> stringStringEntry : entrySet()) {
+            hashCode += stringStringEntry.hashCode();
+        }
+        return hashCode;
     }
 
     // --------------------------------------------- Methods from BaseContextMap
