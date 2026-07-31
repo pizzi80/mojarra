@@ -298,16 +298,13 @@ abstract class BaseContextMap<V> extends AbstractMap<String, V> {
 
         @Override
         public int hashCode() {
-            return (key == null ? 0 : key.hashCode()) ^ (value == null ? 0 : value.hashCode());
+            return Objects.hashCode(key) ^ Objects.hashCode(value);
         }
 
         @Override
         public boolean equals(Object obj) {
-            if ( !(obj instanceof Map.Entry<?,?> entry) ) {
-                return false;
-            }
-
-            return Objects.equals(entry.getKey(), key)
+            return obj instanceof Map.Entry<?, ?> entry
+                && Objects.equals(entry.getKey(), key)
                 && Objects.equals(entry.getValue(), value);
         }
     }
