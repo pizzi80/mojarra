@@ -67,9 +67,8 @@ public class WebappResourceHelper extends ResourceHelper {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof WebappResourceHelper resource)) return false;
-
-        return Objects.equals(BASE_RESOURCE_PATH, resource.BASE_RESOURCE_PATH)
+        return object instanceof WebappResourceHelper resource
+            && Objects.equals(BASE_RESOURCE_PATH, resource.BASE_RESOURCE_PATH)
             && Objects.equals(BASE_CONTRACTS_PATH, resource.BASE_CONTRACTS_PATH)
             && cacheTimestamp == resource.cacheTimestamp;
     }
