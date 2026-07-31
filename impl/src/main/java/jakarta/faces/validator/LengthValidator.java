@@ -216,11 +216,8 @@ public class LengthValidator implements Validator, PartialStateHolder {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof LengthValidator validator)) {
-            return false;
-        }
-
-        return getMaximum() == validator.getMaximum()
+        return object instanceof LengthValidator validator
+            && getMaximum() == validator.getMaximum()
             && getMinimum() == validator.getMinimum()
             && isMinimumSet() == validator.isMinimumSet()
             && isMaximumSet() == validator.isMaximumSet();
@@ -228,7 +225,12 @@ public class LengthValidator implements Validator, PartialStateHolder {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getMinimum(), getMaximum(), isMaximumSet(), isMinimumSet());
+        int hash = 1;
+        hash = 31 * hash + Integer.hashCode(getMinimum());
+        hash = 31 * hash + Integer.hashCode(getMaximum());
+        hash = 31 * hash + Boolean.hashCode(isMinimumSet());
+        hash = 31 * hash + Boolean.hashCode(isMaximumSet());
+        return hash;
     }
 
     // -------------------------------------------------------- Private Methods

@@ -269,11 +269,8 @@ public class DoubleRangeValidator implements Validator, PartialStateHolder {
      */
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof DoubleRangeValidator validator)) {
-            return false;
-        }
-
-        return getMaximum() == validator.getMaximum()
+        return object instanceof DoubleRangeValidator validator
+            && getMaximum() == validator.getMaximum()
             && getMinimum() == validator.getMinimum()
             && isMaximumSet() == validator.isMaximumSet()
             && isMinimumSet() == validator.isMinimumSet();
@@ -288,7 +285,12 @@ public class DoubleRangeValidator implements Validator, PartialStateHolder {
      */
     @Override
     public int hashCode() {
-        return Objects.hash(getMinimum(), getMaximum(), isMinimumSet(), isMaximumSet());
+        int hash = 1;
+        hash = 31 * hash + Double.hashCode(getMinimum());
+        hash = 31 * hash + Double.hashCode(getMaximum());
+        hash = 31 * hash + Boolean.hashCode(isMinimumSet());
+        hash = 31 * hash + Boolean.hashCode(isMaximumSet());
+        return hash;
     }
 
     // --------------------------------------------------------- Private Methods
