@@ -16,8 +16,6 @@
 
 package jakarta.faces.validator;
 
-import java.util.Objects;
-
 import jakarta.faces.component.PartialStateHolder;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
@@ -258,11 +256,8 @@ public class LongRangeValidator implements Validator, PartialStateHolder {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof LongRangeValidator validator)) {
-            return false;
-        }
-
-        return getMaximum() == validator.getMaximum()
+        return object instanceof LongRangeValidator validator
+            && getMaximum() == validator.getMaximum()
             && getMinimum() == validator.getMinimum()
             && isMaximumSet() == validator.isMaximumSet()
             && isMinimumSet() == validator.isMinimumSet();
@@ -270,7 +265,12 @@ public class LongRangeValidator implements Validator, PartialStateHolder {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getMinimum(), getMaximum(), isMinimumSet(), isMaximumSet());
+        int hash = 1;
+        hash = 31 * hash + Long.hashCode(getMinimum());
+        hash = 31 * hash + Long.hashCode(getMaximum());
+        hash = 31 * hash + Boolean.hashCode(isMinimumSet());
+        hash = 31 * hash + Boolean.hashCode(isMaximumSet());
+        return hash;
     }
 
     // --------------------------------------------------------- Private Methods
@@ -285,8 +285,8 @@ public class LongRangeValidator implements Validator, PartialStateHolder {
      */
     private static long longValue(Object attributeValue) throws NumberFormatException {
 
-        if (attributeValue instanceof Number number) {
-            return number.longValue();
+        if (attributeValue instanceof Number) {
+            return ((Number) attributeValue).longValue();
         } else {
             return Long.parseLong(attributeValue.toString());
         }
