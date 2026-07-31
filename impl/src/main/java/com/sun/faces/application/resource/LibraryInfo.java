@@ -70,11 +70,8 @@ public class LibraryInfo {
             return true;
         }
 
-        if (!(object instanceof LibraryInfo info)) {
-            return false;
-        }
-
-        return Objects.equals(name, info.name)
+        return object instanceof LibraryInfo info
+            && Objects.equals(name, info.name)
             && Objects.equals(version, info.version)
             && Objects.equals(localePrefix, info.localePrefix)
             && Objects.equals(contract, info.contract)
@@ -83,7 +80,13 @@ public class LibraryInfo {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, version, localePrefix, contract, path);
+        int hash = 5;
+        hash = 37 * hash + (name != null ? name.hashCode() : 0);
+        hash = 37 * hash + (version != null ? version.hashCode() : 0);
+        hash = 37 * hash + (localePrefix != null ? localePrefix.hashCode() : 0);
+        hash = 37 * hash + (contract != null ? contract.hashCode() : 0);
+        hash = 37 * hash + (path != null ? path.hashCode() : 0);
+        return hash;
     }
 
     /**
