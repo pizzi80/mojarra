@@ -109,17 +109,16 @@ public final class TagValueExpression extends ValueExpression implements Externa
             return true;
         }
 
-        if ( !(o instanceof TagValueExpression expression) ) {
-            return false;
-        }
-
-        return Objects.equals(tagAttribute, expression.tagAttribute)
+        return o instanceof TagValueExpression expression
+            && Objects.equals(tagAttribute, expression.tagAttribute)
             && Objects.equals(wrapped, expression.wrapped);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tagAttribute, wrapped);
+        int result = wrapped != null ? wrapped.hashCode() : 0;
+        result = 31 * result + (tagAttribute != null ? tagAttribute.hashCode() : 0);
+        return result;
     }
 
     @Override
