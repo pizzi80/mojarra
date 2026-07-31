@@ -27,7 +27,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.util.Util;
@@ -59,17 +58,20 @@ public class ClasspathResourceHelper extends ResourceHelper {
         enableMissingResourceLibraryDetection = webconfig.isOptionEnabled(EnableMissingResourceLibraryDetection);
 
     }
+
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof ClasspathResourceHelper resource)) return false;
-
-        return cacheTimestamp == resource.cacheTimestamp
+        return object instanceof ClasspathResourceHelper resource
+            && cacheTimestamp == resource.cacheTimestamp
             && enableMissingResourceLibraryDetection == resource.enableMissingResourceLibraryDetection;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cacheTimestamp, enableMissingResourceLibraryDetection);
+        int hash = 5;
+        hash = 67 * hash + (cacheTimestamp ? 1 : 0);
+        hash = 67 * hash + (enableMissingResourceLibraryDetection ? 1 : 0);
+        return hash;
     }
 
     // --------------------------------------------- Methods from ResourceHelper
