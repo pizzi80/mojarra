@@ -19,10 +19,8 @@ package com.sun.faces.context;
 import static com.sun.faces.util.Util.notNull;
 import static java.util.Collections.emptyIterator;
 import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toSet;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,7 +30,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import com.sun.faces.application.view.ViewScopeManager;
 import com.sun.faces.cdi.CdiUtils;
@@ -289,7 +286,26 @@ public class FacesContextImpl extends FacesContext {
 
         assertNotReleased();
 
-        return componentMessageLists == null ? emptyList() : componentMessageLists.values().stream().flatMap(Collection::stream).toList();
+        if (componentMessageLists == null || componentMessageLists.isEmpty()) {
+            return emptyList();
+        }
+
+        int queueCount = componentMessageLists.size();
+
+        // Single queue (global or single component)
+        // Returns the first (and only) list of messages without copying
+        if (queueCount==1) {
+            return Collections.unmodifiableList(componentMessageLists.values().iterator().next());
+        }
+
+        // Multiple queues (make room for: 2 messages for every component + 10 global messages)
+        // note: 10 is the default size of an ArrayList
+        int size = 2 * componentMessageLists.size() + 10;
+        List<FacesMessage> messages = new ArrayList<>(size);
+        for (List<FacesMessage> facesMessages : componentMessageLists.values()) {
+            messages.addAll(facesMessages);
+        }
+        return messages;
     }
 
     /**
@@ -302,11 +318,10 @@ public class FacesContextImpl extends FacesContext {
 
         if (componentMessageLists == null) {
             return emptyList();
-        } else {
-            List<FacesMessage> list = componentMessageLists.get(clientId);
-            return list != null ? Collections.unmodifiableList(list) : emptyList();
         }
 
+        List<FacesMessage> list = componentMessageLists.get(clientId);
+        return list != null ? Collections.unmodifiableList(list) : emptyList();
     }
 
     /**
@@ -315,7 +330,12 @@ public class FacesContextImpl extends FacesContext {
     @Override
     public Iterator<FacesMessage> getMessages() {
         assertNotReleased();
-        return componentMessageLists == null || componentMessageLists.isEmpty() ? emptyIterator() : new ComponentMessagesIterator(componentMessageLists);
+
+        if (componentMessageLists == null || componentMessageLists.isEmpty()) {
+            return emptyIterator();
+        }
+
+        return new ComponentMessagesIterator(componentMessageLists);
     }
 
     /**
@@ -332,7 +352,10 @@ public class FacesContextImpl extends FacesContext {
         }
 
         List<FacesMessage> list = componentMessageLists.get(clientId);
-        return list == null ? emptyIterator() : list.iterator();
+        if (list == null) {
+            return emptyIterator();
+        }
+        return list.iterator();
     }
 
     /**
@@ -403,13 +426,10 @@ public class FacesContextImpl extends FacesContext {
         notNull("root", root);
 
         if (viewRoot != null && !viewRoot.equals(root)) {
-            // if exists, retrieve the view map
             Map<String, Object> viewMap = viewRoot.getViewMap(false);
-
-            // if exists, clear the view map
-            if (viewMap != null) viewMap.clear();
-
-            // clear the relevant request attributes
+            if (viewMap != null) {
+                viewMap.clear();
+            }
             RequestStateManager.clearAttributesOnChangeOfView(this);
         }
 
@@ -458,11 +478,12 @@ public class FacesContextImpl extends FacesContext {
         }
 
         // Add this message to our internal queue
-        componentMessageLists.computeIfAbsent(clientId, k -> new ArrayList<>(2)).add(message); // 2 messages for each component is enough on average?
+        componentMessageLists.computeIfAbsent(clientId, k -> new ArrayList<>()).add(message);
 
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Adding Message[sourceId=" + (clientId != null ? clientId : "<<NONE>>") + ",summary=" + message.getSummary() + ")");
         }
+
     }
 
     /**
