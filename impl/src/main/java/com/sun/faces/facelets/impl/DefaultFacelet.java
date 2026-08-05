@@ -99,14 +99,16 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
         createTime = System.currentTimeMillis();
         refreshPeriodInMillis = this.factory.getRefreshPeriodInMillis();
 
-        Doctype doctype = Util.getDOCTYPEFromFacesContextAttributes(FacesContext.getCurrentInstance());
-        if (null != doctype) {
+        final FacesContext context = FacesContext.getCurrentInstance();
+
+        Doctype doctype = Util.getDOCTYPEFromFacesContextAttributes(context);
+        if (doctype != null) {
             // This will happen on the request that causes the facelets to be compiled
             setSavedDoctype(doctype);
         }
 
-        String XMLDECL = Util.getXMLDECLFromFacesContextAttributes(FacesContext.getCurrentInstance());
-        if (null != XMLDECL) {
+        String XMLDECL = Util.getXMLDECLFromFacesContextAttributes(context);
+        if (XMLDECL != null) {
             // This will happen on the request that causes the facelets to be compiled
             setSavedXMLDecl(XMLDECL);
         }
