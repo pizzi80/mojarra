@@ -87,7 +87,7 @@ public class DefaultFaceletFactory {
     private ResourceManager manager;
     private URL baseUrl;
     private String baseUrlAsString;
-    private List<String> faceletsSuffixes;
+    private String[] faceletsSuffixes;
     private long refreshPeriodInMillis;
     private FaceletCache<DefaultFacelet> cache;
     private ConcurrentMap<String, FaceletCache<DefaultFacelet>> cachePerContract;
@@ -400,8 +400,8 @@ public class DefaultFaceletFactory {
 
         // Create instance factories for the cache, so that the cache can
         // create Facelets and Metadata Facelets
-        FaceletCache.MemberFactory<DefaultFacelet> faceletFactory = key -> createFacelet(key);
-        FaceletCache.MemberFactory<DefaultFacelet> metadataFaceletFactory = key -> createMetadataFacelet(key);
+        FaceletCache.MemberFactory<DefaultFacelet> faceletFactory = this::createFacelet;
+        FaceletCache.MemberFactory<DefaultFacelet> metadataFaceletFactory = this::createMetadataFacelet;
 
         cache.setCacheFactories(faceletFactory, metadataFaceletFactory);
         return cache;
@@ -503,7 +503,7 @@ public class DefaultFaceletFactory {
         // ------------------------------------------ Methods from Cache.Factory
 
         @Override
-        public IdMapper newInstance(String arg) throws InterruptedException {
+        public IdMapper newInstance(String key) throws InterruptedException {
             return new IdMapper();
         }
 
