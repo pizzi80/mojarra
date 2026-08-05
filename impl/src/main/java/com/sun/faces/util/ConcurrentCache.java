@@ -16,7 +16,10 @@
 
 package com.sun.faces.util;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 /**
  * Defines a concurrent cache with a factory for creating new object instances.
@@ -38,17 +41,30 @@ public abstract class ConcurrentCache<K, V> {
     /**
      * Factory interface for creating various cacheable objects.
      */
-    public interface Factory<K, V> {
-        V newInstance(final K arg) throws Exception;
+    public interface Factory<K,V> extends Function<K,V> {
+
+        V newInstance(final K key) throws Exception;
+
+        @Override
+        default V apply(final K key) {
+            try {
+                return newInstance( key );
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
     }
+
+    private final Factory<K, V> factory;
 
     /**
      * Constructs this cache using the specified <code>Factory</code>.
      *
-     * @param f
+     * @param factory
      */
-    public ConcurrentCache(Factory<K, V> f) {
-        _f = f;
+    public ConcurrentCache(Factory<K, V> factory) {
+        this.factory = requireNonNull(factory);
     }
 
     /**
@@ -73,9 +89,8 @@ public abstract class ConcurrentCache<K, V> {
      *
      * @return <code>Factory</code> instance
      */
-    protected final Factory<K, V> getFactory() {
-        return _f;
+    protected final Cache.Factory<K, V> getFactory() {
+        return factory;
     }
 
-    private final Factory<K, V> _f;
 }
