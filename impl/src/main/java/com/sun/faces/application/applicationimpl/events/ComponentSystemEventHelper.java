@@ -17,7 +17,7 @@
 package com.sun.faces.application.applicationimpl.events;
 
 import com.sun.faces.util.Cache;
-import com.sun.faces.util.Cache.Factory;
+import com.sun.faces.util.ConcurrentCache.Factory;
 
 import jakarta.faces.event.SystemEvent;
 
@@ -39,7 +39,6 @@ public class ComponentSystemEventHelper {
             return new Cache<>(eventInfoFactory);
         };
         sourceCache = new Cache<>(eventCacheFactory);
-
     }
 
     // ------------------------------------------------------ Public Methods
