@@ -24,7 +24,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import jakarta.faces.FacesException;
 import jakarta.faces.view.facelets.FaceletCache;
 
+import com.sun.faces.util.Cache;
 import com.sun.faces.util.ConcurrentCache;
+import com.sun.faces.util.ConcurrentCache.Factory;
 import com.sun.faces.util.ExpiringConcurrentCache;
 import com.sun.faces.util.Util;
 
@@ -36,7 +38,7 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
     /**
      * Constructor
      *
-     * @param refreshPeriod cache refresh period (in seconds). 0 means 'always refresh', negative value means 'never
+     * @param refreshPeriodInSeconds cache refresh period (in seconds). 0 means 'always refresh', negative value means 'never
      * refresh'
      */
     DefaultFaceletCache(final long refreshPeriodInSeconds) {
@@ -48,26 +50,33 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
         final boolean checkExpiry = refreshPeriodInSeconds > 0;
         final long refreshPeriodInMillis = refreshPeriodInSeconds >= 0 ? refreshPeriodInSeconds * 1000 : -1;
 
-        ConcurrentCache.Factory<URL, Record> faceletFactory = key -> {
+        Factory<URL, Record> faceletFactory = key -> {
             // Make sure that the expensive timestamp retrieval is not done
             // if no expiry check is going to be performed
             long lastModified = checkExpiry ? Util.getLastModified(key) : 0;
             return new Record(System.currentTimeMillis(), lastModified, getMemberFactory().newInstance(key), refreshPeriodInMillis);
         };
 
-        ConcurrentCache.Factory<URL, Record> metadataFaceletFactory = key -> {
+        Factory<URL, Record> metadataFaceletFactory = key -> {
             // Make sure that the expensive timestamp retrieval is not done
             // if no expiry check is going to be performed
             long lastModified = checkExpiry ? Util.getLastModified(key) : 0;
             return new Record(System.currentTimeMillis(), lastModified, getMetadataMemberFactory().newInstance(key), refreshPeriodInMillis);
         };
 
-        // No caching if refreshPeriod is 0
-        if (refreshPeriodInSeconds == 0) {
+        // Cache (faster than expiring cache) - (Production default)
+        if (refreshPeriodInSeconds < 0) {
+            _faceletCache = new Cache<>(faceletFactory);
+            _metadataFaceletCache = new Cache<>(metadataFaceletFactory);
+        }
+        // NoCache if refreshPeriod is 0
+        else if (refreshPeriodInSeconds == 0) {
             _faceletCache = new NoCache(faceletFactory);
             _metadataFaceletCache = new NoCache(metadataFaceletFactory);
-        } else {
-            ExpiringConcurrentCache.ExpiryChecker<URL, Record> checker = refreshPeriodInSeconds > 0 ? new ExpiryChecker() : new NeverExpired();
+        }
+        // ExpiringCache
+        else {
+            ExpiringConcurrentCache.ExpiryChecker<URL, Record> checker = new ExpiryChecker();
             _faceletCache = new ExpiringConcurrentCache<>(faceletFactory, checker);
             _metadataFaceletCache = new ExpiringConcurrentCache<>(metadataFaceletFactory, checker);
         }
@@ -186,18 +195,11 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
         }
     }
 
-    private static class NeverExpired implements ExpiringConcurrentCache.ExpiryChecker<URL, Record> {
-        @Override
-        public boolean isExpired(URL key, Record value) {
-            return false;
-        }
-    }
-
     /**
      * ConcurrentCache implementation that does no caching (always creates new instances)
      */
     private static class NoCache extends ConcurrentCache<URL, Record> {
-        public NoCache(ConcurrentCache.Factory<URL, Record> f) {
+        public NoCache(Factory<URL, Record> f) {
             super(f);
         }
 
