@@ -26,7 +26,7 @@ import java.util.logging.Level;
 import com.sun.faces.RIConstants;
 import com.sun.faces.application.NavigationHandlerImpl;
 import com.sun.faces.flow.FlowHandlerImpl;
-import com.sun.faces.renderkit.Attribute;
+import com.sun.faces.renderkit.Attributes;
 import com.sun.faces.renderkit.RenderKitUtils;
 import com.sun.faces.util.Util;
 
@@ -50,7 +50,7 @@ public abstract class OutcomeTargetRenderer extends HtmlBasicRenderer {
 
     // ------------------------------------------------------- Protected Methods
 
-    protected void renderPassThruAttributes(FacesContext ctx, ResponseWriter writer, UIComponent component, Attribute[] attributes, List excludedAttributes)
+    protected void renderPassThruAttributes(FacesContext ctx, ResponseWriter writer, UIComponent component, Attributes attributes, List excludedAttributes)
             throws IOException {
         RenderKitUtils.renderPassThruAttributes(ctx, writer, component, attributes);
         RenderKitUtils.renderXHTMLStyleBooleanAttributes(writer, component, excludedAttributes);

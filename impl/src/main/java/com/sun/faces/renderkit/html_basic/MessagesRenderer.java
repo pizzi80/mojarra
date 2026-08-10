@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import com.sun.faces.RIConstants;
-import com.sun.faces.renderkit.Attribute;
+import com.sun.faces.renderkit.Attributes;
 import com.sun.faces.renderkit.AttributeManager;
 import com.sun.faces.renderkit.RenderKitUtils;
 
@@ -43,7 +43,7 @@ import jakarta.faces.context.ResponseWriter;
 
 public class MessagesRenderer extends HtmlBasicRenderer {
 
-    private static final Attribute[] ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.MESSAGESMESSAGES);
+    private static final Attributes ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.MESSAGESMESSAGES);
 
     // ---------------------------------------------------------- Public Methods
 

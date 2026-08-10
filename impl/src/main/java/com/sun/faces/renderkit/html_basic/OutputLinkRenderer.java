@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 
 import com.sun.faces.RIConstants;
-import com.sun.faces.renderkit.Attribute;
+import com.sun.faces.renderkit.Attributes;
 import com.sun.faces.renderkit.AttributeManager;
 import com.sun.faces.renderkit.RenderKitUtils;
 
@@ -44,7 +44,7 @@ import jakarta.faces.context.ResponseWriter;
  */
 public class OutputLinkRenderer extends LinkRenderer {
 
-    private static final Attribute[] ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.OUTPUTLINK);
+    private static final Attributes ATTRIBUTES = AttributeManager.getAttributes(AttributeManager.Key.OUTPUTLINK);
 
     // ---------------------------------------------------------- Public Methods
 

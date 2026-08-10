@@ -39,6 +39,17 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sun.faces.RIConstants;
+import com.sun.faces.application.ApplicationAssociate;
+import com.sun.faces.application.resource.ResourceHandlerImpl;
+import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.el.ELUtils;
+import com.sun.faces.facelets.util.DevTools;
+import com.sun.faces.renderkit.html_basic.ScriptRenderer;
+import com.sun.faces.util.FacesLogger;
+import com.sun.faces.util.RequestStateManager;
+import com.sun.faces.util.Util;
+
 import jakarta.el.ValueExpression;
 import jakarta.faces.FacesException;
 import jakarta.faces.FactoryFinder;
@@ -69,17 +80,6 @@ import jakarta.faces.render.RenderKit;
 import jakarta.faces.render.RenderKitFactory;
 import jakarta.faces.render.Renderer;
 import jakarta.faces.render.ResponseStateManager;
-
-import com.sun.faces.RIConstants;
-import com.sun.faces.application.ApplicationAssociate;
-import com.sun.faces.application.resource.ResourceHandlerImpl;
-import com.sun.faces.config.WebConfiguration;
-import com.sun.faces.el.ELUtils;
-import com.sun.faces.facelets.util.DevTools;
-import com.sun.faces.renderkit.html_basic.ScriptRenderer;
-import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.RequestStateManager;
-import com.sun.faces.util.Util;
 
 /**
  * <p>
@@ -134,30 +134,25 @@ public class RenderKitUtils {
      * This represents the base package that can leverage the <code>attributesThatAreSet</code> List for optimized attribute
      * rendering.
      *
-     * IMPLEMENTATION NOTE: This must be kept in sync with the array in UIComponentBase$AttributesMap and
-     * HtmlComponentGenerator.
+     * IMPLEMENTATION NOTE: This must be kept in sync with UIComponentBase.STANDARD_COMPONENT_PACKAGE and the copies in
+     * HtmlComponentUtils and PassthroughElement.
      *
      * Hopefully Faces X will remove the need for this.
      */
     public static final String OPTIMIZED_PACKAGE = "jakarta.faces.component.";
 
     /**
-     * IMPLEMENTATION NOTE: This must be kept in sync with the Key in UIComponentBase$AttributesMap and
-     * HtmlComponentGenerator.
+     * IMPLEMENTATION NOTE: This must be kept in sync with UIComponentBase.ATTRIBUTES_THAT_ARE_SET and the copies in
+     * HtmlComponentUtils and PassthroughElement. Spelled out as a literal so that all of them are the same interned
+     * instance.
      *
      * Hopefully Faces X will remove the need for this.
      */
-    public static final String ATTRIBUTES_THAT_ARE_SET_KEY = UIComponentBase.class.getName() + ".attributesThatAreSet";
+    public static final String ATTRIBUTES_THAT_ARE_SET_KEY = "jakarta.faces.component.UIComponentBase.attributesThatAreSet";
 
     private static final String PENDING_BEHAVIOR_EVENT_LISTENERS_KEY = UIComponentBase.class.getName() + ".pendingBehaviorEventListeners";
 
     private static final String BEHAVIOR_EVENT_ATTRIBUTE_PREFIX = "on";
-
-    /**
-     * UIViewRoot attribute key of a boolean value which remembers whether the view will be rendered with a HTML5 doctype.
-     */
-    private static final String VIEW_ROOT_ATTRIBUTES_DOCTYPE_KEY = RenderKitUtils.class.getName() + ".isOutputHtml5Doctype";
-
 
     protected static final Logger LOGGER = FacesLogger.RENDERKIT.getLogger();
 
@@ -294,10 +289,10 @@ public class RenderKitUtils {
      * @param context the FacesContext for this request
      * @param writer writer the {@link jakarta.faces.context.ResponseWriter} to be used when writing the attributes
      * @param component the component
-     * @param attributes an array of attributes to be processed
+     * @param attributes the pass-through attributes to be processed
      * @throws IOException if an error occurs writing the attributes
      */
-    public static void renderPassThruAttributes(FacesContext context, ResponseWriter writer, UIComponent component, Attribute[] attributes) throws IOException {
+    public static void renderPassThruAttributes(FacesContext context, ResponseWriter writer, UIComponent component, Attributes attributes) throws IOException {
 
         assert null != component;
 
@@ -340,13 +335,13 @@ public class RenderKitUtils {
      * @param component the component
      * @param clientId the client id to be associated with any behaviors
      * @param incExec whether to include incExec parameter
-     * @param attributes an array of attributes to be processed
+     * @param attributes the pass-through attributes to be processed
      * @param defaultDomEvent the name of the default dom-level event of this component (e.g. "click", "change")
      * @param defaultComponentEvent the name of the default component-level event of this component (e.g. "action", "valueChange")
      * @throws IOException if an error occurs writing the attributes
      */
     public static void renderPassThruAttributes(FacesContext context, ResponseWriter writer, UIComponent component, String clientId, boolean incExec,
-            Attribute[] attributes, String defaultDomEvent, String defaultComponentEvent) throws IOException {
+            Attributes attributes, String defaultDomEvent, String defaultComponentEvent) throws IOException {
 
         Map<String, List<ClientBehavior>> behaviors = null;
         boolean hasValueChangeBehavior = false;
@@ -380,7 +375,7 @@ public class RenderKitUtils {
     }
 
     private static void renderPassThruAttributesInternal(FacesContext context, ResponseWriter writer, UIComponent component,
-            Attribute[] attributes, Map<String, List<ClientBehavior>> behaviors, String defaultDomEvent) throws IOException {
+            Attributes attributes, Map<String, List<ClientBehavior>> behaviors, String defaultDomEvent) throws IOException {
 
         assert null != writer;
         assert null != component;
@@ -412,7 +407,9 @@ public class RenderKitUtils {
     /**
      * Returns the names of the attributes that have been explicitly set on the given component, either as a literal value
      * or as a value expression, or an empty list when none have been set. This is the same list that
-     * {@link #renderPassThruAttributes} consults to skip reflective reads of attributes that were never set.
+     * {@link #renderPassThruAttributes} consults to skip reflective reads of attributes that were never set. Its writer,
+     * {@code HtmlComponentUtils.handleAttribute}, keeps it in natural order, which is therefore the order in which the
+     * attributes are emitted.
      */
     @SuppressWarnings("unchecked")
     public static List<String> getAttributesThatAreSet(UIComponent component) {
@@ -676,18 +673,18 @@ public class RenderKitUtils {
 
     /**
      * <p>
-     * For each attribute in <code>setAttributes</code>, perform a binary search against the array of
-     * <code>knownAttributes</code> If a match is found and the value is not <code>null</code>, render the attribute.
+     * For each attribute in <code>setAttributes</code>, look it up among <code>knownAttributes</code>. If it is one of
+     * them and the value is not <code>null</code>, render the attribute.
      *
      * @param context the {@link FacesContext} of the current request
      * @param writer the current writer
      * @param component the component whose attributes we're rendering
-     * @param knownAttributes an array of pass-through attributes supported by this component
+     * @param knownAttributes the pass-through attributes supported by this component
      * @param setAttributes a <code>List</code> of attributes that have been set on the provided component
      * @param behaviors the non-null behaviors map for this request.
      * @throws IOException if an error occurs during the write
      */
-    private static void renderPassThruAttributesOptimized(FacesContext context, ResponseWriter writer, UIComponent component, Attribute[] knownAttributes,
+    private static void renderPassThruAttributesOptimized(FacesContext context, ResponseWriter writer, UIComponent component, Attributes knownAttributes,
             List<String> setAttributes, Map<String, List<ClientBehavior>> behaviors, String excludedEventAttribute) throws IOException {
 
         // We should only come in here if we've got zero or one behavior event
@@ -695,7 +692,6 @@ public class RenderKitUtils {
         String behaviorEventName = getSingleBehaviorEventName(behaviors);
         boolean renderedBehavior = false;
 
-        Collections.sort(setAttributes);
         boolean isXhtml = RIConstants.XHTML_CONTENT_TYPE.equals(writer.getContentType());
         Map<String, Object> attrMap = component.getAttributes();
         for (String name : setAttributes) {
@@ -704,17 +700,12 @@ public class RenderKitUtils {
                 continue;
             }
 
-            // Note that this search can be optimized by switching from
-            // an array to a Map<String, Attribute>. This would change
-            // the search time from O(log n) to O(1).
-            int index = Arrays.binarySearch(knownAttributes, Attribute.attr(name));
-            if (index >= 0) {
+            Attribute knownAttribute = knownAttributes.get(name);
+            if (knownAttribute != null) {
                 Object value = attrMap.get(name);
                 if (value != null && shouldRenderAttribute(value)) {
 
-                    Attribute attr = knownAttributes[index];
-
-                    if (isBehaviorEventAttribute(attr, behaviorEventName)) {
+                    if (isBehaviorEventAttribute(knownAttribute, behaviorEventName)) {
                         addBehaviorEventListener(context, component, null, null, name, value, behaviorEventName, behaviorEventName, null, false, false,
                                 ResourceHandlerImpl.resolveCurrentNonce(context) != null, false);
 
@@ -777,12 +768,12 @@ public class RenderKitUtils {
      * @param context the {@link FacesContext} of the current request
      * @param writer the current writer
      * @param component the component whose attributes we're rendering
-     * @param knownAttributes an array of pass-through attributes supported by this component
+     * @param knownAttributes the pass-through attributes supported by this component
      * @param setAttributes a <code>List</code> of attributes that have been set on the provided component
      * @param behaviors the non-null behaviors map for this request.
      * @throws IOException if an error occurs during the write
      */
-    private static void renderPassThruAttributesUnoptimized(FacesContext context, ResponseWriter writer, UIComponent component, Attribute[] knownAttributes,
+    private static void renderPassThruAttributesUnoptimized(FacesContext context, ResponseWriter writer, UIComponent component, Attributes knownAttributes,
             List<String> setAttributes, Map<String, List<ClientBehavior>> behaviors, String excludedEventAttribute) throws IOException {
 
         boolean isXhtml = RIConstants.XHTML_CONTENT_TYPE.equals(writer.getContentType());
@@ -920,8 +911,8 @@ public class RenderKitUtils {
         String[] types = accept.split(CONTENT_TYPE_DELIMITER);
         String[][] arrayAccept = new String[types.length][MAX_CONTENT_TYPE_PARTS];
         int index = -1;
-        for (String s : types) {
-            String token = s.trim();
+        for (int i = 0; i < types.length; i++) {
+            String token = types[i].trim();
             index += 1;
             // Check to see if our accept string contains the delimiter that is used
             // to add uniqueness to a type/subtype, and/or delimits a qualifier value:
@@ -1080,8 +1071,10 @@ public class RenderKitUtils {
         String[][] match = new String[1][3];
         if (preferredContentType.length != 0 && preferredContentType[0][0] != null) {
             BigDecimal highestQual = BigDecimal.valueOf(highestQFactor);
-            for (String[] result : resultList) {
-                if (BigDecimal.valueOf(Double.parseDouble(result[0])).compareTo(highestQual) == 0 && result[1].equals(preferredContentType[0][1]) && result[2].equals(preferredContentType[0][2])) {
+            for (int i = 0, len = resultList.size(); i < len; i++) {
+                String[] result = resultList.get(i);
+                if (BigDecimal.valueOf(Double.parseDouble(result[0])).compareTo(highestQual) == 0 && result[1].equals(preferredContentType[0][1])
+                        && result[2].equals(preferredContentType[0][2])) {
                     match[0][0] = result[0];
                     match[0][1] = result[1];
                     match[0][2] = result[2];

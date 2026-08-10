@@ -21,6 +21,7 @@ import static com.sun.faces.application.view.ViewScopeManager.VIEW_MAP_ID;
 import static com.sun.faces.cdi.CdiUtils.getBeanReference;
 import static com.sun.faces.context.SessionMap.getMutex;
 import static com.sun.faces.util.Util.getCdiBeanManager;
+import static java.util.Locale.ROOT;
 import static java.util.logging.Level.FINEST;
 
 import java.util.Map;
@@ -123,7 +124,7 @@ public class ViewScopeContextManager {
     public <T> T createBean(FacesContext facesContext, Contextual<T> contextual, CreationalContext<T> creational) {
         LOGGER.log(FINEST, "Creating @ViewScoped CDI bean using contextual: {0}", contextual);
 
-        if (!(contextual instanceof PassivationCapable passivationCapable)) {
+        if (!(contextual instanceof PassivationCapable)) {
             throw new IllegalArgumentException("ViewScoped bean " + contextual.toString() + " must be PassivationCapable, but is not.");
         }
 
@@ -132,7 +133,7 @@ public class ViewScopeContextManager {
         if (contextualInstance != null) {
             String name = getBeanName(contextualInstance);
             facesContext.getViewRoot().getViewMap(true).put(name, contextualInstance);
-            String passivationCapableId = passivationCapable.getId();
+            String passivationCapableId = ((PassivationCapable) contextual).getId();
 
             getContextMap(facesContext).put(passivationCapableId, new ViewScopeContextObject(passivationCapableId, name));
         }
@@ -383,5 +384,4 @@ public class ViewScopeContextManager {
     public void fireDestroyedEvent(FacesContext facesContext, UIViewRoot root) {
         getBeanReference(beanManager, ViewScopedCDIEventFireHelperImpl.class).fireDestroyedEvent(root);
     }
-
 }

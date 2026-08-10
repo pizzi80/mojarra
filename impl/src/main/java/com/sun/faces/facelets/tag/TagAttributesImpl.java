@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import com.sun.faces.facelets.tag.faces.PassThroughAttributeLibrary;
+
 import com.sun.faces.RIConstants;
 import com.sun.faces.util.Util;
 
@@ -40,13 +42,13 @@ import jakarta.faces.view.facelets.TagAttributes;
 public final class TagAttributesImpl extends TagAttributes {
     private final static TagAttribute[] EMPTY = {};
 
-//    private final Map<String,Integer> nsIndex;
-
     private final TagAttribute[] attrs;
 
     private final String[] ns;
 
     private final List nsattrs;
+
+    private final TagAttribute[] passthroughAttrs;
 
     private Tag tag;
 
@@ -55,6 +57,7 @@ public final class TagAttributesImpl extends TagAttributes {
      */
     public TagAttributesImpl(TagAttribute[] attrs) {
         this.attrs = attrs;
+        passthroughAttrs = collectPassthrough(attrs);
 
         // grab namespaces => uniq + sort => toArray
         Set<String> set = new HashSet<>(Util.calculateMapCapacity(this.attrs.length));
@@ -63,9 +66,6 @@ public final class TagAttributesImpl extends TagAttributes {
         }
         ns = set.toArray(new String[set.size()]);
         Arrays.sort(ns);
-
-        // init the binarySearch cache
-//        nsIndex = new HashMap<>(Util.calculateMapCapacity(ns.length));
 
         // build the matrix assign attrs
         nsattrs = new ArrayList<>();
@@ -82,6 +82,21 @@ public final class TagAttributesImpl extends TagAttributes {
         }
     }
 
+    private static TagAttribute[] collectPassthrough(TagAttribute[] attrs) {
+        List<TagAttribute> passthrough = null;
+
+        for (TagAttribute attr : attrs) {
+            if (PassThroughAttributeLibrary.NAMESPACES.contains(attr.getNamespace())) {
+                if (passthrough == null) {
+                    passthrough = new ArrayList<>(attrs.length);
+                }
+                passthrough.add(attr);
+            }
+        }
+
+        return passthrough == null ? EMPTY : passthrough.toArray(new TagAttribute[passthrough.size()]);
+    }
+
     private int getNamespaceIndex(String namespace) {
 //        return nsIndex.computeIfAbsent(namespace, $ -> Arrays.binarySearch(ns, namespace));
         return Arrays.binarySearch(ns, namespace);
@@ -95,6 +110,17 @@ public final class TagAttributesImpl extends TagAttributes {
     @Override
     public TagAttribute[] getAll() {
         return attrs;
+    }
+
+    /**
+     * Return the attributes that are in a pass-through namespace, in the order the tag declares them. Every applied
+     * component tag is asked for these and almost none has any, so they are singled out once here, when the tag is
+     * compiled, rather than searched per namespace on every apply.
+     *
+     * @return a non-null array of TagAttribute
+     */
+    public TagAttribute[] getPassthroughAttributes() {
+        return passthroughAttrs;
     }
 
     /**
@@ -140,7 +166,7 @@ public final class TagAttributesImpl extends TagAttributes {
      */
     @Override
     public TagAttribute[] getAll(String namespace) {
-        int idx = getNamespaceIndex(Objects.requireNonNullElse(namespace, RIConstants.NO_VALUE));
+        int idx = getNamespaceIndex(Util.coalesce(namespace, RIConstants.NO_VALUE));
         if (idx >= 0) {
             return (TagAttribute[]) nsattrs.get(idx);
         }
@@ -187,5 +213,4 @@ public final class TagAttributesImpl extends TagAttributes {
         }
         return sb.toString();
     }
-
 }

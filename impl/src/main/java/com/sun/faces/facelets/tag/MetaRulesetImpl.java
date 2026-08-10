@@ -28,6 +28,7 @@ import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sun.faces.facelets.tag.faces.PassThroughAttributeLibrary;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.Util;
 
@@ -68,11 +69,14 @@ public class MetaRulesetImpl extends MetaRuleset {
 
         // setup attributes
         TagAttribute[] attrs = this.tag.getAttributes().getAll();
-        for (TagAttribute attr : attrs) {
-            if (attr.getLocalName().equals("class")) {
-                attributes.put("styleClass", attr);
+        for (int i = 0; i < attrs.length; i++) {
+            if (PassThroughAttributeLibrary.NAMESPACES.contains(attrs[i].getNamespace())) {
+                continue;
+            }
+            if (attrs[i].getLocalName().equals("class")) {
+                attributes.put("styleClass", attrs[i]);
             } else {
-                attributes.put(attr.getLocalName(), attr);
+                attributes.put(attrs[i].getLocalName(), attrs[i]);
             }
         }
 
