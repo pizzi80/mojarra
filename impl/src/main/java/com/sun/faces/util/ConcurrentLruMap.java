@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A {@link ConcurrentMap} with LRU eviction policy backed by an {@link LRUMap}
