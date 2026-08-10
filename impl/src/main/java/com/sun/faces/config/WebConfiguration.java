@@ -391,12 +391,17 @@ public class WebConfiguration {
      *
      * @return the configured Facelets suffixes.
      */
-    public List<String> getFaceletsSuffixes() {
+    public String[] getFaceletsSuffixes() {
         String[] faceletsSuffix = getOptionValue(FaceletsSuffix, " ");
 
-        Set<String> deduplicatedFaceletsSuffixes = new LinkedHashSet<>(asList(faceletsSuffix));
+        // single result -> no duplicates
+        if (faceletsSuffix.length < 2) {
+            return faceletsSuffix;
+        }
 
-        return new ArrayList<>(deduplicatedFaceletsSuffixes);
+        // remove duplicates
+        Set<String> deduplicatedFaceletsSuffixes = new LinkedHashSet<>(asList(faceletsSuffix));
+        return deduplicatedFaceletsSuffixes.toArray(new String[deduplicatedFaceletsSuffixes.size()]);
     }
 
     /**
@@ -413,7 +418,7 @@ public class WebConfiguration {
      * @return the suffixes which identify a resource as a Facelet, deduplicated and in precedence order.
      */
     public String[] getFaceletResourceSuffixes() {
-        Set<String> faceletResourceSuffixes = new LinkedHashSet<>(getFaceletsSuffixes());
+        Set<String> faceletResourceSuffixes = new LinkedHashSet<>(asList(getFaceletsSuffixes()));
         faceletResourceSuffixes.add(ViewHandler.DEFAULT_FACELETS_SUFFIX);
 
         for (String viewMapping : getOptionValue(FaceletsViewMappings, ";")) {
