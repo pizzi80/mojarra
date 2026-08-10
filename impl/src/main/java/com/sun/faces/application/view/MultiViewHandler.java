@@ -509,7 +509,7 @@ public class MultiViewHandler extends ViewHandler {
         int extIdx = lastDot > viewId.lastIndexOf('/') ? lastDot : -1;
         int length = viewId.length();
         StringBuilder buffer = new StringBuilder(length);
-        boolean singleExtension = configuredExtensions.size() == 1;
+        boolean singleExtension = configuredExtensions.length == 1;
         String firstCandidateViewId = null;
 
         for (String extension : configuredExtensions) {
