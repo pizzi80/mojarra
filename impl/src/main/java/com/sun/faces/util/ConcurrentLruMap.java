@@ -15,9 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A {@link ConcurrentMap} with LRU eviction policy backed by an {@link LRUMap}
- * All the access method are synchronized using an internal {@link ReentrantLock}
- * and custom internal data structures to iterate over keys and values without the need
- * of external locking
+ * All the access method are synchronized using an internal {@link Collections#synchronizedMap(Map)}
  * <br>
  * Note that a {@link ConcurrentMap} should not contains null keys and values, so we enforced null checks.
  *
@@ -47,9 +45,9 @@ public class ConcurrentLruMap<K, V> implements ConcurrentMap<K, V>, Serializable
     /** Snapshot consistente e *staccato*, preso sotto lock: sicuro da iterare. */
     public List<Map.Entry<K, V>> snapshot() {
         synchronized (sync) {
-            List<Entry<K, V>> out = new ArrayList<>(lru.size());
-            for (Map.Entry<K, V> e : lru.entrySet()) out.add(Map.entry(e.getKey(), e.getValue()));
-            return out;
+            List<Entry<K, V>> entries = new ArrayList<>(lru.size());
+            for (Map.Entry<K, V> e : lru.entrySet()) entries.add(Map.entry(e.getKey(), e.getValue()));
+            return entries;
         }
     }
 
