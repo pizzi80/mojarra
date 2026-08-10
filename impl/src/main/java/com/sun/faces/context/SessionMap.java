@@ -246,7 +246,6 @@ public class SessionMap extends BaseContextMap<Object> {
         }
         // it the session was not an HttpSession, return the shared mutex, which is the case? (Portlet?)
         LOGGER.fine("getMutex(session): session it's not an HttpSession. returning the shared lock as a mutex object");
-        // return session;
         return shared_mutex;
     }
 
