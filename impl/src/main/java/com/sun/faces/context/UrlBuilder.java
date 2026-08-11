@@ -50,12 +50,10 @@ import com.sun.faces.util.Util;
  * </p>
  */
 class UrlBuilder {
-    public static final String QUERY_STRING_SEPARATOR = "?";
-    public static final char QUERY_STRING_SEPARATOR_CHAR = QUERY_STRING_SEPARATOR.charAt(0);
-    public static final String PARAMETER_PAIR_SEPARATOR = "&";
-    public static final String PARAMETER_NAME_VALUE_SEPARATOR = "=";
-    public static final String FRAGMENT_SEPARATOR = "#";
-    public static final char FRAGMENT_SEPARATOR_CHAR = FRAGMENT_SEPARATOR.charAt(0);
+    public static final char QUERY_STRING_SEPARATOR = '?';
+    public static final char PARAMETER_PAIR_SEPARATOR = '&';
+    public static final char PARAMETER_NAME_VALUE_SEPARATOR = '=';
+    public static final char FRAGMENT_SEPARATOR = '#';
     public static final String DEFAULT_ENCODING = UTF_8.name();
     public static final String WEBSOCKET_PROTOCOL = "ws";
     public static final String PROTOCOL_SEPARATOR = "://";
@@ -169,9 +167,10 @@ class UrlBuilder {
             return;
         }
 
-        String[] pairs = queryString.split(PARAMETER_PAIR_SEPARATOR);
+
+        String[] pairs = Util.split(queryString, PARAMETER_PAIR_SEPARATOR);
         for (String pair : pairs) {
-            String[] nameAndValue = pair.split(PARAMETER_NAME_VALUE_SEPARATOR);
+            String[] nameAndValue = Util.split(pair, PARAMETER_NAME_VALUE_SEPARATOR);
             // ignore malformed pair
             if (nameAndValue.length != 2 || nameAndValue[0].isBlank()) {
                 continue;
@@ -191,12 +190,12 @@ class UrlBuilder {
         boolean hasQueryString = false;
 
         if (parameters != null) {
-            String nextSeparatorChar;
+            char nextSeparatorChar;
             if (queryString == null) {
                 nextSeparatorChar = QUERY_STRING_SEPARATOR;
             } else {
                 nextSeparatorChar = PARAMETER_PAIR_SEPARATOR;
-                url.append(QUERY_STRING_SEPARATOR_CHAR).append(queryString);
+                url.append(QUERY_STRING_SEPARATOR).append(queryString);
             }
 
             for (Map.Entry<String, List<String>> param : parameters.entrySet()) {
@@ -249,14 +248,14 @@ class UrlBuilder {
     }
 
     protected void extractSegments(String url) {
-        int fragmentIndex = url.indexOf(FRAGMENT_SEPARATOR_CHAR);
+        int fragmentIndex = url.indexOf(FRAGMENT_SEPARATOR);
         if (fragmentIndex != -1) {
             fragment = url.substring(fragmentIndex + 1);
             cleanFragment();
             url = url.substring(0, fragmentIndex);
         }
 
-        int queryStringIndex = url.indexOf(QUERY_STRING_SEPARATOR_CHAR);
+        int queryStringIndex = url.indexOf(QUERY_STRING_SEPARATOR);
         if (queryStringIndex != -1) {
             queryString = url.substring(queryStringIndex + 1);
             cleanQueryString();
@@ -311,7 +310,7 @@ class UrlBuilder {
     private void cleanFragment() {
         if (fragment != null) {
             String f = fragment.trim();
-            if (f.startsWith(FRAGMENT_SEPARATOR)) {
+            if (!f.isEmpty() && f.charAt(0) == FRAGMENT_SEPARATOR) {
                 f = f.substring(1);
             }
             fragment = f.isEmpty() ? null : f;
@@ -321,7 +320,7 @@ class UrlBuilder {
     private void cleanQueryString() {
         if (queryString != null) {
             String q = queryString.trim();
-            if (q.startsWith(QUERY_STRING_SEPARATOR)) {
+            if (!q.isEmpty() && q.charAt(0) == QUERY_STRING_SEPARATOR) {
                 q = q.substring(1);
             }
             queryString = q.isEmpty() ? null : q;

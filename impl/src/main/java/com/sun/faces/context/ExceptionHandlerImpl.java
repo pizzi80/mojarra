@@ -215,7 +215,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
         var typesParam = WebConfiguration.getInstance(context.getExternalContext()).getOptionValue(WebContextInitParameter.ExceptionTypesToIgnoreInLogging);
 
         if (typesParam != null) {
-            for (var typeParam : typesParam.split(",")) {
+            for (var typeParam : Util.split(typesParam, ',')) {
                 try {
                     types.add((Class<? extends Throwable>) Class.forName(typeParam));
                 }
@@ -273,9 +273,6 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
      * @return <code>true</code> if <code>c</code> is FacesException.class or ELException.class
      */
     private boolean shouldUnwrap(Class<? extends Throwable> c) {
-
-        // return FacesException.class.equals(c) || ELException.class.equals(c);
-
         // https://github.com/jakartaee/faces/issues/864
         return FacesException.class.isAssignableFrom(c) || ELException.class.isAssignableFrom(c);
     }

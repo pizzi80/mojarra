@@ -222,8 +222,8 @@ public class InjectionProviderFactory {
         } else {
             String[] serviceEntries = getServiceEntries();
             if (serviceEntries.length > 0) {
-                for (String serviceEntry : serviceEntries) {
-                    provider = getProviderFromEntry(serviceEntry);
+                for (int i = 0; i < serviceEntries.length; i++) {
+                    provider = getProviderFromEntry(serviceEntries[i]);
                     if (provider != null) {
                         break;
                     }
@@ -243,7 +243,7 @@ public class InjectionProviderFactory {
             return null;
         }
 
-        String[] parts = entry.split(":");
+        String[] parts = Util.split(entry, ':');
         if (parts.length != 2) {
             if (LOGGER.isLoggable(Level.SEVERE)) {
                 LOGGER.log(Level.SEVERE, "faces.spi.injection.invalid_service_entry", new Object[] { entry });

@@ -354,8 +354,7 @@ public abstract class BaseTableRenderer extends HtmlBasicRenderer {
             if (values == null) {
                 return EMPTY_STRING_ARRAY;
             }
-
-            return values.trim().split(",");
+            return Util.split(values.trim(), ',');
 
         }
 
@@ -447,8 +446,7 @@ public abstract class BaseTableRenderer extends HtmlBasicRenderer {
             if (values == null) {
                 return EMPTY_STRING_ARRAY;
             }
-
-            return values.trim().split(",");
+            return Util.split(values.trim(), ',');
 
         }
 

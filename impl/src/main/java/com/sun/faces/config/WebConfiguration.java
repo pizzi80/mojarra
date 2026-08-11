@@ -141,9 +141,9 @@ public class WebConfiguration {
         // build the cache of list type params
         cachedListParams = new HashMap<>(Util.calculateMapCapacity(6)); // make room for other Faces options
 
-        getOptionValue(WebContextInitParameter.ResourceExcludes, SPACE_STRING);
-        getOptionValue(WebContextInitParameter.FaceletsViewMappings, ";");
-        getOptionValue(WebContextInitParameter.FaceletsSuffix, SPACE_STRING);
+        getOptionValue(WebContextInitParameter.ResourceExcludes, ' ');
+        getOptionValue(WebContextInitParameter.FaceletsViewMappings, ';');
+        getOptionValue(WebContextInitParameter.FaceletsSuffix, ' ');
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -282,7 +282,21 @@ public class WebConfiguration {
         return getFacesConfigOptionValue(param, false);
     }
 
-    public String[] getOptionValue(WebContextInitParameter param, String sep) {
+    /**
+     * As {@link #getOptionValue(WebContextInitParameter, char)}, for a parameter whose values are separated by
+     * something only a regular expression can describe rather than by one literal delimiter.
+     *
+     * @param param the parameter to read
+     * @param sep the pattern separating the values
+     * @return the trimmed, non-empty values
+     */
+    public String[] getOptionValue(WebContextInitParameter param, Pattern sep) {
+        String value = getOptionValue(param);
+        return value == null ? new String[0]
+                : stream(sep.split(value)).map(String::trim).filter(not(String::isEmpty)).toArray(String[]::new);
+    }
+
+    public String[] getOptionValue(WebContextInitParameter param, char sep) {
         // get from cache
         String[] result = cachedListParams.get(param);
 
@@ -292,7 +306,7 @@ public class WebConfiguration {
             if (value == null) {
                 result = RIConstants.EMPTY_STRING_ARRAY;
             } else {
-                result = stream(split(servletContext, value, sep)).map(String::trim).filter(not(String::isEmpty)).toArray(String[]::new);
+                result = stream(split(value, sep)).map(String::trim).filter(not(String::isEmpty)).toArray(String[]::new);
             }
             cachedListParams.put(param, result);
         }
@@ -392,7 +406,7 @@ public class WebConfiguration {
      * @return the configured Facelets suffixes.
      */
     public String[] getFaceletsSuffixes() {
-        String[] faceletsSuffix = getOptionValue(FaceletsSuffix, " ");
+        String[] faceletsSuffix = getOptionValue(FaceletsSuffix, ' ');
 
         // single result -> no duplicates
         if (faceletsSuffix.length < 2) {
@@ -421,7 +435,7 @@ public class WebConfiguration {
         Set<String> faceletResourceSuffixes = new LinkedHashSet<>(asList(getFaceletsSuffixes()));
         faceletResourceSuffixes.add(ViewHandler.DEFAULT_FACELETS_SUFFIX);
 
-        for (String viewMapping : getOptionValue(FaceletsViewMappings, ";")) {
+        for (String viewMapping : getOptionValue(FaceletsViewMappings, ';')) {
             if (viewMapping.length() > 1 && viewMapping.charAt(0) == '*') {
                 faceletResourceSuffixes.add(viewMapping.substring(1));
             }
@@ -821,10 +835,6 @@ public class WebConfiguration {
 
         deferredLoggingActions.add(loggingAction);
     }
-
-//    public <T> Iterable<T> toIterable(Iterator<T> iterator) {
-//        return () -> iterator;
-//    }
 
     // ------------------------------------------------------------------- Enums
 

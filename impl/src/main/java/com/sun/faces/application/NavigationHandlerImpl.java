@@ -116,6 +116,8 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
      * Flag indicated the current mode.
      */
     private boolean development;
+    /** Query strings reach here both raw and HTML-escaped, so both forms of the parameter separator are matched. */
+    private static final Pattern QUERY_STRING_SEPARATOR = Pattern.compile("&amp;|&");
     private static final Pattern REDIRECT_EQUALS_TRUE = Pattern.compile("(.*)(faces-redirect=true)(.*)");
     private static final Pattern INCLUDE_VIEW_PARAMS_EQUALS_TRUE = Pattern.compile("(.*)(includeViewParams=true)(.*)");
 
@@ -257,7 +259,8 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                             parameters.put(FLOW_ID_REQUEST_PARAM_NAME, List.of(""));
                             FlowHandler flowHandler = context.getApplication().getFlowHandler();
 
-                            if (flowHandler instanceof FlowHandlerImpl flowHandlerImpl) {
+                            if (flowHandler instanceof FlowHandlerImpl) {
+                                FlowHandlerImpl flowHandlerImpl = (FlowHandlerImpl) flowHandler;
                                 List<String> flowReturnDepthValues = new ArrayList<>();
                                 flowReturnDepthValues.add(Integer.toString(flowHandlerImpl.getAndClearReturnModeDepth(context)));
                                 parameters.put(FLOW_RETURN_DEPTH_PARAM_NAME, flowReturnDepthValues);
@@ -855,11 +858,9 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
             }
 
             if (queryString != null && !queryString.isEmpty()) {
-
-
-                String[] queryElements = Util.split(context, queryString, "&amp;|&");
+                String[] queryElements = QUERY_STRING_SEPARATOR.split(queryString);
                 for (String queryElement : queryElements) {
-                    String[] elements = Util.split(context, queryElement, "=", 2);
+                    String[] elements = Util.split(queryElement, '=', 2);
                     if (elements.length == 2) {
                         String rightHandSide = elements[1];
                         String sanitized = null != rightHandSide && 2 < rightHandSide.length() ? rightHandSide.trim() : NO_VALUE;

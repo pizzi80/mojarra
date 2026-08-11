@@ -28,7 +28,6 @@ import jakarta.faces.application.ResourceHandler;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
-import java.util.Map;
 
 /**
  * ELResolver to resolve expressions like the following:
@@ -77,8 +76,7 @@ public class ResourceELResolver extends ELResolver {
                     throw new ELException("Invalid resource format.  Property " + prop + " contains more than one colon (:)");
                 }
 
-
-                final String[] parts = prop.split(":");
+                String[] parts = Util.split(prop, ':');
 
                 // If the enclosing entity for this expression is itself
                 // a resource, the "this" syntax for the library name must

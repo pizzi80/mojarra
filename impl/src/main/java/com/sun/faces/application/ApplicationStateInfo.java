@@ -48,10 +48,11 @@ public class ApplicationStateInfo {
         partialStateSaving = config.isOptionEnabled(PartialStateSaving);
 
         if (partialStateSaving) {
-            fullStateViewIds = Set.of(config.getOptionValue(FullStateSavingViewIds, ","));
+            fullStateViewIds = Set.of(config.getOptionValue(FullStateSavingViewIds, ','));
         }
         else {
             fullStateViewIds = Collections.emptySet();
+
             LOGGER.warning("The configuration '" + StateManager.PARTIAL_STATE_SAVING_PARAM_NAME
                 + "' is deprecated as of Faces 4.1 and should not longer be used.");
         }

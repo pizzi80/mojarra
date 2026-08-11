@@ -18,7 +18,6 @@ package com.sun.faces.facelets.tag.composite;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import com.sun.faces.util.Util;
 
@@ -49,7 +48,7 @@ public class AttachedObjectTargetImpl implements AttachedObjectTarget {
         FacesContext ctx = FacesContext.getCurrentInstance();
         if (null != targetsList) {
             String targetsListStr = targetsList.getValue(ctx.getELContext());
-            String[] targetArray = targetsListStr.split(Util.SPACE_STRING);
+            String[] targetArray = Util.split(targetsListStr, ' ');
             result = new ArrayList<>(targetArray.length);
             for (int i = 0, len = targetArray.length; i < len; i++) {
                 UIComponent comp = topLevelComponent.findComponent(augmentSearchId(ctx, topLevelComponent, targetArray[i]));

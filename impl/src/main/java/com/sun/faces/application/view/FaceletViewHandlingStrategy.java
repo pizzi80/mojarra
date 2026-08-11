@@ -40,6 +40,7 @@ import static com.sun.faces.util.Util.notNull;
 import static com.sun.faces.util.Util.saveDOCTYPEToFacesContextAttributes;
 import static com.sun.faces.util.Util.saveXMLDECLToFacesContextAttributes;
 import static com.sun.faces.util.Util.setViewPopulated;
+import static com.sun.faces.util.Util.split;
 import static jakarta.faces.FactoryFinder.VIEW_DECLARATION_LANGUAGE_FACTORY;
 import static jakarta.faces.application.ProjectStage.Development;
 import static jakarta.faces.application.Resource.COMPONENT_RESOURCE_KEY;
@@ -894,8 +895,6 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             }
             contractDataStructure.clear();
         }
-
-        LOGGER.fine("Initialization Successful");
     }
 
     /**
@@ -907,7 +906,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         String viewMappings = webConfig.getOptionValue(FaceletsViewMappings);
         if (viewMappings != null && !viewMappings.isEmpty()) {
 
-            String[] mappingsArray = viewMappings.split(";");
+            String[] mappingsArray = split(viewMappings, ';');
 
             List<String> prefixesList = new ArrayList<>(mappingsArray.length);
 
@@ -1349,7 +1348,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             if (targetsExpression != null) {
                 String targets = targetsExpression.getValue(context.getELContext());
                 if (targets != null) {
-                    return targets.split(Util.SPACE_STRING);
+                    return Util.split(targets, ' ');
                 }
             }
 
@@ -1622,7 +1621,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                     if (-1 != j) {
                         String strValue = methodSignature.substring(i + 1, j);
                         if (!strValue.isEmpty()) {
-                            String[] params = strValue.split(",");
+                            String[] params = Util.split(strValue, ',');
                             expectedParameters = new Class[params.length];
                             boolean exceptionThrown = false;
                             for (i = 0; i < params.length; i++) {

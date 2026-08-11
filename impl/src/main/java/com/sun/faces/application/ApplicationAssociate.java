@@ -27,6 +27,7 @@ import static com.sun.faces.util.MessageUtils.APPLICATION_ASSOCIATE_EXISTS_ID;
 import static com.sun.faces.util.MessageUtils.getExceptionMessageString;
 import static com.sun.faces.util.Util.getFacesConfigXmlVersion;
 import static com.sun.faces.util.Util.getFacesServletRegistration;
+import static com.sun.faces.util.Util.split;
 import static jakarta.faces.FactoryFinder.FACELET_CACHE_FACTORY;
 import static jakarta.faces.FactoryFinder.FLOW_HANDLER_FACTORY;
 import static jakarta.faces.FactoryFinder.VIEW_DECLARATION_LANGUAGE_FACTORY;
@@ -324,7 +325,6 @@ public class ApplicationAssociate {
         }
 
         FacesContext context = FacesContext.getCurrentInstance();
-
 
         compiler = createCompiler(webConfig);
         faceletFactory = createFaceletFactory(context, compiler, webConfig);
@@ -661,7 +661,7 @@ public class ApplicationAssociate {
         String decoratorsParamValue = webConfig.getOptionValue(FaceletsDecorators);
 
         if (decoratorsParamValue != null) {
-            for (String decorator : decoratorsParamValue.trim().split(";")) {
+            for (String decorator : split(decoratorsParamValue.trim(), ';')) {
                 try {
                     newCompiler
                             .addTagDecorator((TagDecorator) forName(decorator).getDeclaredConstructor().newInstance());

@@ -708,7 +708,9 @@ public class AjaxBehavior extends ClientBehaviorBase {
 
     // Converts the specified object to a List<String>
     private static List<String> toList(String propertyName, ValueExpression expression, Object value) {
-        if (value instanceof String strValue) {
+        if (value instanceof String) {
+
+            String strValue = (String) value;
 
             // If the value contains no spaces, we can optimize.
             // This is worthwhile, since the execute/render lists

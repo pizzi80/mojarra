@@ -21,7 +21,6 @@ import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.Defa
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.ResourceBufferSize;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.ResourceExcludes;
 import static com.sun.faces.util.RequestStateManager.RESOURCE_REQUEST;
-import static com.sun.faces.util.Util.getFacesMapping;
 import static com.sun.faces.util.Util.notNegative;
 import static com.sun.faces.util.Util.notNull;
 import static jakarta.faces.application.ProjectStage.Development;
@@ -638,7 +637,7 @@ public class ResourceHandlerImpl extends ResourceHandler {
      * @return the excluded file extensions, without empty entries, as an empty entry would exclude every resource
      */
     static String[] parseExcludedExtensions(String excludesParam) {
-        return Stream.of(excludesParam.split(Util.SPACE_STRING)).filter(Util::isNotEmpty).toArray(String[]::new);
+        return Stream.of(Util.split(excludesParam, ' ')).filter(Util::isNotEmpty).toArray(String[]::new);
     }
 
     private void initMaxAge() {

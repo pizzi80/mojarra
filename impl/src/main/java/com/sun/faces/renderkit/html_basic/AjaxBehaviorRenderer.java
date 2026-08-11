@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import com.sun.faces.facelets.tag.composite.RetargetedAjaxBehavior;
 import com.sun.faces.renderkit.RenderKitUtils;
@@ -35,7 +34,6 @@ import com.sun.faces.util.FacesLogger;
 import jakarta.faces.component.ActionSource;
 import jakarta.faces.component.EditableValueHolder;
 import jakarta.faces.component.UIComponent;
-import jakarta.faces.component.UINamingContainer;
 import jakarta.faces.component.behavior.AjaxBehavior;
 import jakarta.faces.component.behavior.ClientBehavior;
 import jakarta.faces.component.behavior.ClientBehaviorContext;
@@ -58,8 +56,6 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
 
     // Log instance for this class
     protected static final Logger logger = FacesLogger.RENDERKIT.getLogger();
-
-    private static final Pattern THIS_PATTERN = Pattern.compile("@this");
 
     // ------------------------------------------------------ Rendering Methods
 
@@ -332,7 +328,7 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
             boolean clientResolveableExpression = AjaxBehavior.KEYWORDS.contains(expression);
 
             if (composite != null && (ajaxBehavior instanceof RetargetedAjaxBehavior) && (expression.equals("@this") || expression.startsWith("@this" + separatorChar))) {
-                expression = THIS_PATTERN.matcher(expression).replaceFirst(separatorChar + composite.getClientId(facesContext));
+                expression = separatorChar + composite.getClientId(facesContext) + expression.substring("@this".length());
                 clientResolveableExpression = false;
             }
 

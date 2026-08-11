@@ -21,10 +21,8 @@ import static com.sun.faces.util.Util.ensureLeadingSlash;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.concurrent.locks.ReentrantLock;
@@ -527,7 +525,12 @@ public class ResourceManager {
         String appBundleName = context.getApplication().getMessageBundle();
         if (null != appBundleName) {
 
-            final Locale locale = context.getViewRoot() != null ? context.getViewRoot().getLocale() : context.getApplication().getViewHandler().calculateLocale(context);
+            final Locale locale;
+            if (context.getViewRoot() != null) {
+                locale = context.getViewRoot().getLocale();
+            } else {
+                locale = context.getApplication().getViewHandler().calculateLocale(context);
+            }
 
             try {
                 ResourceBundle appBundle = ResourceBundle.getBundle(appBundleName, locale, Util.getCurrentLoader(ResourceManager.class));
@@ -593,31 +596,30 @@ public class ResourceManager {
         WebConfiguration config = WebConfiguration.getInstance();
         String value = config.getOptionValue(WebConfiguration.WebContextInitParameter.CompressableMimeTypes);
         if (value != null && !value.isEmpty()) {
-            String[] values = value.split(",");
-
-            for (String s : values) {
-                String pattern = s.trim();
-                if (!isPatternValid(pattern)) {
-                    continue;
-                }
-                if (pattern.endsWith("/*")) {
-                    pattern = pattern.substring(0, pattern.indexOf("/*"));
-                    pattern += "/[a-z0-9.-]*";
-                }
-                if (compressableTypes == null) {
-                    compressableTypes = new ArrayList<>(values.length);
-                }
-                try {
-                    compressableTypes.add(Pattern.compile(pattern));
-                } catch (PatternSyntaxException pse) {
-                    if (LOGGER.isLoggable(Level.WARNING)) {
-                        // PENDING i18n
-                        // fixme: typo (also in .properties file)
-                        LOGGER.log(Level.WARNING, "faces.resource.mime.type.configration.invalid", new Object[] { pattern, pse.getPattern() });
+            String[] values = Util.split(value, ',');
+            if (values != null) {
+                for (String s : values) {
+                    String pattern = s.trim();
+                    if (!isPatternValid(pattern)) {
+                        continue;
+                    }
+                    if (pattern.endsWith("/*")) {
+                        pattern = pattern.substring(0, pattern.indexOf("/*"));
+                        pattern += "/[a-z0-9.-]*";
+                    }
+                    if (compressableTypes == null) {
+                        compressableTypes = new ArrayList<>(values.length);
+                    }
+                    try {
+                        compressableTypes.add(Pattern.compile(pattern));
+                    } catch (PatternSyntaxException pse) {
+                        if (LOGGER.isLoggable(Level.WARNING)) {
+                            // PENDING i18n
+                            LOGGER.log(Level.WARNING, "faces.resource.mime.type.configration.invalid", new Object[] { pattern, pse.getPattern() });
+                        }
                     }
                 }
             }
-
         }
 
     }
