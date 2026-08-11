@@ -22,15 +22,13 @@ import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.Numb
 import static com.sun.faces.context.SessionMap.getMutex;
 import static java.util.logging.Level.FINEST;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.faces.config.WebConfiguration;
+import com.sun.faces.util.ConcurrentLruMap;
 import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.LRUMap;
 
 import jakarta.enterprise.context.spi.Contextual;
 import jakarta.enterprise.context.spi.CreationalContext;
@@ -203,7 +201,7 @@ public class ClientWindowScopeContextManager {
                 clientWindowScopeContext = (Map<Object, Map<String, ClientWindowScopeContextObject>>) sessionMap.get(CLIENT_WINDOW_CONTEXTS);
                 // create and store if needed
                 if ( clientWindowScopeContext == null ) {
-                    clientWindowScopeContext = Collections.synchronizedMap(new LRUMap<>(numberOfClientWindows));
+                    clientWindowScopeContext = new ConcurrentLruMap<>(numberOfClientWindows);
                     sessionMap.put(CLIENT_WINDOW_CONTEXTS, clientWindowScopeContext);
                 }
             }
@@ -216,17 +214,7 @@ public class ClientWindowScopeContextManager {
      * Get the number of maximum client windows to be stored in session.
      */
     private static int getNumberOfClientWindows(ExternalContext externalContext) {
-        // get from init params
-        try {
-            return Integer.parseInt(WebConfiguration.getInstance(externalContext).getOptionValue(NumberOfClientWindows));
-        }
-        catch (NumberFormatException nfe) {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.log(Level.WARNING, "Unable to set number of client windows.  Defaulting to {0}", NumberOfClientWindows.getDefaultValue());
-            }
-        }
-        // get from default value
-        return Integer.parseInt(NumberOfClientWindows.getDefaultValue());
+        return WebConfiguration.getOptionIntValueOrDefault(WebConfiguration.getInstance(externalContext), NumberOfClientWindows);
     }
 
     private static String getCurrentClientWindowId(ExternalContext externalContext) {
