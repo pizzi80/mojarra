@@ -72,7 +72,6 @@ import com.sun.faces.renderkit.html_basic.StylesheetRenderer;
 import com.sun.faces.util.CollectionsUtils;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.MessageUtils;
-import com.sun.faces.util.TypedCollections;
 import com.sun.faces.util.Util;
 
 /**
@@ -424,7 +423,7 @@ public class ExternalContextImpl extends ExternalContext {
         contextPath = normalize(contextPath);
         if ("/".equals(contextPath)) {
             // the normalize method will return a "/" and includes on Jetty, will also be a "/".
-            contextPath = "";
+            contextPath = RIConstants.NO_VALUE;
         }
         return contextPath;
     }
@@ -493,11 +492,9 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public Set<String> getResourcePaths(String path) {
-        if (null == path) {
-            String message = MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "path");
-            throw new NullPointerException(message);
-        }
-        return TypedCollections.dynamicallyCastSet(servletContext.getResourcePaths(path), String.class);
+        Util.notNull(path, "path");
+
+        return servletContext.getResourcePaths(path);
     }
 
     /**
@@ -505,10 +502,8 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public InputStream getResourceAsStream(String path) {
-        if (null == path) {
-            String message = MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "path");
-            throw new NullPointerException(message);
-        }
+        Util.notNull(path, "path");
+
         return servletContext.getResourceAsStream(path);
     }
 
@@ -517,17 +512,13 @@ public class ExternalContextImpl extends ExternalContext {
      */
     @Override
     public URL getResource(String path) {
-        if (null == path) {
-            String message = MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "path");
-            throw new NullPointerException(message);
-        }
-        URL url;
+        Util.notNull(path, "path");
+
         try {
-            url = servletContext.getResource(path);
+            return servletContext.getResource(path);
         } catch (MalformedURLException e) {
             return null;
         }
-        return url;
     }
 
     /**
