@@ -21,6 +21,7 @@ import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.Defa
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.ResourceBufferSize;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.ResourceExcludes;
 import static com.sun.faces.util.RequestStateManager.RESOURCE_REQUEST;
+import static com.sun.faces.util.Util.getFacesMapping;
 import static com.sun.faces.util.Util.notNegative;
 import static com.sun.faces.util.Util.notNull;
 import static jakarta.faces.application.ProjectStage.Development;
@@ -602,7 +603,7 @@ public class ResourceHandlerImpl extends ResourceHandler {
         if (getFacesMapping(context).getMappingMatch() == EXTENSION) {
             String path = context.getExternalContext().getRequestServletPath();
             // strip off the extension
-            return path.substring(0, path.lastIndexOf("."));
+            return path.substring(0, path.lastIndexOf('.'));
         }
 
         return context.getExternalContext().getRequestPathInfo();
