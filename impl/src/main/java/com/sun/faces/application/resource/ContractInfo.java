@@ -31,9 +31,8 @@ public final class ContractInfo implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof ContractInfo info)) return false;
-
-        return Objects.equals(contract, info.contract);
+        return object instanceof ContractInfo info
+            && Objects.equals(contract, info.contract);
     }
 
     @Override
