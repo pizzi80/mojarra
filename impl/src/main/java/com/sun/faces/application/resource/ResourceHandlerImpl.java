@@ -104,18 +104,18 @@ public class ResourceHandlerImpl extends ResourceHandler {
      * Creates a new instance of ResourceHandlerImpl
      */
     public ResourceHandlerImpl() {
-        final ExternalContext extContext = FacesContext.getCurrentInstance().getExternalContext();
+        ExternalContext extContext = FacesContext.getCurrentInstance().getExternalContext();
         creationTime = System.currentTimeMillis();
         webconfig = WebConfiguration.getInstance(extContext);
         manager = ApplicationAssociate.getInstance(extContext).getResourceManager();
         initExclusions();
         initMaxAge();
+        bufferSize = initBufferSize();
         cspEnabled = webconfig.isOptionEnabled(WebConfiguration.BooleanWebContextInitParameter.CspNonceEnabled);
         if (cspEnabled) {
             secureRandom = new SecureRandom();
             secureRandom.nextBytes(new byte[1]);
         }
-        bufferSize = WebConfiguration.getOptionIntValueOrDefault(webconfig, ResourceBufferSize);
     }
 
     // ------------------------------------------- Methods from Resource Handler
@@ -553,13 +553,13 @@ public class ResourceHandlerImpl extends ResourceHandler {
      * Log a message indicating a particular resource (reference by name and/or library) could not be found. If this was due
      * to an exception, the exception provided will be logged as well.
      *
-     * @param context the {@link FacesContext} for the current request
+     * @param ctx the {@link FacesContext} for the current request
      * @param resourceId the resource name
      * @param t the exception caught when attempting to find the resource
      */
-    private void logMissingResource(FacesContext context, String resourceId, Throwable t) {
+    private void logMissingResource(FacesContext ctx, String resourceId, Throwable t) {
         Level level;
-        if (!context.isProjectStage(Production)) {
+        if (!ctx.isProjectStage(Production)) {
             level = WARNING;
         } else {
             level = t != null ? WARNING : FINE;
@@ -638,11 +638,24 @@ public class ResourceHandlerImpl extends ResourceHandler {
      * @return the excluded file extensions, without empty entries, as an empty entry would exclude every resource
      */
     static String[] parseExcludedExtensions(String excludesParam) {
-        return Stream.of(Util.split(excludesParam, ' ')).filter(Util::isNotEmpty).toArray(String[]::new);
+        return Stream.of(Util.split(excludesParam, ' ')).filter(extension -> !extension.isEmpty()).toArray(String[]::new);
     }
 
     private void initMaxAge() {
         maxAge = Long.parseLong(webconfig.getOptionValue(DefaultResourceMaxAge));
+    }
+
+    private int initBufferSize() {
+        String size = webconfig.getOptionValue(ResourceBufferSize);
+        try {
+            return Integer.parseInt(size);
+        } catch (NumberFormatException nfe) {
+            if (LOGGER.isLoggable(WARNING)) {
+                LOGGER.log(WARNING, "faces.application.resource.invalid_resource_buffer_size",
+                        new Object[] { size, ResourceBufferSize.getQualifiedName(), ResourceBufferSize.getDefaultValue() });
+            }
+            return Integer.parseInt(ResourceBufferSize.getDefaultValue());
+        }
     }
 
     private void handleHeaders(ExternalContext extContext, Resource resource) {
