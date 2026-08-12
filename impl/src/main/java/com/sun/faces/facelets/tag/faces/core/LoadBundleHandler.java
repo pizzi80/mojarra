@@ -101,6 +101,7 @@ public final class LoadBundleHandler extends TagHandlerImpl {
         private static final String MISSING_RESOURCE_PLACEHOLDER = "???";
 
         private final ResourceBundle bundle;
+        private transient Set<String> keySet;
 
         public ResourceBundleMap(ResourceBundle bundle) {
             this.bundle = bundle;
@@ -147,7 +148,10 @@ public final class LoadBundleHandler extends TagHandlerImpl {
 
         @Override
         public Set<String> keySet() {
-            return bundle.keySet();
+            if (keySet==null) {
+                keySet = bundle.keySet();
+            }
+            return keySet;
         }
 
         @Override
@@ -172,7 +176,7 @@ public final class LoadBundleHandler extends TagHandlerImpl {
 
         @Override
         public Collection<Object> values() {
-            Set<String> keys = bundle.keySet();
+            Set<String> keys = keySet();
             List<Object> list = new ArrayList<>(keys.size());
             for (String key : keys) {
                 list.add(bundle.getObject(key));
