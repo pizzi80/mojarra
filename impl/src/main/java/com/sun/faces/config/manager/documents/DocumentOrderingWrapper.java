@@ -585,7 +585,7 @@ public class DocumentOrderingWrapper {
     private String getDocumentName(Element documentElement) {
 
         NodeList children = documentElement.getChildNodes();
-        String documentName = RIConstants.NO_VALUE;
+        String documentName = RIConstants.EMPTY_STRING;
         if (children != null && children.getLength() > 0) {
             for (int i = 0, len = children.getLength(); i < len; i++) {
                 Node n = children.item(i);

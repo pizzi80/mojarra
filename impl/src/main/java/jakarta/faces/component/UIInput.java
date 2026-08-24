@@ -257,7 +257,7 @@ public class UIInput extends UIOutput implements EditableValueHolder {
     public Object getSubmittedValue() {
         Object submittedValue = getTransientOrDefault(PropertyKeys.submittedValue, null);
         if (submittedValue == null && !isValid() && considerEmptyStringNull(FacesContext.getCurrentInstance())) { // JAVASERVERFACES_SPEC_PUBLIC-671
-            return RIConstants.NO_VALUE;
+            return RIConstants.EMPTY_STRING;
         } else {
             return submittedValue;
         }

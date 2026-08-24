@@ -133,7 +133,7 @@ class DefaultTagDecorator implements TagDecorator {
         private String localName;
         private Namespace namespace;
         private String arbiterAttributeName;
-        private String arbiterAttributeNamespace = RIConstants.NO_VALUE;
+        private String arbiterAttributeNamespace = RIConstants.EMPTY_STRING;
         private final Map<String, String> additionalMappings = new HashMap<>();
         private String otherHtmlIdAttribute;
 
@@ -247,7 +247,7 @@ class DefaultTagDecorator implements TagDecorator {
             if (PassThroughElementLibrary.NAMESPACES.contains(attribute.getNamespace())) {
                 // make this a component attribute
                 qName = myLocalName;
-                ns = RIConstants.NO_VALUE;
+                ns = RIConstants.EMPTY_STRING;
             } else {
                 if (!ns.isEmpty() && !ns.equals(attribute.getTag().getNamespace())) {
                     // the attribute has a different namespace than the tag. preserve it.

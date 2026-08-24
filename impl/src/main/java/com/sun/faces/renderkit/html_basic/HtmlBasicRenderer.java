@@ -429,7 +429,7 @@ public abstract class HtmlBasicRenderer extends Renderer {
             // if value is null and no converter attribute is specified, then
             // return a zero length String.
             if (currentValue == null) {
-                return RIConstants.NO_VALUE;
+                return RIConstants.EMPTY_STRING;
             }
             // Do not look for "by-type" converters for Strings
             if (currentValue instanceof String) {

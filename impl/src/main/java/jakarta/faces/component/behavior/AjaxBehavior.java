@@ -35,6 +35,7 @@ import jakarta.faces.component.UIComponentBase;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.AjaxBehaviorListener;
 
+import com.sun.faces.RIConstants;
 import com.sun.faces.util.Util;
 
 /**
@@ -720,7 +721,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
             }
 
             // We're stuck splitting up the string.
-            String[] values = strValue.split(Util.SPACE_STRING);
+            String[] values = strValue.split(" ");
             if (values.length == 0) {
                 return null;
             }

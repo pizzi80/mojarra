@@ -1323,8 +1323,8 @@ public class ELFlash extends Flash {
          * </p>
          */
         Cookie encode() {
-            String value = (null != previousRequestFlashInfo ? previousRequestFlashInfo.encode() : RIConstants.NO_VALUE) + "_"
-                    + (null != nextRequestFlashInfo ? nextRequestFlashInfo.encode() : RIConstants.NO_VALUE);
+            String value = (null != previousRequestFlashInfo ? previousRequestFlashInfo.encode() : RIConstants.EMPTY_STRING) + "_"
+                    + (null != nextRequestFlashInfo ? nextRequestFlashInfo.encode() : RIConstants.EMPTY_STRING);
             String encryptedValue = guard.encrypt(value);
             Cookie result = new Cookie(FLASH_COOKIE_NAME, URLEncoder.encode(encryptedValue, UTF_8));
 

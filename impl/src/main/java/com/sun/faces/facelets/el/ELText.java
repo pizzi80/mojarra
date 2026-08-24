@@ -383,7 +383,7 @@ public class ELText {
         }
 
         if (text.isEmpty()) {
-            return new ELText(RIConstants.NO_VALUE);
+            return new ELText(RIConstants.EMPTY_STRING);
         } else if (text.size() == 1) {
             return text.get(0);
         } else {

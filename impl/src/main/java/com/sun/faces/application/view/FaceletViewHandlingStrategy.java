@@ -17,10 +17,10 @@
 package com.sun.faces.application.view;
 
 import static com.sun.faces.RIConstants.DYNAMIC_COMPONENT;
+import static com.sun.faces.RIConstants.EMPTY_STRING;
 import static com.sun.faces.RIConstants.VIEW_REBUILT_AT_RENDER;
 import static com.sun.faces.RIConstants.FACELETS_ENCODING_KEY;
 import static com.sun.faces.RIConstants.FLOW_DEFINITION_ID_SUFFIX;
-import static com.sun.faces.RIConstants.NO_VALUE;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsBufferSize;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsViewMappings;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.StateSavingMethod;
@@ -715,7 +715,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
                     if (metadata.isRequired(context)) {
                         Object location = attrs.get(VIEW_LOCATION_KEY);
                         if (location == null) {
-                            location = NO_VALUE;
+                            location = EMPTY_STRING;
                         }
                         throw new FacesException(
                                 location + ": Unable to find attribute with name \"" + attrName + "\" in top level component in consuming page, "
@@ -1321,7 +1321,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             boolean result;
             String name = pd.getName();
             ValueExpression ve = (ValueExpression) pd.getValue("targetAttributeName");
-            String targetAttributeName = ve != null ? (String) ve.getValue(context.getELContext()) : NO_VALUE;
+            String targetAttributeName = ve != null ? (String) ve.getValue(context.getELContext()) : EMPTY_STRING;
 
             boolean isSpecialAttributeName = Util.isSpecialAttributeName(name) || Util.isSpecialAttributeName(targetAttributeName);
             result = !isSpecialAttributeName && (pd.getValue("type") != null || pd.getValue("method-signature") == null);

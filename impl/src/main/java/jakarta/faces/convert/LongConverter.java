@@ -105,7 +105,7 @@ public class LongConverter implements Converter<Long> {
 
         // If the specified value is null, return an empty String
         if (value == null) {
-            return RIConstants.NO_VALUE;
+            return RIConstants.EMPTY_STRING;
         }
 
         try {

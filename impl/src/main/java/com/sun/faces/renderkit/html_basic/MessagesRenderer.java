@@ -76,7 +76,7 @@ public class MessagesRenderer extends HtmlBasicRenderer {
             // and the author explicitly only wants global messages
             if (messages.isGlobalOnly()) {
                 // make it so only global messages get displayed.
-                clientId = RIConstants.NO_VALUE;
+                clientId = RIConstants.EMPTY_STRING;
             }
         }
 
@@ -136,7 +136,7 @@ public class MessagesRenderer extends HtmlBasicRenderer {
 
             // make sure we have a non-null value for summary and
             // detail.
-            String summary = null != (summary = curMessage.getSummary()) ? summary : RIConstants.NO_VALUE;
+            String summary = null != (summary = curMessage.getSummary()) ? summary : RIConstants.EMPTY_STRING;
             // Default to summary if we have no detail
             String detail = null != (detail = curMessage.getDetail()) ? detail : summary;
 

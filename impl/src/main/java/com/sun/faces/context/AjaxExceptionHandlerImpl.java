@@ -172,7 +172,7 @@ public class AjaxExceptionHandlerImpl extends ExceptionHandlerWrapper {
                     msg = t.getMessage();
                 }
             }
-            writer.write(msg != null ? msg : RIConstants.NO_VALUE);
+            writer.write(msg != null ? msg : RIConstants.EMPTY_STRING);
             writer.endError();
             writer.endDocument();
 

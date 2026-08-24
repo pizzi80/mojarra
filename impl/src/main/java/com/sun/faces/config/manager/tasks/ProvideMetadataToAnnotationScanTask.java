@@ -57,7 +57,7 @@ public final class ProvideMetadataToAnnotationScanTask {
         for (DocumentInfo docInfo : documentInfos) {
 
             URI facesConfigURI = docInfo.getSourceURI();
-            Matcher jarMatcher = FACES_CONFIG_XML_IN_JAR_PATTERN.matcher(facesConfigURI == null ? RIConstants.NO_VALUE : facesConfigURI.toString());
+            Matcher jarMatcher = FACES_CONFIG_XML_IN_JAR_PATTERN.matcher(facesConfigURI == null ? RIConstants.EMPTY_STRING : facesConfigURI.toString());
 
             if (jarMatcher.matches()) {
                 String jarName = jarMatcher.group(2);

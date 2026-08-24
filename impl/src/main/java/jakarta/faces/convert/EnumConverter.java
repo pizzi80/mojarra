@@ -158,7 +158,7 @@ public class EnumConverter implements Converter, PartialStateHolder {
 
         // If the specified value is null, return an empty String
         if (value == null) {
-            return RIConstants.NO_VALUE;
+            return RIConstants.EMPTY_STRING;
         }
 
         if (targetClass.isInstance(value)) {

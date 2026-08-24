@@ -107,7 +107,7 @@ public class FloatConverter implements Converter<Float> {
 
         // If the specified value is null, return a zero-length String
         if (value == null) {
-            return RIConstants.NO_VALUE;
+            return RIConstants.EMPTY_STRING;
         }
 
         try {

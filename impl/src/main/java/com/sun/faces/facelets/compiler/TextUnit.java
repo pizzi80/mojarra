@@ -288,7 +288,7 @@ final class TextUnit extends CompilationUnit {
                 return s.substring(0,i+1);
             }
         }
-        return RIConstants.NO_VALUE;
+        return RIConstants.EMPTY_STRING;
     }
 
     @Override

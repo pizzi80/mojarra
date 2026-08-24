@@ -303,7 +303,7 @@ final class SelectItemsIterator implements Iterator<SelectItem> {
             Object key = entry.getKey();
             Object value = entry.getValue();
             item.setLabel(key != null ? key.toString() : value.toString());
-            item.setValue(value != null ? value : RIConstants.NO_VALUE);
+            item.setValue(value != null ? value : RIConstants.EMPTY_STRING);
             return item;
 
         }

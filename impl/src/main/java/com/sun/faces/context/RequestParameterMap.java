@@ -81,7 +81,7 @@ public class RequestParameterMap extends BaseContextMap<String> {
             FacesContext context = FacesContext.getCurrentInstance();
 
             if (context == null) {
-                return RIConstants.NO_VALUE;
+                return RIConstants.EMPTY_STRING;
             }
 
             namingContainerPrefix = Util.getNamingContainerPrefix(context);

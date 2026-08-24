@@ -145,7 +145,7 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
             exprType = ve.getType(context);
         }
 
-        if (!RIConstants.NO_VALUE.equals(property) ) {
+        if (!RIConstants.EMPTY_STRING.equals(property) ) {
             FacesContext facesContext = (FacesContext) context.getContext(FacesContext.class);
             UIComponent cc = UIComponent.getCurrentCompositeComponent(facesContext);
             BeanInfo metadata = (BeanInfo) cc.getAttributes().get(UIComponent.BEANINFO_KEY);

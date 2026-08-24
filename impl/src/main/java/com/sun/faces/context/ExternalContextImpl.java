@@ -423,7 +423,7 @@ public class ExternalContextImpl extends ExternalContext {
         contextPath = normalize(contextPath);
         if ("/".equals(contextPath)) {
             // the normalize method will return a "/" and includes on Jetty, will also be a "/".
-            contextPath = RIConstants.NO_VALUE;
+            contextPath = RIConstants.EMPTY_STRING;
         }
         return contextPath;
     }

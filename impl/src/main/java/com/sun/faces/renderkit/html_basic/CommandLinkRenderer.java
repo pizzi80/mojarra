@@ -131,7 +131,7 @@ public class CommandLinkRenderer extends LinkRenderer {
                 if (target != null) {
                     target = target.trim();
                 } else {
-                    target = RIConstants.NO_VALUE;
+                    target = RIConstants.EMPTY_STRING;
                 }
                 Collection<ClientBehaviorContext.Parameter> params = getBehaviorParameters(component);
                 RenderKitUtils.renderOnclickEventListener(context, component, params, target, true);
@@ -179,7 +179,7 @@ public class CommandLinkRenderer extends LinkRenderer {
             if (target != null) {
                 target = target.trim();
             } else {
-                target = RIConstants.NO_VALUE;
+                target = RIConstants.EMPTY_STRING;
             }
 
             Collection<ClientBehaviorContext.Parameter> params = getBehaviorParameters(command);

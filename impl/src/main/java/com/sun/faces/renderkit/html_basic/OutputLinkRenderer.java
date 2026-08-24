@@ -162,7 +162,7 @@ public class OutputLinkRenderer extends LinkRenderer {
         }
         // render an empty value for href if it is not specified
         if (null == hrefVal || hrefVal.isEmpty()) {
-            hrefVal = RIConstants.NO_VALUE;
+            hrefVal = RIConstants.EMPTY_STRING;
         }
 
         // Write Anchor attributes

@@ -18,7 +18,6 @@
 package com.sun.faces.config;
 
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsSuffix;
-import static com.sun.faces.util.Util.SPACE_STRING;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsViewMappings;
 import static com.sun.faces.util.Util.split;
 import static java.util.Arrays.asList;

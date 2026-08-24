@@ -292,7 +292,7 @@ public class UIViewParameter extends UIInput {
                     // if they are not submitted. I'm not sure if that's
                     // correct, but let's put this in and see how
                     // the community responds.
-                    setSubmittedValue(RIConstants.NO_VALUE);
+                    setSubmittedValue(RIConstants.EMPTY_STRING);
                 }
                 break;
             }

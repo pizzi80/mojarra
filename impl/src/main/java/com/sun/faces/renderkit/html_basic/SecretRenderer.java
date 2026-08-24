@@ -58,7 +58,7 @@ public class SecretRenderer extends HtmlBasicInputRenderer {
         boolean redisplay = component instanceof HtmlInputSecret secret ? secret.isRedisplay()
                 : RenderKitUtils.attributeIsTrue(component, "redisplay", false);
         if (!redisplay) {
-            currentValue = RIConstants.NO_VALUE;
+            currentValue = RIConstants.EMPTY_STRING;
         }
 
         writer.startElement("input", component);

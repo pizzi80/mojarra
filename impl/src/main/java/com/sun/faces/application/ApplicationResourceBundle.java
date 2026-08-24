@@ -102,7 +102,7 @@ public class ApplicationResourceBundle {
             displayName = queryMap(locale, displayNames);
         }
 
-        return coalesce(displayName, RIConstants.NO_VALUE);
+        return coalesce(displayName, RIConstants.EMPTY_STRING);
     }
 
     /**
@@ -115,7 +115,7 @@ public class ApplicationResourceBundle {
             description = queryMap(locale, descriptions);
         }
 
-        return coalesce(description, RIConstants.NO_VALUE);
+        return coalesce(description, RIConstants.EMPTY_STRING);
     }
 
     // --------------------------------------------------------- Private Methods

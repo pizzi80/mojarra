@@ -16,7 +16,7 @@
 
 package com.sun.faces.application;
 
-import static com.sun.faces.RIConstants.NO_VALUE;
+import static com.sun.faces.RIConstants.EMPTY_STRING;
 import static com.sun.faces.application.SharedUtils.evaluateExpressions;
 import static com.sun.faces.flow.FlowHandlerImpl.FLOW_RETURN_DEPTH_PARAM_NAME;
 import static com.sun.faces.util.Util.notNull;
@@ -196,7 +196,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
     @Override
     public void handleNavigation(FacesContext context, String fromAction, String outcome) {
-        this.handleNavigation(context, fromAction, outcome, NO_VALUE);
+        this.handleNavigation(context, fromAction, outcome, EMPTY_STRING);
     }
 
     /*
@@ -233,9 +233,9 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
             if (isProcessingBroadcast(context)) {
                 flash.setKeepMessages(true);
                 String viewIdBefore = context.getViewRoot().getViewId();
-                viewIdBefore = null == viewIdBefore ? NO_VALUE : viewIdBefore;
+                viewIdBefore = null == viewIdBefore ? EMPTY_STRING : viewIdBefore;
                 String viewIdAfter = caseStruct.navCase.getToViewId(context);
-                viewIdAfter = null == viewIdAfter ? NO_VALUE : viewIdAfter; // NOPMD
+                viewIdAfter = null == viewIdAfter ? EMPTY_STRING : viewIdAfter; // NOPMD
                 isUIViewActionBroadcastAndViewdsDiffer = !viewIdBefore.equals(viewIdAfter);
             }
 
@@ -848,12 +848,12 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                 Matcher m = REDIRECT_EQUALS_TRUE.matcher(queryString);
                 if (m.find()) {
                     isRedirect = true;
-                    queryString = queryString.replace(m.group(2), NO_VALUE);
+                    queryString = queryString.replace(m.group(2), EMPTY_STRING);
                 }
                 m = INCLUDE_VIEW_PARAMS_EQUALS_TRUE.matcher(queryString);
                 if (m.find()) {
                     isIncludeViewParams = true;
-                    queryString = queryString.replace(m.group(2), NO_VALUE);
+                    queryString = queryString.replace(m.group(2), EMPTY_STRING);
                 }
             }
 
@@ -863,12 +863,12 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                     String[] elements = Util.split(queryElement, '=', 2);
                     if (elements.length == 2) {
                         String rightHandSide = elements[1];
-                        String sanitized = null != rightHandSide && 2 < rightHandSide.length() ? rightHandSide.trim() : NO_VALUE;
+                        String sanitized = null != rightHandSide && 2 < rightHandSide.length() ? rightHandSide.trim() : EMPTY_STRING;
                         if (sanitized.contains("#{") || sanitized.contains("${")) {
                             if (LOGGER.isLoggable(Level.INFO)) {
                                 LOGGER.log(Level.INFO, "faces.navigation_invalid_query_string", rightHandSide);
                             }
-                            rightHandSide = NO_VALUE;
+                            rightHandSide = EMPTY_STRING;
                         }
 
                         if (parameters == null) {

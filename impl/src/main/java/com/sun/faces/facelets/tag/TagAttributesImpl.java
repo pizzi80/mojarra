@@ -132,7 +132,7 @@ public final class TagAttributesImpl extends TagAttributes {
      */
     @Override
     public TagAttribute get(String localName) {
-        return get(RIConstants.NO_VALUE, localName);
+        return get(RIConstants.EMPTY_STRING, localName);
     }
 
     /**
@@ -166,7 +166,7 @@ public final class TagAttributesImpl extends TagAttributes {
      */
     @Override
     public TagAttribute[] getAll(String namespace) {
-        int idx = getNamespaceIndex(Util.coalesce(namespace, RIConstants.NO_VALUE));
+        int idx = getNamespaceIndex(Util.coalesce(namespace, RIConstants.EMPTY_STRING));
         if (idx >= 0) {
             return (TagAttribute[]) nsattrs.get(idx);
         }

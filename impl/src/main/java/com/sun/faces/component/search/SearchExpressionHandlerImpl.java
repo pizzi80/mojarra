@@ -43,7 +43,7 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
     @Override
     public String resolveClientId(SearchExpressionContext searchExpressionContext, String expression) {
         if (expression == null) {
-            expression = RIConstants.NO_VALUE;
+            expression = RIConstants.EMPTY_STRING;
         } else {
             expression = expression.trim();
         }
@@ -91,7 +91,7 @@ public class SearchExpressionHandlerImpl extends SearchExpressionHandler {
     @Override
     public List<String> resolveClientIds(SearchExpressionContext searchExpressionContext, String expressions) {
         if (expressions == null) {
-            expressions = RIConstants.NO_VALUE;
+            expressions = RIConstants.EMPTY_STRING;
         } else {
             expressions = expressions.trim();
         }

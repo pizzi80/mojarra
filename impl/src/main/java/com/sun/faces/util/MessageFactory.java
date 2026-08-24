@@ -301,7 +301,7 @@ public final class MessageFactory {
                     }
                     // to avoid 'null' appearing in message
                     if (o == null) {
-                        o = RIConstants.NO_VALUE;
+                        o = RIConstants.EMPTY_STRING;
                     }
                     resolvedParameters[i] = o;
                 }

@@ -16,7 +16,7 @@
 
 package com.sun.faces.facelets.tag.jstl.fn;
 
-import static com.sun.faces.RIConstants.NO_VALUE;
+import static com.sun.faces.RIConstants.EMPTY_STRING;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -39,37 +39,37 @@ public final class JstlFunction {
 
     public static boolean contains(String name, String searchString) {
         if (name == null) {
-            name = NO_VALUE;
+            name = EMPTY_STRING;
         }
         if (searchString == null) {
-            searchString = NO_VALUE;
+            searchString = EMPTY_STRING;
         }
         return name.contains(searchString);
     }
 
     public static boolean containsIgnoreCase(String name, String searchString) {
         if (name == null) {
-            name = NO_VALUE;
+            name = EMPTY_STRING;
         }
         if (searchString == null) {
-            searchString = NO_VALUE;
+            searchString = EMPTY_STRING;
         }
         return name.toLowerCase().contains(searchString.toLowerCase());
     }
 
     public static boolean endsWith(String name, String searchString) {
         if (name == null) {
-            name = NO_VALUE;
+            name = EMPTY_STRING;
         }
         if (searchString == null) {
-            searchString = NO_VALUE;
+            searchString = EMPTY_STRING;
         }
         return name.endsWith(searchString);
     }
 
     public static String escapeXml(String value) {
         if (value == null || value.isEmpty()) {
-            value = NO_VALUE;
+            value = EMPTY_STRING;
         }
         StringBuilder b = new StringBuilder(value.length());
         for (int i = 0, len = value.length(); i < len; i++) {
@@ -93,17 +93,17 @@ public final class JstlFunction {
 
     public static int indexOf(String name, String searchString) {
         if (name == null) {
-            name = NO_VALUE;
+            name = EMPTY_STRING;
         }
         if (searchString == null) {
-            searchString = NO_VALUE;
+            searchString = EMPTY_STRING;
         }
         return name.indexOf(searchString);
     }
 
     public static String join(String[] a, String delim) {
         if (a == null || a.length == 0) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         boolean skipDelim = false;
         if (delim == null || delim.isEmpty()) {
@@ -158,19 +158,19 @@ public final class JstlFunction {
 
     public static String replace(String value, String before, String after) {
         if (value == null) {
-            value = NO_VALUE;
+            value = EMPTY_STRING;
         }
         if (before == null) {
-            before = NO_VALUE;
+            before = EMPTY_STRING;
         }
         if (before.isEmpty()) {
             return value;
         }
         if (value.isEmpty()) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         if (after == null) {
-            after = NO_VALUE;
+            after = EMPTY_STRING;
         }
 
         return value.replaceAll(before, after);
@@ -178,13 +178,13 @@ public final class JstlFunction {
 
     public static String[] split(String value, String d) {
         if (value == null) {
-            value = NO_VALUE;
+            value = EMPTY_STRING;
         }
         if (value.isEmpty()) {
-            return new String[] { NO_VALUE };
+            return new String[] { EMPTY_STRING };
         }
         if (d == null) {
-            d = NO_VALUE;
+            d = EMPTY_STRING;
         }
         if (d.isEmpty()) {
             return new String[] { value };
@@ -200,20 +200,20 @@ public final class JstlFunction {
 
     public static boolean startsWith(String value, String p) {
         if (value == null) {
-            value = NO_VALUE;
+            value = EMPTY_STRING;
         }
         if (p == null) {
-            p = NO_VALUE;
+            p = EMPTY_STRING;
         }
         return value.startsWith(p);
     }
 
     public static String substring(String v, int s, int e) {
         if (v == null) {
-            v = NO_VALUE;
+            v = EMPTY_STRING;
         }
         if (s >= v.length()) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         if (s < 0) {
             s = 0;
@@ -222,62 +222,62 @@ public final class JstlFunction {
             e = v.length();
         }
         if (e < s) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         return v.substring(s, e);
     }
 
     public static String substringAfter(String v, String p) {
         if (v == null) {
-            v = NO_VALUE;
+            v = EMPTY_STRING;
         }
         if (v.isEmpty()) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         if (p == null) {
-            p = NO_VALUE;
+            p = EMPTY_STRING;
         }
         int i = v.indexOf(p);
         if (i == -1) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         return v.substring(i + p.length());
     }
 
     public static String substringBefore(String v, String s) {
         if (v == null) {
-            v = NO_VALUE;
+            v = EMPTY_STRING;
         }
         if (v.isEmpty()) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         if (s == null) {
-            s = NO_VALUE;
+            s = EMPTY_STRING;
         }
         int i = v.indexOf(s);
         if (i == -1) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         return v.substring(0, i);
     }
 
     public static String toLowerCase(String v) {
         if (v == null || v.isEmpty()) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         return v.toLowerCase();
     }
 
     public static String toUpperCase(String v) {
         if (v == null || v.isEmpty()) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         return v.toUpperCase();
     }
 
     public static String trim(String v) {
         if (v == null || v.isEmpty()) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
         return v.trim();
     }
