@@ -68,9 +68,16 @@ public class VersionInfo implements Comparable<VersionInfo> {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof VersionInfo info
-            && version.equals(info.version)
-            && Objects.equals(extension, info.extension);
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+
+        VersionInfo other = (VersionInfo) obj;
+
+        return version.equals(other.version) && Objects.equals(extension, other.extension);
     }
 
     // ------------------------------------------------- Methods from Comparable

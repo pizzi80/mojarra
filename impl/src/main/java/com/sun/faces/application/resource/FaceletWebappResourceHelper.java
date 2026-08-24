@@ -16,6 +16,7 @@
 
 package com.sun.faces.application.resource;
 
+import static com.sun.faces.RIConstants.EMPTY_STRING;
 import static com.sun.faces.RIConstants.FLOW_IN_JAR_PREFIX;
 import static com.sun.faces.config.WebConfiguration.META_INF_CONTRACTS_DIR;
 import static com.sun.faces.config.WebConfiguration.WebContextInitParameter.FaceletsSuffix;
@@ -28,13 +29,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import com.sun.faces.RIConstants;
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.util.Util;
@@ -62,12 +63,22 @@ public class FaceletWebappResourceHelper extends ResourceHelper {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof FaceletWebappResourceHelper;
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+
+        FaceletWebappResourceHelper other = (FaceletWebappResourceHelper) obj;
+
+        return Objects.equals(webappResourceHelper, other.webappResourceHelper)
+            && Arrays.equals(configuredExtensions, other.configuredExtensions);
     }
 
     @Override
     public int hashCode() {
-        return 3;
+        return Objects.hash(webappResourceHelper, Arrays.hashCode(configuredExtensions));
     }
 
     @Override
@@ -231,7 +242,7 @@ public class FaceletWebappResourceHelper extends ResourceHelper {
 
     @Override
     public String getBaseResourcePath() {
-        return RIConstants.NO_VALUE;
+        return EMPTY_STRING;
     }
 
     @Override

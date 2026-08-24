@@ -42,14 +42,6 @@ public class RIConstants {
     public static final String SAVED_STATE = FACES_PREFIX + "savedState";
 
     /**
-     * Request-scoped flag set during a view build when a build-time-dynamic handler (a JSTL conditional/iteration or a
-     * dynamic ui:include/ui:decorate/ui:composition) participates, marking the view as one whose facelet must be
-     * re-applied on every (re)build. Read by {@code FaceletViewHandlingStrategy.buildView} to decide whether the
-     * redundant render-time re-apply may be skipped (see {@code refreshTransientBuildOnPSS}).
-     */
-    public static final String DYNAMIC_TRANSIENT_BUILD = FACES_PREFIX + "dynamicTransientBuild";
-
-    /**
      * Request-scoped flag recording whether the render-time {@code buildView} re-applied the facelet ({@code TRUE}) or
      * skipped the re-apply for an already-populated static view ({@code FALSE}, see {@code refreshTransientBuildOnPSS}).
      * Since {@code buildView} runs immediately before {@code renderView}, this reflects whether the tree the state
@@ -64,7 +56,7 @@ public class RIConstants {
      */
     public static final String TLV_RESOURCE_LOCATION = FACES_PREFIX + "resources.Resources";
 
-    public static final String NO_VALUE = "";
+    public static final String EMPTY_STRING = "";
 
     public static final Class<?>[] EMPTY_CLASS_ARGS = {};
     public static final Object[] EMPTY_METH_ARGS = {};
@@ -99,6 +91,21 @@ public class RIConstants {
      * Marker used when saving the list of component adds and removes.
      */
     public static final String DYNAMIC_ACTIONS = FACES_PREFIX + "DynamicActions";
+
+    /**
+     * Marker used when saving, under {@link jakarta.faces.application.ProjectStage#Development} only, the tag each
+     * client id was built from, so that the build which restores the view can be told where it produced another
+     * component than the one that was rendered. It holds every component rather than only those carrying a delta: a
+     * component the restore fails to produce is the one to report, and it need never have held state of its own.
+     */
+    public static final String RENDERED_TAGS = FACES_PREFIX + "RenderedTags";
+
+    /**
+     * Marker used when saving, under {@code com.sun.faces.restoreBuildTimeDecisions} only, the value each build time
+     * condition evaluated to while the response was rendered, so that the build which restores the view reproduces
+     * the view that was submitted rather than the one the current state of the model asks for.
+     */
+    public static final String BUILD_TIME_DECISIONS = FACES_PREFIX + "BuildTimeDecisions";
 
     /**
      * Marker attached to a component that has dynamic children.

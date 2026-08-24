@@ -18,7 +18,8 @@
 
 package com.sun.faces.renderkit.html_basic;
 
-import static com.sun.faces.RIConstants.NO_VALUE;
+import static com.sun.faces.RIConstants.EMPTY_STRING;
+import static com.sun.faces.renderkit.RenderKitUtils.NO_VALUE;
 import static com.sun.faces.renderkit.RenderKitUtils.getSelectItems;
 import static com.sun.faces.renderkit.RenderKitUtils.flushPendingBehaviorEventListeners;
 import static com.sun.faces.renderkit.RenderKitUtils.renderPassThruAttributes;
@@ -78,7 +79,6 @@ import jakarta.faces.convert.ConverterException;
 import jakarta.faces.model.SelectItem;
 import jakarta.faces.model.SelectItemGroup;
 
-import com.sun.faces.RIConstants;
 import com.sun.faces.io.FastStringWriter;
 import com.sun.faces.renderkit.Attributes;
 import com.sun.faces.renderkit.AttributeManager;
@@ -548,7 +548,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
             return " multiple ";
         }
 
-        return NO_VALUE;
+        return EMPTY_STRING;
     }
 
     protected Object[] getSubmittedSelectedValues(UIComponent component) {
@@ -917,7 +917,7 @@ public class MenuRenderer extends HtmlBasicInputRenderer {
             if (newValue != null && !newValue.isEmpty()) {
                 Set<String> disabledSelectItemValues = getDisabledSelectItemValues(context, component);
                 if (disabledSelectItemValues.contains(newValue)) {
-                    newValue = RIConstants.NO_VALUE;
+                    newValue = NO_VALUE;
                 }
             }
 

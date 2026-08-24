@@ -87,24 +87,25 @@ public final class DecorateHandler extends TagHandlerImpl implements TemplateCli
      */
     @Override
     public void apply(FaceletContext ctxObj, UIComponent parent) throws IOException {
-        if (!template.isLiteral()) {
-            markDynamicTransientBuild(ctxObj);
-        }
         FaceletContextImplBase ctx = (FaceletContextImplBase) ctxObj;
         VariableMapper orig = ctx.getVariableMapper();
         if (params != null) {
             VariableMapper vm = new VariableMapperWrapper(orig);
             ctx.setVariableMapper(vm);
-            for (ParamHandler param : params) {
-                param.apply(ctx, parent);
+            for (int i = 0; i < params.length; i++) {
+                params[i].apply(ctx, parent);
             }
         }
 
         ctx.pushClient(this);
         String path = null;
         try {
-            path = template.getValue(ctx);
-            if (path.isBlank()) {
+            String key = isDynamic(template) ? buildTimeDecisionKey(ctx) : null;
+            String rendered = replayBuildTimeDecision(ctx, key, String.class);
+            path = rendered != null ? rendered : template.getValue(ctx);
+            recordBuildTimeDecision(ctx, template, String.class, path);
+            saveBuildTimeDecision(ctx, key, path);
+            if (path.trim().length() == 0) {
                 throw new TagAttributeException(tag, template, "Invalid path : " + path);
             }
             ctx.includeFacelet(parent, path);

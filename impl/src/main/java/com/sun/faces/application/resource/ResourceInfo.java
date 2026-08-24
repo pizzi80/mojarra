@@ -71,33 +71,28 @@ public class ResourceInfo {
 
     @Override
     public boolean equals(Object obj) {
-        if ( this == obj ) {
+        if (this == obj) {
             return true;
         }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
 
-        return obj instanceof ResourceInfo info
-            && Objects.equals(helper, info.helper)
-            && Objects.equals(library, info.library)
-            && Objects.equals(libraryName, info.libraryName)
-            && Objects.equals(localePrefix, info.localePrefix)
-            && Objects.equals(name, info.name)
-            && Objects.equals(path, info.path)
-            && Objects.equals(version, info.version)
-            && doNotCache == info.doNotCache;
+        ResourceInfo other = (ResourceInfo) obj;
+
+        return Objects.equals(helper, other.helper)
+            && Objects.equals(library, other.library)
+            && Objects.equals(libraryName, other.libraryName)
+            && Objects.equals(localePrefix, other.localePrefix)
+            && Objects.equals(name, other.name)
+            && Objects.equals(path, other.path)
+            && Objects.equals(version, other.version)
+            && doNotCache == other.doNotCache;
     }
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = 17 * hash + (helper != null ? helper.hashCode() : 0);
-        hash = 17 * hash + (library != null ? library.hashCode() : 0);
-        hash = 17 * hash + (libraryName != null ? libraryName.hashCode() : 0);
-        hash = 17 * hash + (localePrefix != null ? localePrefix.hashCode() : 0);
-        hash = 17 * hash + (name != null ? name.hashCode() : 0);
-        hash = 17 * hash + (path != null ? path.hashCode() : 0);
-        hash = 17 * hash + (version != null ? version.hashCode() : 0);
-        hash = 17 * hash + (doNotCache ? 1 : 0);
-        return hash;
+        return Objects.hash(helper, library, libraryName, localePrefix, name, path, version, doNotCache);
     }
 
     public boolean isDoNotCache() {

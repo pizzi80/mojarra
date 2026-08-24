@@ -16,6 +16,7 @@
 
 package com.sun.faces.renderkit;
 
+import static com.sun.faces.RIConstants.EMPTY_STRING;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.BEHAVIOR_EVENT_PARAM;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.BEHAVIOR_SOURCE_PARAM;
 import static com.sun.faces.renderkit.RenderKitUtils.PredefinedPostbackParameter.PARTIAL_EVENT_PARAM;
@@ -157,6 +158,15 @@ public class RenderKitUtils {
     protected static final Logger LOGGER = FacesLogger.RENDERKIT.getLogger();
 
     public static final String DEVELOPMENT_STAGE_MESSAGES_ID = "jakarta_faces_developmentstage_messages";
+
+    /**
+     * <p>
+     * Sentinel submitted value for a selection component whose request parameter was absent, so that a subsequent
+     * decode can tell "submitted with nothing selected" apart from "not submitted at all". It is not a general purpose
+     * empty string; use {@link RIConstants#EMPTY_STRING} for that.
+     * </p>
+     */
+    public static final String NO_VALUE = "";
 
     /**
      * @see UIViewRoot#encodeChildren(FacesContext)
@@ -1375,7 +1385,7 @@ public class RenderKitUtils {
 
             String value = (String) component.getAttributes().get(attrName);
             if ( Util.isEmpty(value) ) {
-                return RIConstants.NO_VALUE;
+                return EMPTY_STRING;
             }
             WebConfiguration webConfig = WebConfiguration.getInstance();
             if (Util.ensureLeadingSlash(value).startsWith(Util.ensureLeadingSlash(webConfig.getOptionValue(WebConfiguration.WebContextInitParameter.WebAppContractsDirectory)))) {

@@ -65,28 +65,26 @@ public class LibraryInfo {
     }
 
     @Override
-    public boolean equals(Object object) {
-        if ( this == object ) {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
 
-        return object instanceof LibraryInfo info
-            && Objects.equals(name, info.name)
-            && Objects.equals(version, info.version)
-            && Objects.equals(localePrefix, info.localePrefix)
-            && Objects.equals(contract, info.contract)
-            && Objects.equals(path, info.path);
+        LibraryInfo other = (LibraryInfo) obj;
+
+        return Objects.equals(name, other.name)
+            && Objects.equals(version, other.version)
+            && Objects.equals(localePrefix, other.localePrefix)
+            && Objects.equals(contract, other.contract)
+            && Objects.equals(path, other.path);
     }
 
     @Override
     public int hashCode() {
-        int hash = 5;
-        hash = 37 * hash + (name != null ? name.hashCode() : 0);
-        hash = 37 * hash + (version != null ? version.hashCode() : 0);
-        hash = 37 * hash + (localePrefix != null ? localePrefix.hashCode() : 0);
-        hash = 37 * hash + (contract != null ? contract.hashCode() : 0);
-        hash = 37 * hash + (path != null ? path.hashCode() : 0);
-        return hash;
+        return Objects.hash(name, version, localePrefix, contract, path);
     }
 
     /**
@@ -118,13 +116,7 @@ public class LibraryInfo {
     }
 
     public String getPath(String localePrefix) {
-        final String result;
-        if (localePrefix == null) {
-            result = nonLocalizedPath;
-        } else {
-            result = path;
-        }
-        return result;
+        return localePrefix == null ? nonLocalizedPath : path;
     }
 
     /**

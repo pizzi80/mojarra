@@ -66,11 +66,19 @@ public class WebappResourceHelper extends ResourceHelper {
     }
 
     @Override
-    public boolean equals(Object object) {
-        return object instanceof WebappResourceHelper resource
-            && Objects.equals(BASE_RESOURCE_PATH, resource.BASE_RESOURCE_PATH)
-            && Objects.equals(BASE_CONTRACTS_PATH, resource.BASE_CONTRACTS_PATH)
-            && cacheTimestamp == resource.cacheTimestamp;
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+
+        WebappResourceHelper other = (WebappResourceHelper) obj;
+
+        return Objects.equals(BASE_RESOURCE_PATH, other.BASE_RESOURCE_PATH)
+            && Objects.equals(BASE_CONTRACTS_PATH, other.BASE_CONTRACTS_PATH)
+            && cacheTimestamp == other.cacheTimestamp;
     }
 
     @Override
@@ -234,7 +242,7 @@ public class WebappResourceHelper extends ResourceHelper {
             }
         } else if (root == null) {
             String contractName = ctx.getExternalContext().getRequestParameterMap().get("con");
-            if (null != contractName && !contractName.isEmpty() && !ResourceManager.nameContainsForbiddenSequence(contractName)) {
+            if (contractName != null && !contractName.isEmpty() && !ResourceManager.nameContainsForbiddenSequence(contractName)) {
                 contracts = List.of(contractName);
             } else {
                 return null;

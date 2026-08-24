@@ -21,10 +21,10 @@ package com.sun.faces.util;
 
 import static com.sun.faces.RIConstants.CDI_BEAN_MANAGER;
 import static com.sun.faces.RIConstants.CHAR_ENCODING;
+import static com.sun.faces.RIConstants.EMPTY_STRING;
 import static com.sun.faces.RIConstants.FACELETS_ENCODING_KEY;
 import static com.sun.faces.RIConstants.FACES_SERVLET_MAPPINGS;
 import static com.sun.faces.RIConstants.FACES_SERVLET_REGISTRATION;
-import static com.sun.faces.RIConstants.NO_VALUE;
 import static com.sun.faces.util.MessageUtils.ILLEGAL_ATTEMPT_SETTING_APPLICATION_ARTIFACT_ID;
 import static com.sun.faces.util.MessageUtils.NAMED_OBJECT_NOT_FOUND_ERROR_MESSAGE_ID;
 import static com.sun.faces.util.MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID;
@@ -132,9 +132,6 @@ public class Util {
 
     // Log instance for this class
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
-
-    public static final String EMPTY_STRING = "";
-    public static final String SPACE_STRING = " ";
 
     // README - make sure to add the message identifier constant
     // (ex: Util.CONVERSION_ERROR_MESSAGE_ID) and the number of substitution
@@ -290,8 +287,8 @@ public class Util {
         try {
             Thread.currentThread().setContextClassLoader(Util.class.getClassLoader());
             factory = TransformerFactory.newInstance();
-            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, NO_VALUE);
-            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, NO_VALUE);
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, EMPTY_STRING);
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, EMPTY_STRING);
             setFeature(factory::setFeature, XMLConstants.FEATURE_SECURE_PROCESSING, true);
         } finally {
             Thread.currentThread().setContextClassLoader(cl);
@@ -965,7 +962,7 @@ public class Util {
             } else if (lang != null && country != null) {
                 result = new Locale(lang, country);
             } else if (lang != null) {
-                result = new Locale(lang, NO_VALUE);
+                result = new Locale(lang, EMPTY_STRING);
             }
         }
 
@@ -1008,7 +1005,7 @@ public class Util {
      */
     public static String getStackTraceString(Throwable e) {
         if (null == e) {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
 
         StackTraceElement[] stacks = e.getStackTrace();
@@ -1198,7 +1195,7 @@ public class Util {
 
             @Override
             public String getServletName() {
-                return "";
+                return EMPTY_STRING;
             }
 
             @Override
@@ -1365,7 +1362,7 @@ public class Util {
         if (viewRoot instanceof NamingContainer) {
             return viewRoot.getContainerClientId(context) + UINamingContainer.getSeparatorChar(context);
         } else {
-            return NO_VALUE;
+            return EMPTY_STRING;
         }
     }
 
@@ -1486,7 +1483,7 @@ public class Util {
      * @return the version found, or "" if none found.
      */
     public static String getFacesConfigXmlVersion(FacesContext facesContext) {
-        String result = NO_VALUE;
+        String result = EMPTY_STRING;
         InputStream stream = null;
         try {
             URL url = facesContext.getExternalContext().getResource("/WEB-INF/faces-config.xml");
@@ -1530,7 +1527,7 @@ public class Util {
      * @return the version found, or "" if none found.
      */
     public static String getWebXmlVersion(FacesContext facesContext) {
-        String result = NO_VALUE;
+        String result = EMPTY_STRING;
         InputStream stream = null;
         try {
             URL url = facesContext.getExternalContext().getResource("/WEB-INF/web.xml");

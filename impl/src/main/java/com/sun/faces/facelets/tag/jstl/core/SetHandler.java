@@ -21,6 +21,7 @@ import java.util.Iterator;
 
 import com.sun.faces.facelets.tag.TagHandlerImpl;
 
+import jakarta.el.ELContext;
 import jakarta.el.ValueExpression;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.view.facelets.FaceletContext;
@@ -58,16 +59,14 @@ public class SetHandler extends TagHandlerImpl {
     }
 
     @Override
-    public void apply(FaceletContext context, UIComponent parent) throws IOException {
-
-        markDynamicTransientBuild(context);
+    public void apply(FaceletContext ctx, UIComponent parent) throws IOException {
 
         StringBuilder bodyValue = new StringBuilder();
 
         Iterator<TextHandler> iterator = findNextByType(TextHandler.class);
         while (iterator.hasNext()) {
             TextHandler text = iterator.next();
-            bodyValue.append(text.getText(context));
+            bodyValue.append(text.getText(ctx));
         }
 
         // true if either a value in body or value attr
@@ -82,15 +81,16 @@ public class SetHandler extends TagHandlerImpl {
         String expr;
 
         if (value != null) {
-            veObj = value.getValueExpression(context, Object.class);
+            veObj = value.getValueExpression(ctx, Object.class);
         } else {
-            veObj = context.getExpressionFactory().createValueExpression(context.getFacesContext().getELContext(), bodyValue.toString(), Object.class);
+
+            veObj = ctx.getExpressionFactory().createValueExpression(ctx.getFacesContext().getELContext(), bodyValue.toString(), Object.class);
         }
 
         // Otherwise, if var is set, ignore the other attributes
         if (var != null) {
+            final String varStr = var.getValue(ctx);
             String scopeStr;
-            final String varStr = var.getValue(context);
 
             // If scope is set, check for validity
             if (null != scope) {
@@ -101,7 +101,7 @@ public class SetHandler extends TagHandlerImpl {
                 if (scope.isLiteral()) {
                     scopeStr = scope.getValue();
                 } else {
-                    scopeStr = scope.getValue(context);
+                    scopeStr = scope.getValue(ctx);
                 }
                 if (scopeStr.equals("page")) {
                     throw new TagException(tag, "page scope does not exist in Faces, consider using view scope instead.");
@@ -112,11 +112,18 @@ public class SetHandler extends TagHandlerImpl {
                 // otherwise, assume it's a valid scope. With custom scopes,
                 // it may be.
                 // Conjure up an expression
-                expr = "#{" + scopeStr + '.' + varStr + '}';
-                lhs = context.getExpressionFactory().createValueExpression(context, expr, Object.class);
-                lhs.setValue(context, veObj.getValue(context));
+                expr = "#{" + scopeStr + "." + varStr + "}";
+                lhs = ctx.getExpressionFactory().createValueExpression(ctx, expr, Object.class);
+                Object scopedValue = veObj.getValue(ctx);
+                lhs.setValue(ctx, scopedValue);
+                recordBuildTimeDecision(ctx, var);
+                recordBuildTimeDecision(ctx, scope);
+                recordWrite(ctx, veObj, lhs, scopedValue);
             } else {
-                context.getVariableMapper().setVariable(varStr, veObj);
+                // The variable is mapped to the expression itself, so what this build produced does not depend on its
+                // value at all; only on the name under which the rest of the build captured it.
+                recordBuildTimeDecision(ctx, var);
+                ctx.getVariableMapper().setVariable(varStr, veObj);
             }
         } else {
 
@@ -135,13 +142,34 @@ public class SetHandler extends TagHandlerImpl {
             if (property.isLiteral()) {
                 propertyStr = property.getValue();
             } else {
-                propertyStr = property.getValue(context);
+                propertyStr = property.getValue(ctx);
             }
-            ValueExpression targetVe = target.getValueExpression(context, Object.class);
-            Object targetValue = targetVe.getValue(context);
-            context.getFacesContext().getELContext().getELResolver().setValue(context, targetValue, propertyStr, veObj.getValue(context));
+            ValueExpression targetVe = target.getValueExpression(ctx, Object.class);
+            Object targetValue = targetVe.getValue(ctx);
+            Object propertyValue = veObj.getValue(ctx);
+            ctx.getFacesContext().getELContext().getELResolver().setValue(ctx, targetValue, propertyStr, propertyValue);
 
+            ELContext elContext = ctx.getFacesContext().getELContext();
+            String resolvedProperty = propertyStr;
+            recordBuildTimeDecision(ctx, property);
+            recordBuildTimeDecision(ctx, veObj, propertyValue);
+            recordBuildTimeDecision(ctx, targetVe, targetValue);
+            recordBuildTimeDecision(ctx, () -> elContext.getELResolver().getValue(elContext, targetValue, resolvedProperty), propertyValue);
         }
     }
 
+    /**
+     * Records the write this build performed: the value it wrote, and that value still being the one at the location it
+     * wrote it to. The second is what a write the application performed after this build breaks, which re-applying
+     * would put back.
+     */
+    private static void recordWrite(FaceletContext ctx, ValueExpression valueExpression, ValueExpression location, Object value) {
+        ELContext elContext = ctx.getFacesContext().getELContext();
+        recordBuildTimeDecision(ctx, valueExpression, value);
+        recordBuildTimeDecision(ctx, () -> location.getValue(elContext), value);
+    }
+
+    // Swallow children - if they're text, we've already handled them.
+    protected void applyNextHandler(FaceletContext ctx, UIComponent c) {
+    }
 }
