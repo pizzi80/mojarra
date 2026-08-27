@@ -89,7 +89,7 @@ public abstract class ConcurrentCache<K, V> {
      *
      * @return <code>Factory</code> instance
      */
-    protected final Cache.Factory<K, V> getFactory() {
+    protected final Factory<K, V> getFactory() {
         return factory;
     }
 
