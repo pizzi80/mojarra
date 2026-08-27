@@ -29,7 +29,6 @@ import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
@@ -44,6 +43,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import jakarta.json.stream.JsonGenerator;
+
+import com.sun.faces.io.FastStringWriter;
 
 /**
  * <p>
@@ -97,7 +98,7 @@ public class Json {
      * @throws IllegalArgumentException When given object or one of its properties cannot be inspected as a JavaBean.
      */
     public static String encode(Object object, Option... options) {
-        StringWriter writer = new StringWriter();
+        FastStringWriter writer = new FastStringWriter(512);
         encode(object, writer, options);
         return writer.toString();
     }
