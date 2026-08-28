@@ -16,6 +16,8 @@
 
 package com.sun.faces.facelets.tag.ui;
 
+import static com.sun.faces.RIConstants.EMPTY_STRING;
+
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,15 +50,14 @@ public final class IncludeHandler extends TagHandlerImpl {
      */
     public IncludeHandler(TagConfig config) {
         super(config);
-        TagAttribute attr = null;
-        attr = getAttribute("src");
-        if (null == attr) {
+        TagAttribute attr = getAttribute("src");
+        if (attr == null) {
             attr = getAttribute("file");
         }
-        if (null == attr) {
+        if (attr == null) {
             attr = getAttribute("page");
         }
-        if (null == attr) {
+        if (attr == null) {
             throw new TagException(tag, "Attribute 'src', 'file' or 'page' is required");
         }
         src = attr;
@@ -80,10 +81,10 @@ public final class IncludeHandler extends TagHandlerImpl {
             ValueExpression expression = src.getValueExpression(ctx, String.class);
             ELContext elContext = ctx.getFacesContext().getELContext();
             recordBuildTimeDecision(ctx, () -> included(expression.getValue(elContext)), included(path));
-            saveBuildTimeDecision(ctx, key, path == null ? "" : path);
+            saveBuildTimeDecision(ctx, key, path == null ? EMPTY_STRING : path);
         }
 
-        if (path == null || path.length() == 0) {
+        if (path == null || path.isEmpty()) {
             return;
         }
         VariableMapper orig = ctx.getVariableMapper();
