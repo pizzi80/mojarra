@@ -16,12 +16,13 @@
 
 package com.sun.faces.xml;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -34,7 +35,8 @@ public class XHTMLResolvingHandler extends DefaultHandler {
     private final ResourceBundle bundle;
 
     public XHTMLResolvingHandler() {
-        bundle = ResourceBundle.getBundle(this.getClass().getPackage().getName() + ".Entities", Locale.US);
+        bundle = ResourceBundle.getBundle(this.getClass().getPackage().getName() + ".Entities",
+                Locale.US);
     }
 
     @Override
@@ -53,7 +55,7 @@ public class XHTMLResolvingHandler extends DefaultHandler {
 
                 @Override
                 public InputStream getByteStream() {
-                    InputStream inputStream = new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8));
+                    InputStream inputStream = new ByteArrayInputStream(value.getBytes(UTF_8));
                     return inputStream;
                 }
 
