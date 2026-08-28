@@ -16,15 +16,36 @@
 
 package com.sun.faces.util;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 /**
  * A concurrent caching mechanism.
  */
-public class Cache<K, V> extends ConcurrentCache<K, V> {
+public class Cache<K, V> {
+
+    /**
+     * Factory interface for creating various cacheable objects.
+     */
+    public interface Factory<K,V> extends Function<K,V> {
+
+        V newInstance(final K arg) throws InterruptedException;
+
+        @Override
+        default V apply(K key) {
+            try {
+                return newInstance( key );
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
 
     private final ConcurrentMap<K, V> cache = new ConcurrentHashMap<>();
+    private final Factory<K, V> factory;
 
     // -------------------------------------------------------- Constructors
 
@@ -33,8 +54,9 @@ public class Cache<K, V> extends ConcurrentCache<K, V> {
      *
      * @param factory a factory to create or retrieve the element that need to be cached
      */
-    public Cache(final Factory<K,V> factory) {
-        super(factory);
+    public Cache(Factory<K,V> factory) {
+
+        this.factory = factory;
     }
 
     // ------------------------------------------------------ Public Methods
@@ -47,24 +69,22 @@ public class Cache<K, V> extends ConcurrentCache<K, V> {
      * @return the value for the specified key, if any
      */
     public V get(final K key) {
+        Objects.requireNonNull(key);
+
         // Steady state is a cache hit, so probe with a plain get() first: ConcurrentHashMap.get() is cheaper than
         // computeIfAbsent(), which does extra work even when the key is already present. Fall back to computeIfAbsent()
         // only on a miss, which still resolves the populate race atomically. The factory never caches null (a null
         // value would simply re-resolve on the next call here, exactly as computeIfAbsent() already behaves).
-        V value = cache.get(key);
+        V value = cache.get( key );
         if ( value == null ) {
-            value = cache.computeIfAbsent(key, getFactory());
+            value = cache.computeIfAbsent( key , factory );
         }
         return value;
     }
 
-    @Override
-    public boolean containsKey(final K key) {
-        return cache.containsKey(key);
-    }
-
     public V remove(final K key) {
         return cache.remove(key);
+
     }
 
 }
