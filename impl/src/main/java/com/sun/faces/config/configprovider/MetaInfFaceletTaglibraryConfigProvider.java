@@ -18,6 +18,7 @@ package com.sun.faces.config.configprovider;
 
 import static com.sun.faces.util.Util.getCurrentLoader;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 
 import java.io.IOException;
 import java.net.URI;
@@ -50,21 +51,26 @@ public class MetaInfFaceletTaglibraryConfigProvider implements ConfigurationReso
     public Collection<URI> getResources(ServletContext context) {
 
         try {
-            List<URL> resourceURLs = new ArrayList<>(asList(Classpath.search(getCurrentLoader(this), "META-INF/", SUFFIX)));
+            List<URL> resourceURLs = asList(Classpath.search(getCurrentLoader(this), "META-INF/", SUFFIX));
 
             // Special case for finding taglib files in WEB-INF/classes/META-INF
             Set<String> paths = context.getResourcePaths(WEB_INF_CLASSES);
+            List<URL> taglibURLs = emptyList();
             if (paths != null) {
+                taglibURLs = new ArrayList<>(paths.size());
                 for (String path : paths) {
                     if (path.endsWith(SUFFIX)) {
-                        resourceURLs.add(context.getResource(path));
+                        taglibURLs.add(context.getResource(path));
                     }
                 }
             }
 
-            return resourceURLs.stream()
-                               .map(MetaInfFaceletTaglibraryConfigProvider::transformToURI)
-                               .toList();
+            int size = resourceURLs.size() + taglibURLs.size();
+            List<URI> list = new ArrayList<>(size);
+            for (URL url : resourceURLs) {
+                list.add(transformToURI(url));
+            }
+            return list;
 
         } catch (IOException ioe) {
             throw new FacesException("Error searching classpath from facelet-taglib documents", ioe);
