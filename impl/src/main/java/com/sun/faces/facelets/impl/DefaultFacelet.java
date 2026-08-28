@@ -88,10 +88,9 @@ final class DefaultFacelet extends Facelet implements XMLFrontMatterSaver {
 
     private String savedXMLDecl;
 
-    public DefaultFacelet(DefaultFaceletFactory factory, ExpressionFactory el, URL src, String alias, FaceletHandler root) {
-
+    public DefaultFacelet(DefaultFaceletFactory factory, ExpressionFactory elFactory, URL src, String alias, FaceletHandler root) {
         this.factory = factory;
-        elFactory = el;
+        this.elFactory = elFactory;
         this.src = src;
         this.root = root;
         this.alias = alias;
