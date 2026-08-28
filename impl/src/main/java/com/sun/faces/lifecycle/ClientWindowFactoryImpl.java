@@ -59,8 +59,7 @@ public class ClientWindowFactoryImpl extends ClientWindowFactory {
     }
 
     protected void postConstructApplicationInitialization() {
-        FacesContext context = FacesContext.getCurrentInstance();
-        WebConfiguration config = WebConfiguration.getInstance(context.getExternalContext());
+        WebConfiguration config = WebConfiguration.getInstance();
         String clientWindowMode = config.getOptionValue(WebConfiguration.WebContextInitParameter.ClientWindowMode);
 
         isClientWindowEnabled = CLIENT_WINDOW_MODE_URL.equals(clientWindowMode);
