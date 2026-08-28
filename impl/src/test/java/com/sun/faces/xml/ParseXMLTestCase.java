@@ -31,7 +31,7 @@ import org.xml.sax.InputSource;
 
 public class ParseXMLTestCase {
 
-    private final static String xmlDir = "/conf/share";
+    private static final String xmlDir = "/conf/share";
 
     private final List<File> list = new ArrayList<>();
 
@@ -70,8 +70,8 @@ public class ParseXMLTestCase {
         }
         if (dir.isDirectory()) {
             String[] children = dir.list();
-            for (String child : children) {
-                visitAllDirsAndFiles(new File(dir, child));
+            for (int i = 0; i < children.length; i++) {
+                visitAllDirsAndFiles(new File(dir, children[i]));
             }
         }
     }
