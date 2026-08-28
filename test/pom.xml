@@ -38,7 +38,7 @@
         <module>csp</module>
         <module>restoreBuildTimeDecisions</module>
         <module>uiIncludeRceJar</module>
-<!--        <module>uiIncludeRce</module>-->
+        <module>uiIncludeRce</module>
         <module>issue5741</module>
         <module>issue5059</module>
         <module>issue5460</module>
