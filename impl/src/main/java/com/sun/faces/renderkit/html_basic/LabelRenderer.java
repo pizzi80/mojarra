@@ -97,7 +97,7 @@ public class LabelRenderer extends HtmlBasicInputRenderer {
         if (logger.isLoggable(Level.FINE)) {
             logger.fine("Value to be rendered " + value);
         }
-        if (value != null && value.length() != 0) {
+        if (value != null && !value.isEmpty()) {
             boolean escape = component instanceof HtmlOutputLabel label ? label.isEscape()
                     : RenderKitUtils.attributeIsTrue(component, "escape", false);
 
