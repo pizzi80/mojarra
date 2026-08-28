@@ -127,7 +127,7 @@ public final class CompositionHandler extends TagHandlerImpl implements Template
                 path = rendered != null ? rendered : template.getValue(ctx);
                 recordBuildTimeDecision(ctx, template, String.class, path);
                 saveBuildTimeDecision(ctx, key, path);
-                if (path.trim().length() == 0) {
+                if (path.isBlank()) {
                     throw new TagAttributeException(tag, template, "Invalid path : " + path);
                 }
                 ctx.includeFacelet(parent, path);
