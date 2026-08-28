@@ -21,7 +21,6 @@ import static java.util.Arrays.asList;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -442,7 +441,9 @@ public class DocumentOrderingWrapper {
      */
     private static void enhanceOrderingData(DocumentOrderingWrapper[] wrappers) throws CircularDependencyException {
 
-        for (DocumentOrderingWrapper w : wrappers) {
+        for (int i = 0; i < wrappers.length; i++) {
+            DocumentOrderingWrapper w = wrappers[i];
+
             // process before IDs other than 'others'
             for (String id : w.getBeforeIds()) {
                 if (OTHERS_KEY.equals(id)) {
@@ -470,12 +471,12 @@ public class DocumentOrderingWrapper {
                                 }
                                 newBeforeIds.add(bid);
                             }
-                            if (newBeforeIds.contains(w.id)) {
+                            String[] temp = newBeforeIds.toArray(new String[newBeforeIds.size()]);
+                            Arrays.sort(temp);
+                            if (search(temp, w.id)) {
                                 throw new CircularDependencyException();
                             }
-
-                            w.beforeIds = newBeforeIds.toArray(new String[newBeforeIds.size()]);
-                            Arrays.sort(w.beforeIds);
+                            w.beforeIds = temp;
                         }
                     }
                 }
@@ -507,11 +508,12 @@ public class DocumentOrderingWrapper {
                                 }
                                 newAfterIds.add(bid);
                             }
-                            if ( newAfterIds.contains(w.id) ) {
+                            String[] temp = newAfterIds.toArray(new String[newAfterIds.size()]);
+                            Arrays.sort(temp);
+                            if (search(temp, w.id)) {
                                 throw new CircularDependencyException();
                             }
-                            w.afterIds = newAfterIds.toArray(new String[newAfterIds.size()]);
-                            Arrays.sort(w.afterIds);
+                            w.afterIds = temp;
                         }
                     }
                 }
@@ -568,7 +570,6 @@ public class DocumentOrderingWrapper {
                 }
             }
         }
-
         this.beforeIds = beforeIds != null ? beforeIds.toArray(new String[beforeIds.size()]) : new String[0];
         this.afterIds = afterIds != null ? afterIds.toArray(new String[afterIds.size()]) : new String[0];
         Arrays.sort(this.beforeIds);
@@ -578,7 +579,7 @@ public class DocumentOrderingWrapper {
         // 'after' array and vice versa as a documents can't come before
         // *and* after another.
         checkDuplicatesFast(this.beforeIds, this.afterIds);
-        //checkDuplicatesFast(this.afterIds, this.beforeIds); // why check for duplicates two times the same collections?
+        checkDuplicatesFast(this.afterIds, this.beforeIds); // why check for duplicates two times the same collections?
 
     }
 
