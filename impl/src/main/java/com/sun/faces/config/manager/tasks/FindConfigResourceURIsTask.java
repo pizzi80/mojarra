@@ -60,7 +60,6 @@ public class FindConfigResourceURIsTask implements Callable<Collection<URI>> {
      * @return zero or more <code>URL</code> instances
      * @throws Exception if an Exception is thrown by the underlying <code>ConfigurationResourceProvider</code>
      */
-    @SuppressWarnings("unchecked")
     @Override
     public Collection<URI> call() throws Exception {
         Collection<URI> untypedCollection = provider.getResources(servletContext);
