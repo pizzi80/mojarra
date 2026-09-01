@@ -42,13 +42,15 @@ public abstract class ConcurrentCache<K, V> {
         V newInstance(final K arg) throws Exception;
     }
 
+    private final Factory<K, V> factory;
+
     /**
      * Constructs this cache using the specified <code>Factory</code>.
      *
-     * @param f
+     * @param factory
      */
-    public ConcurrentCache(Factory<K, V> f) {
-        _f = f;
+    public ConcurrentCache(Factory<K, V> factory) {
+        this.factory = factory;
     }
 
     /**
@@ -74,8 +76,7 @@ public abstract class ConcurrentCache<K, V> {
      * @return <code>Factory</code> instance
      */
     protected final Factory<K, V> getFactory() {
-        return _f;
+        return factory;
     }
 
-    private final Factory<K, V> _f;
 }
