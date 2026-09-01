@@ -26,6 +26,7 @@ import jakarta.faces.view.facelets.FaceletCache;
 
 import com.sun.faces.util.ConcurrentCache;
 import com.sun.faces.util.ExpiringConcurrentCache;
+import com.sun.faces.util.LazyConcurrentCache;
 import com.sun.faces.util.Util;
 
 /**
@@ -41,36 +42,34 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
      */
     DefaultFaceletCache(final long refreshPeriodInSeconds) {
 
-        // We will be delegating object storage to the ExpiringCocurrentCache
-        // Create Factory objects here for the cache. The objects will be delegating to our
-        // own instance factories
-
-        final boolean checkExpiry = refreshPeriodInSeconds > 0;
         final long refreshPeriodInMillis = refreshPeriodInSeconds >= 0 ? refreshPeriodInSeconds * 1000 : -1;
 
-        ConcurrentCache.Factory<URL, Record> faceletFactory = key -> {
-            // Make sure that the expensive timestamp retrieval is not done
-            // if no expiry check is going to be performed
-            long lastModified = checkExpiry ? Util.getLastModified(key) : 0;
-            return new Record(System.currentTimeMillis(), lastModified, getMemberFactory().newInstance(key), refreshPeriodInMillis);
-        };
+        // Never Expire (if not specified, this is the Production default)
+        if (refreshPeriodInSeconds < 0) {
+            _faceletCache = new LazyConcurrentCache<>(url -> new Record(getMemberFactory().newInstance(url)));
+            _metadataFaceletCache = new LazyConcurrentCache<>(url -> new Record(getMetadataMemberFactory().newInstance(url)));
+        }
+        // No caching if refreshPeriodInMillis is 0
+        else if (refreshPeriodInSeconds == 0) {
+            _faceletCache = new NoCache(url -> new Record(getMemberFactory().newInstance(url)));
+            _metadataFaceletCache = new NoCache(url -> new Record(getMetadataMemberFactory().newInstance(url)));
+        }
+        // Expiring
+        else {
+            // We will be delegating object storage to the ExpiringConcurrentCache
+            // Create Factory objects here for the cache. The objects will be delegating to our
+            // own instance factories
+            ConcurrentCache.Factory<URL, Record> faceletFactory = url -> createExpiringRecord(url, getMemberFactory(), refreshPeriodInMillis);
+            ConcurrentCache.Factory<URL, Record> metadataFaceletFactory = url -> createExpiringRecord(url, getMetadataMemberFactory(), refreshPeriodInMillis);
 
-        ConcurrentCache.Factory<URL, Record> metadataFaceletFactory = key -> {
-            // Make sure that the expensive timestamp retrieval is not done
-            // if no expiry check is going to be performed
-            long lastModified = checkExpiry ? Util.getLastModified(key) : 0;
-            return new Record(System.currentTimeMillis(), lastModified, getMetadataMemberFactory().newInstance(key), refreshPeriodInMillis);
-        };
-
-        // No caching if refreshPeriod is 0
-        if (refreshPeriodInSeconds == 0) {
-            _faceletCache = new NoCache(faceletFactory);
-            _metadataFaceletCache = new NoCache(metadataFaceletFactory);
-        } else {
-            ExpiringConcurrentCache.ExpiryChecker<URL, Record> checker = refreshPeriodInSeconds > 0 ? new ExpiryChecker() : new NeverExpired();
+            ExpiringConcurrentCache.ExpiryChecker<URL, Record> checker = new ExpiryChecker();
             _faceletCache = new ExpiringConcurrentCache<>(faceletFactory, checker);
             _metadataFaceletCache = new ExpiringConcurrentCache<>(metadataFaceletFactory, checker);
         }
+    }
+
+    private static ExpiringRecord createExpiringRecord(URL url, MemberFactory<DefaultFacelet> factory, long refreshPeriodInMillis) throws IOException {
+        return new ExpiringRecord(System.currentTimeMillis(), Util.getLastModified(url), factory.newInstance(url), refreshPeriodInMillis);
     }
 
     @Override
@@ -132,22 +131,27 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
     private final ConcurrentCache<URL, Record> _metadataFaceletCache;
 
     /**
+     * This class holds the Facelet instance.
+     */
+    private static class Record {
+        private final DefaultFacelet facelet;
+        Record(DefaultFacelet facelet) {this.facelet = facelet;}
+        DefaultFacelet getFacelet() { return facelet; }
+    }
+
+    /**
      * This class holds the Facelet instance and its original URL's last modified time. It also produces the time when the
      * next expiry check should be performed
      */
-    private static class Record {
-        Record(long creationTime, long lastModified, DefaultFacelet facelet, long refreshIntervalInMillis) {
-            _facelet = facelet;
+    private static class ExpiringRecord extends Record {
+        ExpiringRecord(long creationTime, long lastModified, DefaultFacelet facelet, long refreshIntervalInMillis) {
+            super(facelet);
             _creationTime = creationTime;
             _lastModified = lastModified;
             _refreshInterval = refreshIntervalInMillis;
 
             // There is no point in calculating the next refresh time if we are refreshing always/never
             _nextRefreshTime = _refreshInterval > 0 ? new AtomicLong(creationTime + refreshIntervalInMillis) : null;
-        }
-
-        DefaultFacelet getFacelet() {
-            return _facelet;
         }
 
         long getLastModified() {
@@ -168,13 +172,13 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
         private final long _refreshInterval;
         private final long _creationTime;
         private final AtomicLong _nextRefreshTime;
-        private final DefaultFacelet _facelet;
     }
 
     private static class ExpiryChecker implements ExpiringConcurrentCache.ExpiryChecker<URL, Record> {
 
         @Override
-        public boolean isExpired(URL url, Record record) {
+        public boolean isExpired(URL url, Record r) {
+            final ExpiringRecord record = (ExpiringRecord) r;
             if (System.currentTimeMillis() > record.getNextRefreshTime()) {
                 record.getAndUpdateNextRefreshTime();
                 long lastModified = Util.getLastModified(url);
@@ -182,13 +186,6 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
                 // is older than the URL's current last modified time
                 return lastModified > record.getLastModified();
             }
-            return false;
-        }
-    }
-
-    private static class NeverExpired implements ExpiringConcurrentCache.ExpiryChecker<URL, Record> {
-        @Override
-        public boolean isExpired(URL key, Record value) {
             return false;
         }
     }
