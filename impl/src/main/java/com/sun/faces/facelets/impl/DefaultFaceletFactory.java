@@ -473,12 +473,9 @@ public class DefaultFaceletFactory {
             cache = cacheFactory.getFaceletCache();
         }
 
-        // Create instance factories for the cache, so that the cache can
+        // Set the factories for the cache, so that the cache can
         // create Facelets and Metadata Facelets
-        FaceletCache.MemberFactory<DefaultFacelet> faceletFactory = key -> createFacelet(key);
-        FaceletCache.MemberFactory<DefaultFacelet> metadataFaceletFactory = key -> createMetadataFacelet(key);
-
-        cache.setCacheFactories(faceletFactory, metadataFaceletFactory);
+        cache.setCacheFactories(this::createFacelet, this::createMetadataFacelet);
         return cache;
     }
 
