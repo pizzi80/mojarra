@@ -59,6 +59,16 @@ public class FastStringWriter extends Writer {
         builder = new StringBuilder(initialCapacity);
     }
 
+    /**
+     * <p>
+     * Constructs a new <code>FastStringWriter</code> instance using the specified <code>builder</code>.
+     * </p>
+     * @param builder the builder to use as internal buffer
+     */
+    public FastStringWriter(StringBuilder builder) {
+        this.builder = builder;
+    }
+
     // ----------------------------------------------------- Methods from Writer
 
     /**
