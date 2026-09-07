@@ -996,7 +996,7 @@ public class ExternalContextImpl extends ExternalContext {
 
     @Override
     public String encodeBookmarkableURL(String baseUrl, Map<String, List<String>> parameters) {
-        Charset currentResponseEncoding = Util.getResponseEncodingCharset(FacesContext.getCurrentInstance());
+        String currentResponseEncoding = Util.getResponseEncoding(FacesContext.getCurrentInstance());
         UrlBuilder builder = new UrlBuilder(baseUrl, currentResponseEncoding);
         builder.addParameters(parameters);
         return builder.createUrl();
@@ -1004,7 +1004,7 @@ public class ExternalContextImpl extends ExternalContext {
 
     @Override
     public String encodeRedirectURL(String baseUrl, Map<String, List<String>> parameters) {
-        Charset currentResponseEncoding = Util.getResponseEncodingCharset(FacesContext.getCurrentInstance());
+        String currentResponseEncoding = Util.getResponseEncoding(FacesContext.getCurrentInstance());
         UrlBuilder builder = new UrlBuilder(baseUrl, currentResponseEncoding);
         builder.addParameters(parameters);
         return builder.createUrl();
@@ -1019,7 +1019,7 @@ public class ExternalContextImpl extends ExternalContext {
             String message = MessageUtils.getExceptionMessageString(MessageUtils.NULL_PARAMETERS_ERROR_MESSAGE_ID, "url");
             throw new NullPointerException(message);
         }
-        Charset currentResponseEncoding = Util.getResponseEncodingCharset(FacesContext.getCurrentInstance());
+        String currentResponseEncoding = Util.getResponseEncoding(FacesContext.getCurrentInstance());
         UrlBuilder builder = new UrlBuilder(url, currentResponseEncoding);
         return ((HttpServletResponse) response).encodeURL(builder.createUrl());
     }
