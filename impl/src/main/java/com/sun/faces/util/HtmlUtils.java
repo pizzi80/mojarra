@@ -808,7 +808,7 @@ public final class HtmlUtils {
          *
          * @return the internal <code>buf</code>
          */
-        public byte[] getBuf() {
+        public byte[] getBuffer() {
             return buf;
         }
 
