@@ -1,5 +1,2 @@
 jdk:
   - openjdk17
-
-build:
-  - ./mvnw clean install -DskipTests
