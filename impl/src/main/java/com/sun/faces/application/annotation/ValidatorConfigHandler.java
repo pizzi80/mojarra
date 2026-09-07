@@ -60,7 +60,7 @@ public class ValidatorConfigHandler implements ConfigAnnotationHandler {
         }
         FacesValidator validatorAnnotation = (FacesValidator) annotation;
         String value = ((FacesValidator) annotation).value();
-        if (null == value || value.isEmpty()) {
+        if (value == null || value.isEmpty()) {
             value = target.getSimpleName();
             value = Character.toLowerCase(value.charAt(0)) + value.substring(1);
         }

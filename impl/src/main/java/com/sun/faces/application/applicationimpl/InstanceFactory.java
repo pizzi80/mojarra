@@ -121,7 +121,7 @@ public class InstanceFactory {
 
     private static final Map<Class<?>, String> STANDARD_TYPE_TO_CONV_ID_MAP;
     static {
-        Map<Class<?>,String> map = new HashMap<>(Util.calculateMapCapacity(STANDARD_CONV_ID_TO_TYPE_MAP.size()*2));
+        Map<Class<?>,String> map = new HashMap<>(STANDARD_CONV_ID_TO_TYPE_MAP.size()*2, 1.0f);
         for (Map.Entry<String, Class<?>[]> entry : STANDARD_CONV_ID_TO_TYPE_MAP.entrySet()) {
             Class<?>[] types = entry.getValue();
             String key = entry.getKey();
@@ -603,7 +603,7 @@ public class InstanceFactory {
         if (defaultValidatorInfo == null) {
             synchronized (this) {
                 if (defaultValidatorInfo == null) {
-                    defaultValidatorInfo = new LinkedHashMap<>(Util.calculateMapCapacity(defaultValidatorIds.size()));
+                    defaultValidatorInfo = new LinkedHashMap<>(defaultValidatorIds.size(), 1.0f);
                     if (!defaultValidatorIds.isEmpty()) {
                         for (String id : defaultValidatorIds) {
                             String validatorClass;
@@ -619,8 +619,9 @@ public class InstanceFactory {
                         }
 
                     }
+
+                    defaultValidatorInfo = unmodifiableMap(defaultValidatorInfo);
                 }
-                defaultValidatorInfo = unmodifiableMap(defaultValidatorInfo);
             }
         }
 

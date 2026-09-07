@@ -870,8 +870,6 @@ public class HtmlOutputLink extends UIOutput implements ClientBehaviorHolder {
         handleAttribute(this, "type", type);
     }
 
-    private static final String DEFAULT_EVENT = "action";
-
     private static final Collection<String> EVENT_NAMES = List.of("blur", "click", "action", "dblclick", "focus",
             "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
 
@@ -879,6 +877,8 @@ public class HtmlOutputLink extends UIOutput implements ClientBehaviorHolder {
     public Collection<String> getEventNames() {
         return EVENT_NAMES;
     }
+
+    private static final String DEFAULT_EVENT = "action";
 
     @Override
     public String getDefaultEventName() {

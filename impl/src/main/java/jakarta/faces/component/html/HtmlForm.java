@@ -659,7 +659,8 @@ public class HtmlForm extends UIForm implements ClientBehaviorHolder {
         handleAttribute(this, "title", title);
     }
 
-    private static final Collection<String> EVENT_NAMES = List.of("click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
+    private static final Collection<String> EVENT_NAMES = List.of(
+            "click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
 
     @Override
     public Collection<String> getEventNames() {

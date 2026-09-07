@@ -53,7 +53,7 @@ import jakarta.servlet.http.HttpSessionListener;
  */
 public class WebappLifecycleListener {
 
-    private static final String[] SESSION_LISTENERS = {VIEW_SCOPE_MANAGER, CLIENT_WINDOW_SCOPE_MANAGER};
+    private static final String[] SESSION_LISTENER_ATTRIBUTE_NAMES = {VIEW_SCOPE_MANAGER, CLIENT_WINDOW_SCOPE_MANAGER};
 
     private ServletContext servletContext;
     private ApplicationAssociate applicationAssociate;
@@ -140,7 +140,7 @@ public class WebappLifecycleListener {
         activeSessions.remove(event.getSession());
         FlowCDIContext.sessionDestroyed(event);
 
-        for (String listenerName : SESSION_LISTENERS) {
+        for (String listenerName : SESSION_LISTENER_ATTRIBUTE_NAMES) {
             HttpSessionListener listener = (HttpSessionListener)servletContext.getAttribute(listenerName);
             if (listener != null) {
                 listener.sessionDestroyed(event);

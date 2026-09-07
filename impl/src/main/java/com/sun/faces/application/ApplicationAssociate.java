@@ -173,7 +173,7 @@ public class ApplicationAssociate {
 
     private Map<String, List<String>> resourceLibraryContracts;
 
-    final Map<String, ApplicationResourceBundle> resourceBundles = new HashMap<>();
+    private final Map<String, ApplicationResourceBundle> resourceBundles = new HashMap<>();
 
     public static void setCurrentInstance(ApplicationAssociate associate) {
         if (associate == null) {
@@ -312,7 +312,7 @@ public class ApplicationAssociate {
                 getFacesServletRegistration(context)
                     .ifPresent(registration ->
                         viewHandler.getViews(context, "/", RETURN_AS_MINIMAL_IMPLICIT_OUTCOME)
-                                   .forEach(registration::addMapping));
+                                   .forEach(view -> registration.addMapping(view)));
             }
 
         }
@@ -324,10 +324,10 @@ public class ApplicationAssociate {
             return;
         }
 
-        FacesContext context = FacesContext.getCurrentInstance();
+        FacesContext ctx = FacesContext.getCurrentInstance();
 
         compiler = createCompiler(webConfig);
-        faceletFactory = createFaceletFactory(context, compiler, webConfig);
+        faceletFactory = createFaceletFactory(ctx, compiler, webConfig);
     }
 
     public long getTimeOfInstantiation() {
@@ -384,7 +384,7 @@ public class ApplicationAssociate {
         Map<String, Object> applicationMap = externalContext.getApplicationMap();
         ApplicationAssociate me = (ApplicationAssociate) applicationMap.get(ASSOCIATE_KEY);
 
-        if (me != null && me.resourceBundles != null) {
+        if (me != null) {
             me.resourceBundles.clear();
         }
 
@@ -394,7 +394,7 @@ public class ApplicationAssociate {
     public static void clearInstance(ServletContext servletContext) {
         ApplicationAssociate me = (ApplicationAssociate) servletContext.getAttribute(ASSOCIATE_KEY);
 
-        if (me != null && me.resourceBundles != null) {
+        if (me != null) {
             me.resourceBundles.clear();
         }
 
@@ -498,9 +498,11 @@ public class ApplicationAssociate {
     }
 
     public List<FacesComponentUsage> getComponentsForNamespace(String namespace) {
-        final List<FacesComponentUsage> componentUsageList;
-        if (facesComponentsByNamespace != null && (componentUsageList = facesComponentsByNamespace.get(namespace)) != null) {
-            return componentUsageList;
+        if (facesComponentsByNamespace != null) {
+            final List<FacesComponentUsage> componentUsageList = facesComponentsByNamespace.get(namespace);
+            if (componentUsageList != null) {
+                return componentUsageList;
+            }
         }
 
         return emptyList();
@@ -518,7 +520,7 @@ public class ApplicationAssociate {
         // If there already is a case existing for the fromviewid/fromaction.fromoutcome
         // combination,
         // replace it ... (last one wins).
-        navigationMap.computeIfAbsent(navigationCase.getFromViewId(), k -> new LinkedHashSet<>()).add(navigationCase);
+        navigationMap.computeIfAbsent(navigationCase.getFromViewId(), $ -> new LinkedHashSet<>()).add(navigationCase);
     }
 
     public NamedEventManager getNamedEventManager() {

@@ -33,7 +33,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.Util;
 
 import jakarta.faces.FacesException;
 import jakarta.faces.component.UIComponent;
@@ -161,7 +160,8 @@ public class AnnotationManager {
      */
     public void applyBehaviorAnnotations(FacesContext ctx, Behavior b) {
         applyAnnotations(ctx, b.getClass(), ProcessingTarget.Behavior, b);
-        if (b instanceof ClientBehaviorBase clientBehavior) {
+        if (b instanceof ClientBehaviorBase) {
+            ClientBehaviorBase clientBehavior = (ClientBehaviorBase) b;
             String rendererType = clientBehavior.getRendererType();
             RenderKit renderKit = ctx.getRenderKit();
             if (null != rendererType && null != renderKit) {
@@ -339,17 +339,14 @@ public class AnnotationManager {
      */
     private static final class ProcessAnnotationsTask implements Callable<Map<Class<? extends Annotation>, RuntimeAnnotationHandler>> {
 
-        private static final Map<Class<? extends Annotation>, RuntimeAnnotationHandler> EMPTY = Collections.emptyMap();
         private final Class<?> clazz;
         private final Scanner[] scanners;
 
         // -------------------------------------------------------- Constructors
 
         public ProcessAnnotationsTask(Class<?> clazz, Scanner[] scanners) {
-
             this.clazz = clazz;
             this.scanners = scanners;
-
         }
 
         // ------------------------------------------------------ Public Methods
@@ -362,13 +359,13 @@ public class AnnotationManager {
                 RuntimeAnnotationHandler handler = scanner.scan(clazz);
                 if (handler != null) {
                     if (map == null) {
-                        map = new HashMap<>(Util.calculateMapCapacity(2));
+                        map = new HashMap<>(2, 1.0f);
                     }
                     map.put(scanner.getAnnotation(), handler);
                 }
             }
 
-            return map != null ? map : EMPTY;
+            return map != null ? map : Collections.emptyMap();
 
         }
 

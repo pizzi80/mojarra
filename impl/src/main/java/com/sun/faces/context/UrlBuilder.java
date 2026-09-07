@@ -16,20 +16,16 @@
 
 package com.sun.faces.context;
 
-import static com.sun.faces.RIConstants.CHARSET_ENCODING;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static com.sun.faces.RIConstants.CHAR_ENCODING;
+import static java.util.Collections.emptyList;
 
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
-import jakarta.faces.application.SharedUtils;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.lifecycle.ClientWindow;
 import jakarta.faces.render.ResponseStateManager;
@@ -54,7 +50,6 @@ class UrlBuilder {
     public static final char PARAMETER_PAIR_SEPARATOR = '&';
     public static final char PARAMETER_NAME_VALUE_SEPARATOR = '=';
     public static final char FRAGMENT_SEPARATOR = '#';
-    public static final String DEFAULT_ENCODING = UTF_8.name();
     public static final String WEBSOCKET_PROTOCOL = "ws";
     public static final String PROTOCOL_SEPARATOR = "://";
 
@@ -67,29 +62,27 @@ class UrlBuilder {
 
     // ------------------------------------------------------------ Constructors
 
-    public UrlBuilder(String url, Charset encoding) {
-        if (Util.isBlank(url)) {
+    public UrlBuilder(String url, String encoding) {
+        if (Util.trimToNull(url) == null) {
             throw new IllegalArgumentException("Url cannot be empty");
         }
         this.url = new StringBuilder(url.length() * 2);
         extractSegments(url);
-        this.encoding = encoding;
+        this.encoding = encoding != null ? Charset.forName(encoding) : null;
         // PERF TL lookup per-instance
     }
 
     public UrlBuilder(String url) {
-        this(url, CHARSET_ENCODING);
+        this(url, CHAR_ENCODING);
     }
 
     // ---------------------------------------------------------- Public Methods
 
     public UrlBuilder addParameters(String name, List<String> values) {
-        name = SharedUtils.trimToNull(name);
-
-        if ( name == null ) {
+        name = Util.trimToNull(name);
+        if (name == null) {
             throw new IllegalArgumentException("Parameter name cannot be empty");
         }
-
         addValuesToParameter(name, values, true);
 
         return this;
@@ -98,13 +91,11 @@ class UrlBuilder {
     public UrlBuilder addParameters(Map<String, List<String>> params) {
         if (params != null && !params.isEmpty()) {
             for (Map.Entry<String, List<String>> entry : params.entrySet()) {
-                final String paramName = SharedUtils.trimToNull(entry.getKey());
+                String paramName = Util.trimToNull(entry.getKey());
                 if (paramName == null) {
                     throw new IllegalArgumentException("Parameter name cannot be empty");
                 }
-                List<String> values = entry.getValue();
-                List<String> retValues = values.stream().filter(Objects::nonNull).collect(Collectors.toList());
-                addValuesToParameter(paramName, retValues, true);
+                addValuesToParameter(paramName, entry.getValue(), true);
             }
         }
 
@@ -112,7 +103,7 @@ class UrlBuilder {
     }
 
     public UrlBuilder setPath(String path) {
-        if (path == null || path.isBlank()) {
+        if (Util.trimToNull(path) == null) {
             throw new IllegalArgumentException("Path cannot be empty");
         }
         this.path = path;
@@ -130,7 +121,7 @@ class UrlBuilder {
     }
 
     /**
-     * The fragment is appended at the end of the url after a hash mark. It represents the fragement of the document that
+     * The fragment is appended at the end of the url after a hash mark. It represents the fragment of the document that
      * should be brought into focus when the document is rendered. Setting the fragment replaces the previous value.
      */
     public UrlBuilder setFragment(String fragment) {
@@ -159,7 +150,7 @@ class UrlBuilder {
 
     protected void parseQueryString() {
         if (parameters == null) {
-            parameters = new LinkedHashMap<>(8);
+            parameters = new LinkedHashMap<>();
         }
 
         // if query string is null, then it has been parsed into parameters
@@ -172,7 +163,7 @@ class UrlBuilder {
         for (String pair : pairs) {
             String[] nameAndValue = Util.split(pair, PARAMETER_NAME_VALUE_SEPARATOR);
             // ignore malformed pair
-            if (nameAndValue.length != 2 || nameAndValue[0].isBlank()) {
+            if (nameAndValue.length != 2 || Util.trimToNull(nameAndValue[0]) == null) {
                 continue;
             }
 
@@ -266,42 +257,33 @@ class UrlBuilder {
     }
 
     protected void addValueToParameter(String name, String value, boolean replace) {
-        final List<String> values;
-        if (value != null) {
-            values = Collections.singletonList(value);
-        } else {
-            values = Collections.emptyList();
-        }
+        List<String> values = value == null ? emptyList() : List.of(value);
         addValuesToParameter(name, values, replace);
     }
 
     protected void addValuesToParameter(String name, List<String> valuesRef, boolean replace) {
-        final List<String> values;
+        List<String> values = new ArrayList<>(valuesRef != null ? valuesRef.size() : 0);
         if (valuesRef != null) {
-            values = new ArrayList<>(valuesRef.size());
-            for (String ref : valuesRef) {
-                if (ref != null) {
-                    values.add(encoding != null ? URLEncoder.encode(ref, encoding) : ref);
+            for (String string : valuesRef) {
+                if (string != null) {
+                    values.add(encoding != null ? URLEncoder.encode(string, encoding) : string);
                 }
             }
         }
-        else {
-            // we need a mutable List
-            values = new ArrayList<>(0);
-        }
 
         if (parameters == null) {
-            parameters = new LinkedHashMap<>(8);
+            parameters = new LinkedHashMap<>();
         }
 
         if (replace) {
             parameters.put(name, values);
         } else {
             List<String> oldValues = parameters.get(name);
-            // add if exists
-            if ( oldValues != null ) oldValues.addAll(values);
-            // put old+new or put only new values
-            parameters.put( name , oldValues != null ? oldValues : values );
+            if (oldValues != null) {
+                oldValues.addAll(values);
+                values = oldValues;
+            }
+            parameters.put(name, values);
         }
     }
 
@@ -326,5 +308,4 @@ class UrlBuilder {
             queryString = q.isEmpty() ? null : q;
         }
     }
-
 }

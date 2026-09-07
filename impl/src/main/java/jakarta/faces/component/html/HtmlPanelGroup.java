@@ -410,7 +410,8 @@ public class HtmlPanelGroup extends UIPanel implements ClientBehaviorHolder {
         handleAttribute(this, "styleClass", styleClass);
     }
 
-    private static final Collection<String> EVENT_NAMES = List.of("click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
+    private static final Collection<String> EVENT_NAMES = List.of(
+            "click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
 
     @Override
     public Collection<String> getEventNames() {

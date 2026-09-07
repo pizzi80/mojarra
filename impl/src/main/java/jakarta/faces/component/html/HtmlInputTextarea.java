@@ -789,8 +789,6 @@ public class HtmlInputTextarea extends UIInput implements ClientBehaviorHolder {
         handleAttribute(this, "title", title);
     }
 
-    private static final String DEFAULT_EVENT = "valueChange";
-
     private static final Collection<String> EVENT_NAMES = List.of("blur", "change", "valueChange", "click", "dblclick",
             "focus", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "select");
 
@@ -798,6 +796,8 @@ public class HtmlInputTextarea extends UIInput implements ClientBehaviorHolder {
     public Collection<String> getEventNames() {
         return EVENT_NAMES;
     }
+
+    private static final String DEFAULT_EVENT = "valueChange";
 
     @Override
     public String getDefaultEventName() {

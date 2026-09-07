@@ -52,6 +52,7 @@ import static jakarta.faces.component.UIComponent.COMPOSITE_FACET_NAME;
 import static jakarta.faces.component.UIComponent.VIEW_LOCATION_KEY;
 import static jakarta.faces.component.UIViewRoot.COMPONENT_TYPE;
 import static jakarta.faces.view.AttachedObjectTarget.ATTACHED_OBJECT_TARGETS_KEY;
+import static jakarta.faces.view.facelets.FaceletContext.FACELET_CONTEXT_KEY;
 import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 import static java.lang.Boolean.TRUE;
 import static java.util.Collections.emptyList;
@@ -64,7 +65,6 @@ import java.beans.BeanInfo;
 import java.beans.PropertyDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -128,7 +128,6 @@ import jakarta.faces.view.facelets.Facelet;
 import jakarta.faces.view.facelets.FaceletContext;
 import jakarta.servlet.http.HttpSession;
 
-import com.sun.faces.RIConstants;
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.application.resource.ResourceHandlerImpl;
 import com.sun.faces.config.WebConfiguration;
@@ -144,6 +143,7 @@ import com.sun.faces.facelets.tag.SavedBuildTimeDecisions;
 import com.sun.faces.facelets.tag.composite.CompositeComponentBeanInfo;
 import com.sun.faces.facelets.tag.faces.CompositeComponentTagHandler;
 import com.sun.faces.facelets.tag.ui.UIDebug;
+import com.sun.faces.io.FastStringWriter;
 import com.sun.faces.renderkit.RenderKitUtils;
 import com.sun.faces.renderkit.html_basic.DoctypeRenderer;
 import com.sun.faces.util.Cache;
@@ -359,7 +359,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
 
         view.setViewId(view.getViewId());
 
-        if ( LOGGER.isLoggable(Level.FINE) ) {
+        if (LOGGER.isLoggable(FINE)) {
             LOGGER.log(FINE, "Building View: " + view.getViewId());
         }
 
@@ -834,12 +834,12 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
 
     @Override
     public Stream<String> getViews(FacesContext context, String path, ViewVisitOption... options) {
-        return mapIfNeeded(super.getViews(context, path).filter(this::handlesViewId), options);
+        return mapIfNeeded(super.getViews(context, path).filter(viewId -> handlesViewId(viewId)), options);
     }
 
     @Override
     public Stream<String> getViews(FacesContext context, String path, int maxDepth, ViewVisitOption... options) {
-        return mapIfNeeded(super.getViews(context, path, maxDepth).filter(this::handlesViewId), options);
+        return mapIfNeeded(super.getViews(context, path, maxDepth).filter(viewId -> handlesViewId(viewId)), options);
     }
 
 
@@ -885,11 +885,10 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
     protected void initialize() {
         LOGGER.fine("Initializing FaceletViewHandlingStrategy");
 
-        final FacesContext context = FacesContext.getCurrentInstance();
-        final ExternalContext extContext = context.getExternalContext();
-        final Map<String, Object> appMap = extContext.getApplicationMap();
+        initializeMappings();
 
-        initializeMappings(context);
+        // The context must be resolved per lookup: the cache outlives the request.
+        metadataCache = new Cache<>(ccResource -> createComponentMetadata(FacesContext.getCurrentInstance(), ccResource));
 
         try {
             responseBufferSize = Integer.parseInt(webConfig.getOptionValue(FaceletsBufferSize));
@@ -900,10 +899,10 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         refreshTransientBuildOnPSS = webConfig.isOptionEnabled(BooleanWebContextInitParameter.RefreshTransientBuildOnPSS);
 
         LOGGER.fine("Initialization Successful");
-        // note that the Cache Factory need to retrieve always the current FacesContext instance!
-        metadataCache = new Cache<>(ccResource -> createComponentMetadata(FacesContext.getCurrentInstance(), ccResource));
 
         vdlFactory = (ViewDeclarationLanguageFactory) FactoryFinder.getFactory(VIEW_DECLARATION_LANGUAGE_FACTORY);
+
+        final Map<String, Object> appMap = FacesContext.getCurrentInstance().getExternalContext().getApplicationMap();
 
         @SuppressWarnings("unchecked")
         Map<String, List<String>> contractDataStructure = (Map<String, List<String>>) appMap.remove(RESOURCE_LIBRARY_CONTRACT_DATA_STRUCTURE_KEY);
@@ -921,7 +920,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
     /**
      * Initialize mappings, during the first request.
      */
-    protected void initializeMappings(FacesContext context) {
+    protected void initializeMappings() {
         faceletResourceSuffixes = webConfig.getFaceletResourceSuffixes();
 
         String viewMappings = webConfig.getOptionValue(FaceletsViewMappings);
@@ -989,7 +988,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         String encoding = Util.getResponseEncoding(context, initWriter.getCharacterEncoding());
 
         // apply them to the response
-        StringWriter contentTypeWriter = new StringWriter();
+        FastStringWriter contentTypeWriter = new FastStringWriter();
         HtmlUtils.writeTextForXML(contentTypeWriter, contentType);
         extContext.setResponseContentType(contentTypeWriter.toString().trim());
         extContext.setResponseCharacterEncoding(encoding);
@@ -1097,7 +1096,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
 
         // PENDING this implementation is terribly wasteful.
         // Must find a better way.
-        FaceletContext faceletContext = FaceletContext.getCurrentInstance(context);
+        FaceletContext faceletContext = (FaceletContext) context.getAttributes().get(FACELET_CONTEXT_KEY);
         DefaultFaceletFactory factory = RequestStateManager.get(context, FACELET_FACTORY);
         VariableMapper orig = faceletContext.getVariableMapper();
 
@@ -1348,13 +1347,13 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
         // ------------------------------------------------------ Public Methods
 
         /**
-         * @param ctx the <code>FacesContext</code> for the current request
+         * @param context the <code>FacesContext</code> for the current request
          * @return the <code>method-signature</code> for this attribute
          */
-        public String getMethodSignature(FacesContext ctx) {
+        public String getMethodSignature(FacesContext context) {
             ValueExpression methodSignature = (ValueExpression) propertyDescriptor.getValue("method-signature");
             if (methodSignature != null) {
-                return methodSignature.getValue(ctx.getELContext());
+                return methodSignature.getValue(context.getELContext());
             }
 
             return null;
@@ -1376,21 +1375,21 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             return null;
         }
 
-        public String getTargetAttributeName(FacesContext ctx) {
+        public String getTargetAttributeName(FacesContext context) {
             ValueExpression ve = (ValueExpression) propertyDescriptor.getValue("targetAttributeName");
-            return ve != null ? (String) ve.getValue(ctx.getELContext()) : null;
+            return ve != null ? (String) ve.getValue(context.getELContext()) : null;
 
         }
 
         /**
-         * @param ctx the <code>FacesContext</code> for the current request
+         * @param context the <code>FacesContext</code> for the current request
          * @return <code>true<code> if this attribute is required to be present,
          *  otherwise, returns <code>false</code>
          */
-        public boolean isRequired(FacesContext ctx) {
+        public boolean isRequired(FacesContext context) {
 
             ValueExpression rd = (ValueExpression) propertyDescriptor.getValue("required");
-            return rd != null && Util.toBoolean(rd.getValue(ctx.getELContext()), false);
+            return rd != null && Util.toBoolean(rd.getValue(context.getELContext()), false);
 
         }
 
@@ -1426,9 +1425,9 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
      */
     private static final class MethodRetargetHandlerManager {
 
-        private final Map<String,MethodRetargetHandler> handlerMap = Map.of(
+        private final Map<String, MethodRetargetHandler> handlerMap = Map.of(
                 ActionRetargetHandler.INSTANCE.getAttribute(), ActionRetargetHandler.INSTANCE,
-                ActionListenerRetargetHandler.INSTANCE.getAttribute() , ActionListenerRetargetHandler.INSTANCE,
+                ActionListenerRetargetHandler.INSTANCE.getAttribute(), ActionListenerRetargetHandler.INSTANCE,
                 ValidatorRetargetHandler.INSTANCE.getAttribute(), ValidatorRetargetHandler.INSTANCE,
                 ValueChangeListenerRetargetHandler.INSTANCE.getAttribute(), ValueChangeListenerRetargetHandler.INSTANCE
         );
@@ -1464,7 +1463,7 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
          */
         private static abstract class AbstractRetargetHandler implements MethodRetargetHandler {
 
-            protected static final Class<?>[] NO_ARGS = new Class[0];
+            protected static final Class<?>[] NO_ARGS = {};
 
         } // END AbstractRetargetHandler
 
@@ -2007,13 +2006,17 @@ public class FaceletViewHandlingStrategy extends ViewHandlingStrategy {
             return views;
         }
 
-        return views.map(this::toImplicitOutcome);
+        return views.map(view -> toImplicitOutcome(view));
     }
 
     private static boolean returnAsImplicitOutCome(ViewVisitOption... options) {
-        if ( options.length == 0 ) return false;
-        if ( options.length == 1 ) return RETURN_AS_MINIMAL_IMPLICIT_OUTCOME == options[0];
-        return EnumSet.of(options[0],options).contains(RETURN_AS_MINIMAL_IMPLICIT_OUTCOME);
+        for (ViewVisitOption option : options) {
+            if (option == RETURN_AS_MINIMAL_IMPLICIT_OUTCOME) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private String toImplicitOutcome(String viewId) {

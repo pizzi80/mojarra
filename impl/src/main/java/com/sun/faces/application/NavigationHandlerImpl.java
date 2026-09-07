@@ -88,8 +88,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
     public static boolean isResetFlowHandlerState(FacesContext facesContext) {
 
-        boolean obtainingNavigationCase = Boolean.TRUE.equals(facesContext.getAttributes().get(RESET_FLOW_HANDLER_STATE_KEY));
-        return obtainingNavigationCase;
+        return Boolean.TRUE.equals(facesContext.getAttributes().get(RESET_FLOW_HANDLER_STATE_KEY));
     }
 
     public static void setResetFlowHandlerStateIfUnset(FacesContext facesContext, boolean resetFlowHandlerState) {
@@ -872,7 +871,7 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                         }
 
                         if (parameters == null) {
-                            parameters = new LinkedHashMap<>(Util.calculateMapCapacity(queryElements.length / 2));
+                            parameters = new LinkedHashMap<>(queryElements.length / 2, 1.0f);
                         }
 
                         parameters.computeIfAbsent(elements[0], k -> new ArrayList<>(2))
@@ -1422,7 +1421,10 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
 
         @Override
         public Set<NavigationCase> put(String key, Set<NavigationCase> value) {
-            if (key == null || value == null) {
+            if (key == null) {
+                throw new IllegalArgumentException(key);
+            }
+            if (value == null) {
                 throw new IllegalArgumentException();
             }
             updateWildcards(key);
@@ -1452,6 +1454,16 @@ public class NavigationHandlerImpl extends ConfigurableNavigationHandler {
                     existing.addAll(entry.getValue());
                 }
             }
+        }
+
+        @Override
+        public Set<NavigationCase> get(Object key) {
+            return mapToLookForNavCase.get(key);
+        }
+
+        @Override
+        public boolean containsKey(Object key) {
+            return mapToLookForNavCase.containsKey(key);
         }
 
         @Override

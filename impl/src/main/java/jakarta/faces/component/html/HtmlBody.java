@@ -576,7 +576,8 @@ public class HtmlBody extends UIOutput implements ClientBehaviorHolder {
         handleAttribute(this, "xmlns", xmlns);
     }
 
-    private static final Collection<String> EVENT_NAMES = List.of("click", "dblclick", "keydown", "keypress", "keyup", "load", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "unload");
+    private static final Collection<String> EVENT_NAMES = List.of(
+            "click", "dblclick", "keydown", "keypress", "keyup", "load", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "unload");
 
     @Override
     public Collection<String> getEventNames() {

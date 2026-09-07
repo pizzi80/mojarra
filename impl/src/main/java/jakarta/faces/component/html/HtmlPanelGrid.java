@@ -959,7 +959,8 @@ public class HtmlPanelGrid extends UIPanel implements ClientBehaviorHolder {
         handleAttribute(this, "width", width);
     }
 
-    private static final Collection<String> EVENT_NAMES = List.of("click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
+    private static final Collection<String> EVENT_NAMES = List.of(
+            "click", "dblclick", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
 
     @Override
     public Collection<String> getEventNames() {

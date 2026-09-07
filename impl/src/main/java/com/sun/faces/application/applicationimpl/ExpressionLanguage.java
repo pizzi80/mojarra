@@ -24,6 +24,7 @@ import static com.sun.faces.util.Util.getCdiBeanManager;
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.el.FacesCompositeELResolver;
 import jakarta.el.CompositeELResolver;
+import jakarta.el.ELContext;
 import jakarta.el.ELContextListener;
 import jakarta.el.ELException;
 import jakarta.el.ELResolver;
@@ -119,8 +120,10 @@ public class ExpressionLanguage {
     /*
      * @see jakarta.faces.application.Application#evaluateExpressionGet(jakarta.faces.context.FacesContext, String, Class)
      */
+    @SuppressWarnings("unchecked")
     public <T> T evaluateExpressionGet(FacesContext context, String expression, Class<? extends T> expectedType) throws ELException {
-        return getExpressionFactory().createValueExpression(context.getELContext(), expression, expectedType).getValue(context.getELContext());
+        final ELContext elContext = context.getELContext();
+        return (T) getExpressionFactory().createValueExpression(elContext, expression, expectedType).getValue(elContext);
     }
 
     public CompositeELResolver getApplicationELResolvers() {

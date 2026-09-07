@@ -787,8 +787,6 @@ public class HtmlSelectManyListbox extends UISelectMany implements ClientBehavio
         handleAttribute(this, "title", title);
     }
 
-    private static final String DEFAULT_EVENT = "valueChange";
-
     private static final Collection<String> EVENT_NAMES = List.of("blur", "change", "valueChange", "click", "dblclick",
             "focus", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
 
@@ -796,6 +794,8 @@ public class HtmlSelectManyListbox extends UISelectMany implements ClientBehavio
     public Collection<String> getEventNames() {
         return EVENT_NAMES;
     }
+
+    private static final String DEFAULT_EVENT = "valueChange";
 
     @Override
     public String getDefaultEventName() {

@@ -660,7 +660,8 @@ public class HtmlOutputLabel extends UIOutput implements ClientBehaviorHolder {
         handleAttribute(this, "title", title);
     }
 
-    private static final Collection<String> EVENT_NAMES = List.of("blur", "click", "dblclick", "focus", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
+    private static final Collection<String> EVENT_NAMES = List.of(
+            "blur", "click", "dblclick", "focus", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup");
 
     @Override
     public Collection<String> getEventNames() {

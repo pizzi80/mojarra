@@ -19,7 +19,6 @@ package com.sun.faces.application.resource;
 import static com.sun.faces.util.Util.ensureLeadingSlash;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -553,7 +552,7 @@ public class ResourceManager {
                 // it is a resource request. look at the parameter con=.
 
                 String param = context.getExternalContext().getRequestParameterMap().get("con");
-                if (!nameContainsForbiddenSequence(param) && param != null && !param.trim().isEmpty()) {
+                if (param != null && !param.isBlank() && !nameContainsForbiddenSequence(param)) {
                     return Collections.singletonList(param);
                 }
             }

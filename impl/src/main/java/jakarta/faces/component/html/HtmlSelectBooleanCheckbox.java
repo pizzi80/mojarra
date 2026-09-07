@@ -738,8 +738,6 @@ public class HtmlSelectBooleanCheckbox extends UISelectBoolean implements Client
         handleAttribute(this, "title", title);
     }
 
-    private static final String DEFAULT_EVENT = "valueChange";
-
     private static final Collection<String> EVENT_NAMES = List.of("blur", "change", "click", "valueChange", "dblclick",
             "focus", "keydown", "keypress", "keyup", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "select");
 
@@ -747,6 +745,8 @@ public class HtmlSelectBooleanCheckbox extends UISelectBoolean implements Client
     public Collection<String> getEventNames() {
         return EVENT_NAMES;
     }
+
+    private static final String DEFAULT_EVENT = "valueChange";
 
     @Override
     public String getDefaultEventName() {

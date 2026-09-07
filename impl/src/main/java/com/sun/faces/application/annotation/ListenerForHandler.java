@@ -68,7 +68,6 @@ class ListenerForHandler implements RuntimeAnnotationHandler {
                     app.subscribeToEvent(listenerFor.systemEventClass(), (SystemEventListener) listener);
                 } else {
                     app.subscribeToEvent(listenerFor.systemEventClass(), listenerFor.sourceClass(), (SystemEventListener) listener);
-
                 }
             }
         }

@@ -91,11 +91,17 @@ class UrlBuilderTest {
         assertEquals("https://example.com#/foo/bar?baz=bak&ban=bar", buildUrl("https://example.com#/foo/bar?baz=bak&ban=bar"));
     }
 
+    /**
+     * Blank covers both flavors: characters which {@link String#trim()} removes, such as the control characters below
+     * U+0020, and characters which only {@link String#strip()} removes, such as the Unicode spaces above U+007F.
+     */
     @Test
     void seedUrl_emptyOrBlankIsRejected() {
-        assertThrows(IllegalArgumentException.class, () -> new UrlBuilder(null, UTF_8));
-        assertThrows(IllegalArgumentException.class, () -> new UrlBuilder("", UTF_8));
-        assertThrows(IllegalArgumentException.class, () -> new UrlBuilder("   ", UTF_8));
+        assertThrows(IllegalArgumentException.class, () -> new UrlBuilder(null, UTF_8.name()));
+        assertThrows(IllegalArgumentException.class, () -> new UrlBuilder("", UTF_8.name()));
+        assertThrows(IllegalArgumentException.class, () -> new UrlBuilder("   ", UTF_8.name()));
+        assertThrows(IllegalArgumentException.class, () -> new UrlBuilder("\u0000", UTF_8.name()));
+        assertThrows(IllegalArgumentException.class, () -> new UrlBuilder("\u2000", UTF_8.name()));
     }
 
     // -------- empty segments (issue 5904) -----------------------------------
@@ -162,9 +168,21 @@ class UrlBuilderTest {
      */
     @Test
     void seedUrl_trailingFragmentSeparatorWithParameters() {
-        UrlBuilder builder = new UrlBuilder("https://example.com/#", UTF_8);
+        UrlBuilder builder = new UrlBuilder("https://example.com/#", UTF_8.name());
         builder.addParameters(parameters("foo", "bar"));
         assertEquals("https://example.com/?foo=bar", builder.createUrl());
+    }
+
+    // -------- setPath -------------------------------------------------------
+
+    @Test
+    void setPath_emptyOrBlankIsRejected() {
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
+        assertThrows(IllegalArgumentException.class, () -> builder.setPath(null));
+        assertThrows(IllegalArgumentException.class, () -> builder.setPath(""));
+        assertThrows(IllegalArgumentException.class, () -> builder.setPath("   "));
+        assertThrows(IllegalArgumentException.class, () -> builder.setPath("\u0000"));
+        assertThrows(IllegalArgumentException.class, () -> builder.setPath("\u2000"));
     }
 
     // -------- setFragment ---------------------------------------------------
@@ -237,69 +255,103 @@ class UrlBuilderTest {
 
     @Test
     void addParameters_startsTheQueryString() {
-        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8);
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
         builder.addParameters(parameters("foo", "bar"));
         assertEquals("https://example.com/page?foo=bar", builder.createUrl());
     }
 
     @Test
     void addParameters_extendsTheSeedQueryString() {
-        UrlBuilder builder = new UrlBuilder("https://example.com/page?foo=bar", UTF_8);
+        UrlBuilder builder = new UrlBuilder("https://example.com/page?foo=bar", UTF_8.name());
         builder.addParameters(parameters("baz", "bak"));
         assertEquals("https://example.com/page?foo=bar&baz=bak", builder.createUrl());
     }
 
     @Test
     void addParameters_areAppendedBeforeTheFragment() {
-        UrlBuilder builder = new UrlBuilder("https://example.com/page#anchor", UTF_8);
+        UrlBuilder builder = new UrlBuilder("https://example.com/page#anchor", UTF_8.name());
         builder.addParameters(parameters("foo", "bar"));
         assertEquals("https://example.com/page?foo=bar#anchor", builder.createUrl());
     }
 
     @Test
     void addParameters_valuesAreEncoded() {
-        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8);
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
         builder.addParameters("foo", singletonList("?bar&baz=bak#anchor"));
         assertEquals("https://example.com/page?foo=%3Fbar%26baz%3Dbak%23anchor", builder.createUrl());
     }
 
     @Test
     void addParameters_multipleValuesAreRepeated() {
-        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8);
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
         builder.addParameters("foo", asList("bar", "baz"));
         assertEquals("https://example.com/page?foo=bar&foo=baz", builder.createUrl());
     }
 
     @Test
     void addParameters_nullValuesAreSkipped() {
-        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8);
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
         builder.addParameters("foo", asList("bar", null));
         assertEquals("https://example.com/page?foo=bar", builder.createUrl());
     }
 
     @Test
+    void addParameters_nullValueListIsTolerated() {
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
+        builder.addParameters(parameters("foo", null));
+        assertEquals("https://example.com/page", builder.createUrl());
+    }
+
+    @Test
     void addParameters_emptyOrBlankNameIsRejected() {
-        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8);
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
         assertThrows(IllegalArgumentException.class, () -> builder.addParameters(null, singletonList("bar")));
         assertThrows(IllegalArgumentException.class, () -> builder.addParameters("", singletonList("bar")));
         assertThrows(IllegalArgumentException.class, () -> builder.addParameters("   ", singletonList("bar")));
+        assertThrows(IllegalArgumentException.class, () -> builder.addParameters("\u0000", singletonList("bar")));
+        assertThrows(IllegalArgumentException.class, () -> builder.addParameters("\u2000", singletonList("bar")));
+    }
+
+    /**
+     * Parameter names are written into the URL unencoded, so everything {@link String#trim()} removes must be gone
+     * before the name reaches the query string.
+     */
+    @Test
+    void addParameters_nameIsTrimmed() {
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
+        builder.addParameters("  foo\u0000  ", singletonList("bar"));
+        assertEquals("https://example.com/page?foo=bar", builder.createUrl());
+    }
+
+    @Test
+    void addParameters_nameIsTrimmedOfUnicodeSpaces() {
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
+        builder.addParameters("\u2000foo\u2000", singletonList("bar"));
+        assertEquals("https://example.com/page?foo=bar", builder.createUrl());
+    }
+
+    @Test
+    void addParameters_nameIsTrimmedWhenPassedAsMap() {
+        UrlBuilder builder = new UrlBuilder("https://example.com/page", UTF_8.name());
+        builder.addParameters(parameters("  foo\u0000  ", "bar"));
+        assertEquals("https://example.com/page?foo=bar", builder.createUrl());
     }
 
     // -------- helpers -------------------------------------------------------
 
     private static String buildUrl(String url) {
-        return new UrlBuilder(url, UTF_8).createUrl();
+        return new UrlBuilder(url, UTF_8.name()).createUrl();
     }
 
     private static String buildUrl(String url, Consumer<UrlBuilder> customizer) {
-        UrlBuilder builder = new UrlBuilder(url, UTF_8);
+        UrlBuilder builder = new UrlBuilder(url, UTF_8.name());
         customizer.accept(builder);
         return builder.createUrl();
     }
 
     private static Map<String, List<String>> parameters(String name, String value) {
         Map<String, List<String>> parameters = new LinkedHashMap<>();
-        parameters.put(name, singletonList(value));
+        parameters.put(name, value == null ? null : singletonList(value));
         return parameters;
     }
 
