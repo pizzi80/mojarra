@@ -59,10 +59,10 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
             // We will be delegating object storage to the ExpiringConcurrentCache
             // Create Factory objects here for the cache. The objects will be delegating to our
             // own instance factories
-            ConcurrentCache.Factory<URL, Record> faceletFactory = url -> createExpiringRecord(url, getMemberFactory(), refreshPeriodInMillis);
-            ConcurrentCache.Factory<URL, Record> metadataFaceletFactory = url -> createExpiringRecord(url, getMetadataMemberFactory(), refreshPeriodInMillis);
+            ConcurrentCache.Factory<URL, ExpiringRecord> faceletFactory = url -> createExpiringRecord(url, getMemberFactory(), refreshPeriodInMillis);
+            ConcurrentCache.Factory<URL, ExpiringRecord> metadataFaceletFactory = url -> createExpiringRecord(url, getMetadataMemberFactory(), refreshPeriodInMillis);
 
-            ExpiringConcurrentCache.ExpiryChecker<URL, Record> checker = new ExpiryChecker();
+            ExpiringConcurrentCache.ExpiryChecker<URL, ExpiringRecord> checker = new ExpiryChecker();
             _faceletCache = new ExpiringConcurrentCache<>(faceletFactory, checker);
             _metadataFaceletCache = new ExpiringConcurrentCache<>(metadataFaceletFactory, checker);
         }
@@ -127,8 +127,8 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
         throw new FacesException(t);
     }
 
-    private final ConcurrentCache<URL, Record> _faceletCache;
-    private final ConcurrentCache<URL, Record> _metadataFaceletCache;
+    private final ConcurrentCache<URL, ? extends Record> _faceletCache;
+    private final ConcurrentCache<URL, ? extends Record> _metadataFaceletCache;
 
     /**
      * This class holds the Facelet instance.
@@ -174,11 +174,10 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
         private final AtomicLong _nextRefreshTime;
     }
 
-    private static class ExpiryChecker implements ExpiringConcurrentCache.ExpiryChecker<URL, Record> {
+    private static class ExpiryChecker implements ExpiringConcurrentCache.ExpiryChecker<URL, ExpiringRecord> {
 
         @Override
-        public boolean isExpired(URL url, Record r) {
-            final ExpiringRecord record = (ExpiringRecord) r;
+        public boolean isExpired(URL url, ExpiringRecord record) {
             if (System.currentTimeMillis() > record.getNextRefreshTime()) {
                 record.getAndUpdateNextRefreshTime();
                 long lastModified = Util.getLastModified(url);
@@ -193,7 +192,7 @@ final class DefaultFaceletCache extends FaceletCache<DefaultFacelet> {
     /**
      * ConcurrentCache implementation that does no caching (always creates new instances)
      */
-    private static class NoCache extends ConcurrentCache<URL, Record> {
+    private static final class NoCache extends ConcurrentCache<URL, Record> {
         public NoCache(ConcurrentCache.Factory<URL, Record> f) {
             super(f);
         }
