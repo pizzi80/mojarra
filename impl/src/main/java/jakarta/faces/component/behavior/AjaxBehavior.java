@@ -35,9 +35,6 @@ import jakarta.faces.component.UIComponentBase;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.AjaxBehaviorListener;
 
-import com.sun.faces.RIConstants;
-import com.sun.faces.util.Util;
-
 /**
  * <p class="changed_added_2_0">
  * <span class="changed_modified_2_0_rev_a changed_modified_2_2">An</span> instance of this class is added as a
@@ -531,8 +528,8 @@ public class AjaxBehavior extends ClientBehaviorBase {
                 immediate = (Boolean) values[4];
                 resetValues = (Boolean) values[5];
                 delay = (String) values[6];
-                execute = restoreList(EXECUTE, values[7]);
-                render = restoreList(RENDER, values[8]);
+                execute = restoreList(values[7]);
+                render = restoreList(values[8]);
                 bindings = restoreBindings(context, values[9]);
 
                 // If we saved state last time, save state again next time.
@@ -580,7 +577,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
         Object[] values = (Object[]) state;
         String[] names = (String[]) values[0];
         Object[] states = (Object[]) values[1];
-        Map<String, ValueExpression> bindings = new HashMap<>(Util.calculateMapCapacity(names.length));
+        Map<String, ValueExpression> bindings = new HashMap<>(names.length, 1.0f);
         for (int i = 0; i < names.length; i++) {
             bindings.put(names[i], (ValueExpression) UIComponentBase.restoreAttachedState(context, states[i]));
         }
@@ -588,7 +585,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
     }
 
     // Save the List<String>, either as a String (single element) or as
-    // a String[] (multiple elements.
+    // a String[] (multiple elements).
     private static Object saveList(List<String> list) {
         if (list == null || list.isEmpty()) {
             return null;
@@ -605,7 +602,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
 
     // Restore the list from a String (single element) or a String[]
     // (multiple elements)
-    private static List<String> restoreList(String propertyName, Object state) {
+    private static List<String> restoreList(Object state) {
         if (state == null) {
             return null;
         }
@@ -613,7 +610,7 @@ public class AjaxBehavior extends ClientBehaviorBase {
         List<String> list = null;
 
         if (state instanceof String) {
-            list = toSingletonList(propertyName, (String) state);
+            list = toSingletonList((String) state);
         } else if (state instanceof String[]) {
             list = List.of((String[]) state);
         }
@@ -679,45 +676,27 @@ public class AjaxBehavior extends ClientBehaviorBase {
 
         if (propertyName != null) {
             switch (propertyName) {
-            case ONEVENT:
-                onevent = (String) value;
-                break;
-            case DELAY:
-                delay = (String) value;
-                break;
-            case ONERROR:
-                onerror = (String) value;
-                break;
-            case IMMEDIATE:
-                immediate = (Boolean) value;
-                break;
-            case RESET_VALUES:
-                resetValues = (Boolean) value;
-                break;
-            case DISABLED:
-                disabled = (Boolean) value;
-                break;
-            case EXECUTE:
-                execute = toList(propertyName, expression, value);
-                break;
-            case RENDER:
-                render = toList(propertyName, expression, value);
-                break;
+                case ONEVENT -> onevent = (String) value;
+                case DELAY -> delay = (String) value;
+                case ONERROR -> onerror = (String) value;
+                case IMMEDIATE -> immediate = (Boolean) value;
+                case RESET_VALUES -> resetValues = (Boolean) value;
+                case DISABLED -> disabled = (Boolean) value;
+                case EXECUTE -> execute = toList(propertyName, expression, value);
+                case RENDER -> render = toList(propertyName, expression, value);
             }
         }
     }
 
     // Converts the specified object to a List<String>
     private static List<String> toList(String propertyName, ValueExpression expression, Object value) {
-        if (value instanceof String) {
-
-            String strValue = (String) value;
+        if (value instanceof String strValue) {
 
             // If the value contains no spaces, we can optimize.
             // This is worthwhile, since the execute/render lists
             // will often only contain a single value.
             if (strValue.indexOf(' ') == -1) {
-                return toSingletonList(propertyName, strValue);
+                return toSingletonList(strValue);
             }
 
             // We're stuck splitting up the string.
@@ -739,8 +718,8 @@ public class AjaxBehavior extends ClientBehaviorBase {
     }
 
     // Converts a String with no spaces to a singleton list
-    private static List<String> toSingletonList(String propertyName, String value) {
-        if (null == value || value.isEmpty()) {
+    private static List<String> toSingletonList(String value) {
+        if (value == null || value.isEmpty()) {
             return null;
         }
 
@@ -779,12 +758,10 @@ public class AjaxBehavior extends ClientBehaviorBase {
     private static final String DELAY = "delay";
 
     // Id keyword constants
-    private static final String ALL = "@all";
-    private static final String FORM = "@form";
-    private static final String THIS = "@this";
-    private static final String NONE = "@none";
-
-    public static final Set<String> KEYWORDS = Set.of(ALL, FORM, THIS, NONE);
+    public static final String ALL = "@all";
+    public static final String FORM = "@form";
+    public static final String THIS = "@this";
+    public static final String NONE = "@none";
 
     // Shared execute/render collections
     private static final List<String> ALL_LIST = List.of(ALL);
