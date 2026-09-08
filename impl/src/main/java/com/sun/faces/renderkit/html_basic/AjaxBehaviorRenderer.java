@@ -17,12 +17,15 @@
 package com.sun.faces.renderkit.html_basic;
 
 import static jakarta.faces.component.UINamingContainer.getSeparatorChar;
+import static jakarta.faces.component.behavior.AjaxBehavior.ALL;
+import static jakarta.faces.component.behavior.AjaxBehavior.FORM;
+import static jakarta.faces.component.behavior.AjaxBehavior.NONE;
+import static jakarta.faces.component.behavior.AjaxBehavior.THIS;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,15 +64,15 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
 
     @Override
     public String getScript(ClientBehaviorContext behaviorContext, ClientBehavior behavior) {
-        if (!(behavior instanceof AjaxBehavior)) {
+        if (!(behavior instanceof AjaxBehavior ajaxBehavior)) {
             // TODO: use MessageUtils for this error message?
             throw new IllegalArgumentException("Instance of jakarta.faces.component.behavior.AjaxBehavior required: " + behavior);
         }
 
-        if (((AjaxBehavior) behavior).isDisabled()) {
+        if (ajaxBehavior.isDisabled()) {
             return null;
         }
-        return buildAjaxCommand(behaviorContext, (AjaxBehavior) behavior);
+        return buildAjaxCommand(behaviorContext, ajaxBehavior);
     }
 
     @Override
@@ -78,12 +81,10 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
             throw new NullPointerException();
         }
 
-        if (!(behavior instanceof AjaxBehavior)) {
+        if (!(behavior instanceof AjaxBehavior ajaxBehavior)) {
             // TODO: use MessageUtils for this error message?
             throw new IllegalArgumentException("Instance of jakarta.faces.component.behavior.AjaxBehavior required: " + behavior);
         }
-
-        AjaxBehavior ajaxBehavior = (AjaxBehavior) behavior;
 
         // First things first - if AjaxBehavior is disabled, we are done.
         if (ajaxBehavior.isDisabled()) {
@@ -295,10 +296,11 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
         UIComponent composite = UIComponent.getCompositeComponentParent(component);
         char separatorChar = getSeparatorChar(facesContext);
 
-        if (composite != null && (ajaxBehavior instanceof RetargetedAjaxBehavior) && (ids.isEmpty() || ids.contains("@this"))) {
-            List<String> targetClientIds = ((RetargetedAjaxBehavior) ajaxBehavior).getTargetClientIds();
-            ids.remove("@this");
-            targetClientIds.stream().map(id -> "@this" + separatorChar + id).forEach(ids::add);
+        if (composite != null && (ajaxBehavior instanceof RetargetedAjaxBehavior retargetedAjaxBehavior) && (ids.isEmpty() || ids.contains(THIS))) {
+            ids.remove(THIS);
+            for (String id : retargetedAjaxBehavior.getTargetClientIds()) {
+                ids.add(THIS + separatorChar + id);
+            }
         }
 
         if (ids.isEmpty()) {
@@ -325,14 +327,14 @@ public class AjaxBehaviorRenderer extends ClientBehaviorRenderer {
                 first = false;
             }
 
-            boolean clientResolveableExpression = AjaxBehavior.KEYWORDS.contains(expression);
+            boolean clientResolvableExpression = expression.equals(NONE) || expression.equals(THIS) || expression.equals(FORM) || expression.equals(ALL);
 
-            if (composite != null && (ajaxBehavior instanceof RetargetedAjaxBehavior) && (expression.equals("@this") || expression.startsWith("@this" + separatorChar))) {
-                expression = separatorChar + composite.getClientId(facesContext) + expression.substring("@this".length());
-                clientResolveableExpression = false;
+            if (composite != null && (ajaxBehavior instanceof RetargetedAjaxBehavior) && (expression.equals(THIS) || expression.startsWith(THIS + separatorChar))) {
+                expression = separatorChar + composite.getClientId(facesContext) + expression.substring(THIS.length());
+                clientResolvableExpression = false;
             }
 
-            if (clientResolveableExpression) {
+            if (clientResolvableExpression) {
                 builder.append(expression);
             } else {
                 if (searchExpressionContext == null) {
