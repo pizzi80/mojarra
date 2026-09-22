@@ -65,7 +65,7 @@ final class NamespaceManager {
         return null;
     }
 
-    public void popNamespace(final String prefix) {
+    public void popNamespace(String prefix) {
         namespaces.removeIf(ns -> ns.prefix.equals(prefix));
     }
 
