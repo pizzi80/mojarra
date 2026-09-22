@@ -32,7 +32,6 @@ import com.sun.faces.application.applicationimpl.events.EventInfo;
 import com.sun.faces.application.applicationimpl.events.ReentrantListenerInvocationGuard;
 import com.sun.faces.application.applicationimpl.events.SystemEventHelper;
 import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.Util;
 
 import jakarta.faces.application.Application;
 import jakarta.faces.application.ProjectStage;
@@ -298,7 +297,7 @@ public class Events {
 
         SystemEventListener[] listenersCopy = listeners.toArray(SystemEventListener[]::new);
 
-        final Set<SystemEventListener> processedListeners = new HashSet<>(Util.calculateMapCapacity(listeners.size()));
+        final Set<SystemEventListener> processedListeners = new HashSet<>(listeners.size(), 1.0f);
         boolean processedSomeEvents = false;
         boolean originalDiffersFromCopy = false;
 
