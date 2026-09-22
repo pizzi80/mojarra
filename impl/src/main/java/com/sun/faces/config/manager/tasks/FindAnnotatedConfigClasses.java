@@ -29,6 +29,7 @@ import com.sun.faces.config.InitFacesContext;
 import com.sun.faces.config.manager.spi.FilterClassesFromFacesInitializerAnnotationProvider;
 import com.sun.faces.spi.AnnotationProvider;
 import com.sun.faces.spi.AnnotationProviderFactory;
+import com.sun.faces.spi.AnnotationScanner;
 import com.sun.faces.util.Timer;
 
 import jakarta.servlet.ServletContext;
@@ -49,9 +50,9 @@ public class FindAnnotatedConfigClasses implements Callable<Map<Class<? extends 
     @SuppressWarnings("unchecked")
     public FindAnnotatedConfigClasses(ServletContext servletContext, InitFacesContext facesContext, ProvideMetadataToAnnotationScanTask metadataGetter) {
         this.facesContext = facesContext;
-        provider = AnnotationProviderFactory.createAnnotationProvider(servletContext);
+        this.provider = AnnotationProviderFactory.createAnnotationProvider(servletContext);
         this.metadataGetter = metadataGetter;
-        annotatedSet = (Set<Class<?>>) servletContext.getAttribute(ANNOTATED_CLASSES);
+        this.annotatedSet = (Set<Class<?>>) servletContext.getAttribute(ANNOTATED_CLASSES);
     }
 
     // ----------------------------------------------- Methods from Callable
@@ -59,7 +60,7 @@ public class FindAnnotatedConfigClasses implements Callable<Map<Class<? extends 
     @Override
     public Map<Class<? extends Annotation>, Set<Class<?>>> call() throws Exception {
 
-        Timer t = Timer.getInstance();
+        final Timer t = Timer.getInstance();
         if (t != null) {
             t.startTiming();
         }
@@ -68,7 +69,7 @@ public class FindAnnotatedConfigClasses implements Callable<Map<Class<? extends 
         facesContext.addInitContextEntryForCurrentThread();
 
         final Set<URI> scanUris;
-        final com.sun.faces.spi.AnnotationScanner annotationScanner = metadataGetter.getAnnotationScanner();
+        final AnnotationScanner annotationScanner = metadataGetter.getAnnotationScanner();
 
         // This is where we discover what kind of InjectionProvider we have.
         if (provider instanceof FilterClassesFromFacesInitializerAnnotationProvider && annotationScanner != null) {
@@ -87,7 +88,7 @@ public class FindAnnotatedConfigClasses implements Callable<Map<Class<? extends 
         // Note that DelegatingAnnotationProvider itself ignores the scanUris and directly gets the classes from the
         // ServletContext where they were stored by the ServletContainerInitializer
 
-        Map<Class<? extends Annotation>, Set<Class<?>>> annotatedClasses = provider.getAnnotatedClasses(scanUris);
+        final Map<Class<? extends Annotation>, Set<Class<?>>> annotatedClasses = provider.getAnnotatedClasses(scanUris);
 
         if (t != null) {
             t.stopTiming();
