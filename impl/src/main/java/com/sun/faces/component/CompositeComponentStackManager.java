@@ -18,7 +18,6 @@ package com.sun.faces.component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import jakarta.faces.application.Resource;
 import jakarta.faces.component.UIComponent;
@@ -226,15 +225,10 @@ public class CompositeComponentStackManager {
     }
 
     private StackHandler getStackHandler(StackType type) {
-        Objects.requireNonNull(type);
-        switch (type) {
-            case TreeCreation:
-                return treeCreation;
-            case Evaluation:
-                return runtime;
-            default:
-                throw new IllegalArgumentException("Unsupported stack type: " + type);
-        }
+        return switch (type) {
+            case TreeCreation -> treeCreation;
+            case Evaluation -> runtime;
+        };
     }
 
     // ------------------------------------------------------ Private Interfaces
