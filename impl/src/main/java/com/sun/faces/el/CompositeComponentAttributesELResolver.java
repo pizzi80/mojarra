@@ -21,15 +21,6 @@ import static com.sun.faces.component.CompositeComponentStackManager.StackType.E
 import static com.sun.faces.component.CompositeComponentStackManager.StackType.TreeCreation;
 import static com.sun.faces.util.Util.notNull;
 
-import java.beans.BeanInfo;
-import java.beans.FeatureDescriptor;
-import java.beans.PropertyDescriptor;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
 import com.sun.faces.RIConstants;
 import com.sun.faces.component.CompositeComponentStackManager;
 import jakarta.el.ELContext;
@@ -228,10 +219,11 @@ public class CompositeComponentAttributesELResolver extends ELResolver {
      * @param ctx the {@link FacesContext} for the current request
      * @return an <code>ExpressionEvalMap</code> for the specified component
      */
+    @SuppressWarnings("unchecked")
     private Map<String, Object> getEvalMapFor(UIComponent c, FacesContext ctx) {
 
         Map<Object, Object> ctxAttributes = ctx.getAttributes();
-        @SuppressWarnings("unchecked")
+
         Map<UIComponent, Map<String, Object>> topMap = (Map<UIComponent, Map<String, Object>>) ctxAttributes.get(EVAL_MAP_KEY);
         Map<String, Object> evalMap;
         if (topMap == null) {
