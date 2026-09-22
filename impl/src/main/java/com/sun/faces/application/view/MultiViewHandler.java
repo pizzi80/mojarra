@@ -335,7 +335,7 @@ public class MultiViewHandler extends ViewHandler {
 
     @Override
     public String getBookmarkableURL(FacesContext context, String viewId, Map<String, List<String>> parameters, boolean includeViewParams) {
-        final Map<String, List<String>> params;
+        Map<String, List<String>> params;
         if (includeViewParams) {
             params = getFullParameterList(context, viewId, parameters);
         } else {
@@ -369,7 +369,7 @@ public class MultiViewHandler extends ViewHandler {
         final Charset responseEncoding = Util.getResponseEncodingCharset(context);
 
         if (parameters != null) {
-            Map<String, List<String>> decodedParameters = new HashMap<>(Util.calculateMapCapacity(parameters.size()));
+            Map<String, List<String>> decodedParameters = new HashMap<>(parameters.size(), 1.0f);
             for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
                 String string = entry.getKey();
                 List<String> values = entry.getValue();
@@ -383,7 +383,7 @@ public class MultiViewHandler extends ViewHandler {
             parameters = decodedParameters;
         }
 
-        final Map<String, List<String>> params;
+        Map<String, List<String>> params;
         if (includeViewParams) {
             params = getFullParameterList(context, viewId, parameters);
         } else {
@@ -531,9 +531,10 @@ public class MultiViewHandler extends ViewHandler {
     protected Map<String, List<String>> getFullParameterList(FacesContext ctx, String viewId, Map<String, List<String>> existingParameters) {
         final Map<String, List<String>> copy;
         if (existingParameters == null || existingParameters.isEmpty()) {
-            copy = new LinkedHashMap<>(4);
+            copy = new LinkedHashMap<>(4, 1.0f);
         } else {
-            copy = new LinkedHashMap<>(existingParameters);
+            copy = new LinkedHashMap<>(existingParameters.size(), 1.0f);
+            copy.putAll(existingParameters);
         }
         addViewParameters(ctx, viewId, copy);
 
@@ -589,7 +590,7 @@ public class MultiViewHandler extends ViewHandler {
             }
 
             if (value != null) {
-                List<String> existing = existingParameters.computeIfAbsent(viewParam.getName(), k -> new ArrayList<>(4));
+                List<String> existing = existingParameters.computeIfAbsent(viewParam.getName(), $ -> new ArrayList<>(4));
                 existing.add(value);
             }
         }
