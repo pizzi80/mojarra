@@ -24,6 +24,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jakarta.faces.FacesException;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.component.UIViewRoot;
 import jakarta.faces.context.ExternalContext;
@@ -51,12 +55,13 @@ import jakarta.faces.event.PreClearFlashEvent;
 import jakarta.faces.event.PreRemoveFlashValueEvent;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSessionEvent;
 
 import com.sun.faces.RIConstants;
 import com.sun.faces.config.WebConfiguration;
 import com.sun.faces.config.WebConfiguration.WebContextInitParameter;
 import com.sun.faces.facelets.tag.ui.UIDebug;
-import com.sun.faces.util.ByteArrayGuardAESCTR;
+import com.sun.faces.util.ByteArrayGuardAESGCM;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.Util;
 
@@ -105,15 +110,29 @@ public class ELFlash extends Flash {
 
     /**
      * <p>
-     * Keys in this map are the string version of sequence numbers obtained via calls to {@link #getNewSequenceNumber}.
-     * Values are the actual Map instances that back the actual Map methods on this class. All writes to and reads from this
-     * map are done by the {@link PreviousNextFlashInfoManager} inner class.
+     * Keys in this map identify the owner of the flashes below it: a token derived from the session id, or
+     * {@link #NO_SESSION_OWNER} for requests without a session. Each value maps the string version of sequence numbers
+     * obtained via calls to {@link #getNewSequenceNumber} to the actual Map instances that back the actual Map methods
+     * on this class. All writes to and reads from an owner's map are done by the {@link PreviousNextFlashInfoManager}
+     * inner class, which only ever sees the map of the owner of the current request.
      * </p>
      *
      */
-    private Map<String, Map<String, Object>> flashInnerMap;
+    private final Map<String, Map<String, Map<String, Object>>> flashInnerMap = new ConcurrentHashMap<>();
 
-    private final AtomicLong sequenceNumber = new AtomicLong(0);
+    private final AtomicLong sequenceNumber = new AtomicLong(newSequenceNumberSeed());
+
+    static final String NO_SESSION_OWNER = "-";
+
+    private static final String OWNER_TOKEN_ALGORITHM = "SHA-256";
+
+    private static final int OWNER_TOKEN_LENGTH = 16;
+
+    private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
+
+    private static final int SEQUENCE_NUMBER_SEED_SHIFT = 2;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private int numberOfConcurrentFlashUsers = Integer.parseInt(WebContextInitParameter.NumberOfConcurrentFlashUsers.getDefaultValue());
 
@@ -121,7 +140,7 @@ public class ELFlash extends Flash {
 
     private final boolean distributable;
 
-    private final ByteArrayGuardAESCTR guard;
+    private final ByteArrayGuardAESGCM guard;
 
     /**
      * <p>
@@ -203,7 +222,6 @@ public class ELFlash extends Flash {
 
     /** Creates a new instance of ELFlash */
     ELFlash(ExternalContext extContext) {
-        flashInnerMap = new ConcurrentHashMap<>();
         WebConfiguration config = WebConfiguration.getInstance(extContext);
         String value;
         try {
@@ -228,7 +246,7 @@ public class ELFlash extends Flash {
 
         distributable = config.isOptionEnabled(EnableDistributable);
 
-        guard = new ByteArrayGuardAESCTR();
+        guard = new ByteArrayGuardAESGCM();
 
     }
 
@@ -273,7 +291,7 @@ public class ELFlash extends Flash {
          * If we are in a clustered environment and a session is active, store a helper to ensure our innerMap gets successfully
          * replicated.
          */
-        if (appMap.get(EnableDistributable.getQualifiedName()) != null) {
+        if (flash != null && appMap.get(EnableDistributable.getQualifiedName()) != null) {
             synchronized (extContext.getContext()) {
                 if (extContext.getSession(false) != null) {
                     SessionHelper sessionHelper = SessionHelper.getInstance(extContext);
@@ -638,12 +656,130 @@ public class ELFlash extends Flash {
 
     }
 
-    void setFlashInnerMap(Map<String, Map<String, Object>> flashInnerMap) {
-        this.flashInnerMap = flashInnerMap;
+    Map<String, Map<String, Map<String, Object>>> getFlashInnerMap() {
+        return flashInnerMap;
     }
 
-    Map<String, Map<String, Object>> getFlashInnerMap() {
-        return flashInnerMap;
+    /**
+     * <p>
+     * The flashes of the owner of the current request. Keying them by owner keeps one browser's sequence numbers from
+     * ever reaching another's flash, and gives the container a single entry to drop when the session goes away.
+     * </p>
+     */
+    private Map<String, Map<String, Object>> getOwnerFlashInnerMap() {
+        return getOwnerFlashInnerMap(FacesContext.getCurrentInstance().getExternalContext());
+    }
+
+    /**
+     * <p>
+     * The flashes of the owner of the current request, created when this node does not have any of them yet.
+     * </p>
+     */
+    Map<String, Map<String, Object>> getOwnerFlashInnerMap(ExternalContext extContext) {
+        return flashInnerMap.computeIfAbsent(getOwner(extContext), owner -> new ConcurrentHashMap<>());
+    }
+
+    /**
+     * <p>
+     * Takes back the flashes which a session carried to this node, adding them to whatever the owner of the current
+     * request already has here, and leaving the flashes of every other owner alone.
+     * </p>
+     */
+    void restoreOwnerFlashInnerMap(ExternalContext extContext, Map<String, Map<String, Object>> ownerFlashInnerMap) {
+        flashInnerMap.compute(getOwner(extContext), (owner, existingFlashInnerMap) -> {
+            Map<String, Map<String, Object>> flashes = existingFlashInnerMap != null ? existingFlashInnerMap : new ConcurrentHashMap<>();
+            flashes.putAll(ownerFlashInnerMap);
+            return flashes;
+        });
+    }
+
+    /**
+     * <p>
+     * The flash which a sequence number in the incoming cookie identifies, taken over from the sessionless flashes when
+     * that is still where it lives. A view writing a flash on a first visit does so before anything has created a
+     * session, so the request which reads it back is the first one to have an owner to file it under. Only the browser
+     * holding the cookie knows the sequence number, and the takeover leaves it under the owner, so the flash can be
+     * claimed once.
+     * </p>
+     */
+    private Map<String, Object> claimFlash(Map<String, Map<String, Object>> ownerFlashInnerMap, String sequenceNumber) {
+        Map<String, Object> flashMap = ownerFlashInnerMap.get(sequenceNumber);
+        Map<String, Map<String, Object>> sessionlessFlashInnerMap = flashInnerMap.get(NO_SESSION_OWNER);
+
+        if (flashMap == null && sessionlessFlashInnerMap != null) {
+            flashMap = sessionlessFlashInnerMap.remove(sequenceNumber);
+
+            if (flashMap != null) {
+                ownerFlashInnerMap.put(sequenceNumber, flashMap);
+            }
+        }
+
+        return flashMap;
+    }
+
+    static long newSequenceNumberSeed() {
+        return RANDOM.nextLong() >>> SEQUENCE_NUMBER_SEED_SHIFT;
+    }
+
+    private static String getOwner(ExternalContext extContext) {
+        String sessionId = extContext.getSessionId(false);
+        return sessionId == null ? NO_SESSION_OWNER : toOwnerToken(sessionId);
+    }
+
+    static String toOwnerToken(String sessionId) {
+        try {
+            byte[] digest = MessageDigest.getInstance(OWNER_TOKEN_ALGORITHM).digest(sessionId.getBytes(UTF_8));
+            StringBuilder token = new StringBuilder(OWNER_TOKEN_LENGTH);
+
+            for (int i = 0; i < OWNER_TOKEN_LENGTH / 2; i++) {
+                token.append(HEX_DIGITS[digest[i] >> 4 & 0xf]).append(HEX_DIGITS[digest[i] & 0xf]);
+            }
+
+            return token.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new FacesException(e);
+        }
+    }
+
+    /**
+     * <p>
+     * Drops the flashes of a session which has gone away. Their sequence numbers can never be presented again, so
+     * nothing else has to decide whether they have aged out.
+     * </p>
+     *
+     * @param event the involved session event
+     */
+    public static void sessionDestroyed(HttpSessionEvent event) {
+        ELFlash flash = getFlash(event);
+
+        if (flash != null) {
+            flash.flashInnerMap.remove(toOwnerToken(event.getSession().getId()));
+        }
+    }
+
+    /**
+     * <p>
+     * Follows the flashes of a session to the owner derived from its new id, so that a flash written before the
+     * container rotated the id is still there to be read after it.
+     * </p>
+     *
+     * @param event the involved session event
+     * @param oldSessionId the id which the session had before
+     */
+    public static void sessionIdChanged(HttpSessionEvent event, String oldSessionId) {
+        ELFlash flash = getFlash(event);
+
+        if (flash != null) {
+            Map<String, Map<String, Object>> flashes = flash.flashInnerMap.remove(toOwnerToken(oldSessionId));
+
+            if (flashes != null) {
+                flash.flashInnerMap.put(toOwnerToken(event.getSession().getId()), flashes);
+            }
+        }
+    }
+
+    private static ELFlash getFlash(HttpSessionEvent event) {
+        return (ELFlash) event.getSession().getServletContext().getAttribute(FLASH_ATTRIBUTE_NAME);
     }
 
     @Override
@@ -693,31 +829,30 @@ public class ELFlash extends Flash {
         return result;
     }
 
+    /**
+     * <p>
+     * Flashes of a session are dropped when that session goes away, so only the flashes of sessionless requests have
+     * to age out on their own. Their sequence numbers all come from this node's counter, which is what makes the
+     * distance between a key and the current counter a measure of age.
+     * </p>
+     */
     private void reapFlashes() {
+        Map<String, Map<String, Object>> sessionlessFlashes = flashInnerMap.get(NO_SESSION_OWNER);
 
-        if (flashInnerMap.size() < numberOfConcurrentFlashUsers) {
+        if (sessionlessFlashes == null || sessionlessFlashes.size() < numberOfConcurentFlashUsers) {
             return;
         }
 
-        Set<String> keys = flashInnerMap.keySet();
+        Set<String> keys = sessionlessFlashes.keySet();
         long sequenceNumberToTest, currentSequenceNumber = sequenceNumber.get();
         Map<String, Object> curFlash;
         for (String cur : keys) {
             sequenceNumberToTest = Long.parseLong(cur);
             if (numberOfConcurrentFlashUsers < currentSequenceNumber - sequenceNumberToTest) {
-                if (null != (curFlash = flashInnerMap.get(cur))) {
+                if (null != (curFlash = sessionlessFlashes.get(cur))) {
                     curFlash.clear();
                 }
-                flashInnerMap.remove(cur);
-            }
-        }
-        if (distributable && FacesContext.getCurrentInstance().getExternalContext().getSession(false) != null) {
-            ExternalContext extContext = FacesContext.getCurrentInstance().getExternalContext();
-            SessionHelper sessionHelper = SessionHelper.getInstance(extContext);
-            if (null != sessionHelper) {
-                sessionHelper.remove(extContext);
-                sessionHelper = new SessionHelper();
-                sessionHelper.update(extContext, this);
+                sessionlessFlashes.remove(cur);
             }
         }
     }
@@ -1052,7 +1187,7 @@ public class ELFlash extends Flash {
         PreviousNextFlashInfoManager result = (PreviousNextFlashInfoManager) contextMap.get(CONSTANTS.RequestFlashManager);
 
         if (null == result && create) {
-            result = new PreviousNextFlashInfoManager(guard, flashInnerMap);
+            result = new PreviousNextFlashInfoManager(guard, getOwnerFlashInnerMap());
             result.initializeBaseCase(this);
             contextMap.put(CONSTANTS.RequestFlashManager, result);
 
@@ -1070,7 +1205,7 @@ public class ELFlash extends Flash {
         PreviousNextFlashInfoManager result = (PreviousNextFlashInfoManager) contextMap.get(CONSTANTS.RequestFlashManager);
 
         if (null == result) {
-            result = new PreviousNextFlashInfoManager(guard, flashInnerMap);
+            result = new PreviousNextFlashInfoManager(guard, getOwnerFlashInnerMap(context.getExternalContext()));
             try {
                 result.decode(context, this, cookie);
                 contextMap.put(CONSTANTS.RequestFlashManager, result);
@@ -1123,13 +1258,13 @@ public class ELFlash extends Flash {
 
         private Map<String, Map<String, Object>> innerMap;
 
-        private final ByteArrayGuardAESCTR guard;
+        private final ByteArrayGuardAESGCM guard;
 
-        private PreviousNextFlashInfoManager(ByteArrayGuardAESCTR guard) {
+        private PreviousNextFlashInfoManager(ByteArrayGuardAESGCM guard) {
             this.guard = guard;
         }
 
-        PreviousNextFlashInfoManager(ByteArrayGuardAESCTR guard, Map<String, Map<String, Object>> innerMap) {
+        PreviousNextFlashInfoManager(ByteArrayGuardAESGCM guard, Map<String, Map<String, Object>> innerMap) {
             this.guard = guard;
             this.innerMap = innerMap;
         }
@@ -1282,7 +1417,7 @@ public class ELFlash extends Flash {
                 Map<String, Object> flashMap;
                 // If the browser sent a cookie that is valid, but
                 // doesn't correspond to a map in memory...
-                if (null == (flashMap = innerMap.get(previousRequestFlashInfo.getSequenceNumberAsString())) ) {
+                if (null == (flashMap = flash.claimFlash(innerMap, previousRequestFlashInfo.getSequenceNumber() + ""))) {
                     // create a new map
                     previousRequestFlashInfo = new FlashInfo();
                     previousRequestFlashInfo.setSequenceNumber(flash.getNewSequenceNumber());
@@ -1293,7 +1428,7 @@ public class ELFlash extends Flash {
                 }
                 previousRequestFlashInfo.setFlashMap(flashMap);
                 if (null != nextRequestFlashInfo) {
-                    if (null == (flashMap = innerMap.get(nextRequestFlashInfo.getSequenceNumberAsString()))) {
+                    if (null == (flashMap = flash.claimFlash(innerMap, nextRequestFlashInfo.getSequenceNumberAsString()))) {
                         // create a new map
                         nextRequestFlashInfo = new FlashInfo();
                         nextRequestFlashInfo.setSequenceNumber(flash.getNewSequenceNumber());

@@ -16,6 +16,7 @@
 
 package jakarta.faces.component;
 
+import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Iterator;
@@ -285,6 +286,16 @@ public class UIInput extends UIOutput implements EditableValueHolder {
     }
 
     /**
+     * Store a saved property, skipping the write when it would only record the property's default on a component which
+     * has not got an entry for it yet: an input left at its defaults then contributes nothing to the saved state.
+     */
+    private void putStateOrSkipDefault(Serializable key, boolean value, boolean defaultValue) {
+        if (value != defaultValue || getStateHelper().get(key) != null) {
+            getStateHelper().put(key, value);
+        }
+    }
+
+    /**
      * <p>
      * Set the submittedValue value of this {@link UIInput} component. This method should only be used by the
      * <code>decode()</code> and <code>validate()</code> method of this component, or its corresponding {@link Renderer}.
@@ -352,8 +363,8 @@ public class UIInput extends UIOutput implements EditableValueHolder {
     public void resetValue() {
         super.resetValue();
         setSubmittedValue(null);
-        setLocalValueSet(false);
-        setValid(true);
+        getStateHelper().remove(PropertyKeys.localValueSet);
+        getStateHelper().remove(PropertyKeys.valid);
     }
 
     /**
@@ -362,7 +373,7 @@ public class UIInput extends UIOutput implements EditableValueHolder {
      */
     @Override
     public boolean isLocalValueSet() {
-        return (Boolean) getTransientOrDefault(PropertyKeys.localValueSet, Boolean.FALSE);
+        return (Boolean) getStateHelper().eval(PropertyKeys.localValueSet, false);
     }
 
     /**
@@ -370,8 +381,7 @@ public class UIInput extends UIOutput implements EditableValueHolder {
      */
     @Override
     public void setLocalValueSet(boolean localValueSet) {
-        // false is the default, mapped to null so it removes the entry.
-        putTransientOrRemove(PropertyKeys.localValueSet, localValueSet ? Boolean.TRUE : null);
+        putStateOrSkipDefault(PropertyKeys.localValueSet, localValueSet, false);
     }
 
     /**
@@ -483,14 +493,13 @@ public class UIInput extends UIOutput implements EditableValueHolder {
     @Override
     public boolean isValid() {
 
-        return (Boolean) getTransientOrDefault(PropertyKeys.valid, Boolean.TRUE);
+        return (Boolean) getStateHelper().eval(PropertyKeys.valid, true);
     }
 
     @Override
     public void setValid(boolean valid) {
 
-        // true is the default, mapped to null so it removes the entry.
-        putTransientOrRemove(PropertyKeys.valid, valid ? null : Boolean.FALSE);
+        putStateOrSkipDefault(PropertyKeys.valid, valid, true);
     }
 
     /**
@@ -742,9 +751,9 @@ public class UIInput extends UIOutput implements EditableValueHolder {
             if (caught != null) {
                 assert message != null;
                 // PENDING(edburns): verify this is in the spec.
-                // @SuppressWarnings("ThrowableInstanceNeverThrown")
-                UpdateModelException exception = new UpdateModelException(message, caught);
-                ExceptionQueuedEventContext eventContext = new ExceptionQueuedEventContext(context, exception, this, PhaseId.UPDATE_MODEL_VALUES);
+                @SuppressWarnings({ "ThrowableInstanceNeverThrown" })
+                UpdateModelException toQueue = new UpdateModelException(message, caught);
+                ExceptionQueuedEventContext eventContext = new ExceptionQueuedEventContext(context, toQueue, this, PhaseId.UPDATE_MODEL_VALUES);
                 context.getApplication().publishEvent(context, ExceptionQueuedEvent.class, eventContext);
 
             }

@@ -35,17 +35,15 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import jakarta.el.ELException;
 import jakarta.faces.FacesException;
@@ -82,6 +80,10 @@ public class DefaultFaceletFactory {
 
     private static final String ARCHIVE_PROTOCOL = "jar";
     private static final String ARCHIVE_SEPARATOR = "!/";
+    private static final String RESOURCE_LIBRARY_DIR = "/META-INF/resources/";
+    private static final String CONTRACTS_DIR = "/" + WebConfiguration.META_INF_CONTRACTS_DIR + "/";
+    private static final String FLOWS_DIR = "/" + RIConstants.FLOW_IN_JAR_PREFIX + "/";
+    private static final String RELATIVE_PATH_REQUIRED = " must be a relative path within the application";
 
     private Compiler compiler;
 
@@ -99,6 +101,8 @@ public class DefaultFaceletFactory {
 
     Cache<String, IdMapper> idMappers;
 
+    private final AtomicLong fabricatedFaceletCount = new AtomicLong();
+
     // ------------------------------------------------------------ Constructors
 
     public DefaultFaceletFactory() {
@@ -114,11 +118,8 @@ public class DefaultFaceletFactory {
 
         this.compiler = compiler;
         cachePerContract = new ConcurrentHashMap<>();
-        this.resolver = resolver;
         this.manager = ApplicationAssociate.getInstance(externalContext).getResourceManager();
-        baseUrl = resolver.resolveUrl("/");
-        baseUrlAsString = baseUrl.toExternalForm();
-        faceletResourceSuffixes = config.getFaceletResourceSuffixes();
+        initResourceResolution(resolver, config.getFaceletResourceSuffixes());
         this.idMappers = config.isOptionEnabled(UseFaceletsID) ? null : new Cache<>(new IdMapperFactory());
         this.refreshPeriodInMillis = refreshPeriodInSeconds >= 0 ? refreshPeriodInSeconds * 1000 : -1;
         if (log.isLoggable(Level.FINE)) {
@@ -130,6 +131,24 @@ public class DefaultFaceletFactory {
         // that the Generics information is only used at compile time, and all cache
         // implementations will be using instance factories provided by us and returning DefaultFacelet
         this.cache = initCache(cache);
+    }
+
+    /**
+     * Installs everything {@link #resolveURL(URL, String)} needs to resolve a path and to decide whether the result is
+     * a Facelet of this application.
+     *
+     * @param resolver the resolver to look webapp relative paths up with.
+     * @param faceletResourceSuffixes the suffixes a Facelet resource may have.
+     */
+    void initResourceResolution(DefaultResourceResolver resolver, String[] faceletResourceSuffixes) {
+        this.resolver = resolver;
+        this.faceletResourceSuffixes = faceletResourceSuffixes;
+        baseUrl = resolver.resolveUrl("/");
+        baseUrlAsString = baseUrl.toExternalForm();
+
+        if (!baseUrlAsString.endsWith("/")) {
+            baseUrlAsString += "/";
+        }
     }
 
     public DefaultResourceResolver getResourceResolver() {
@@ -168,6 +187,8 @@ public class DefaultFaceletFactory {
      * @throws IOException when an I/O exception occurs
      */
     public URL resolveURL(URL source, String path) throws IOException {
+        requirePlainRelativePath(path);
+
         // PENDING(FCAPUTO): always go to the resolver to make resource library contracts work with relative urls
         if (path.startsWith("/")) {
             URL url = resolver.resolveUrl(path);
@@ -186,63 +207,110 @@ public class DefaultFaceletFactory {
         // A relative src/template must resolve to a Facelet inside this application. Reject absolute
         // URLs (http:, file:, jar:, ...) whose scheme discards the base, "../" traversal that escapes
         // the deployment, and any non-Facelet resource.
-        requireRelativeReference(path);
-
-        URL url;
-        try {
-            url = new URL(source, path);
-        } catch (MalformedURLException malformed) {
-            throw new FacesFileNotFoundException(path + " Invalid path");
-        }
+        URL url = new URL(source, path);
         requireSameOrigin(source, url, path);
         requireWithinApplicationRoot(source, url, path);
         requireFaceletResource(url, path);
         return url;
     }
 
-    private void requireSameOrigin(URL source, URL url, String path) throws FacesFileNotFoundException {
-        if (!url.getProtocol().equals(source.getProtocol()) || !Objects.equals(getOrigin(url), getOrigin(source))) {
-            throw new FacesFileNotFoundException(path + " must be a relative path within the application");
+    /**
+     * Rejects a path that is not plain: one holding a percent sign or a backslash. A path is authored in the facelet,
+     * so it is already decoded and slash delimited; either character is one a downstream decoder or a file system turns
+     * into a separator after {@link URL#URL(URL, String)} kept it literal and the containment check accepted it, which
+     * lets it traverse when the resource is read. A path holding either character is therefore unsupported, even where
+     * the character legitimately appears in a resource name.
+     *
+     * @param path path as declared by the Facelet.
+     * @throws FacesFileNotFoundException if the path holds a percent sign or a backslash.
+     */
+    private static void requirePlainRelativePath(String path) throws FacesFileNotFoundException {
+        if (path.indexOf('%') >= 0 || path.indexOf('\\') >= 0) {
+            throw new FacesFileNotFoundException(path + RELATIVE_PATH_REQUIRED);
         }
     }
 
-    private void requireWithinApplicationRoot(URL source, URL url, String path) throws FacesFileNotFoundException {
-        // Debug
-        // System.out.println(">>> source=" + source + " webappPath(source)=" + getWebappPath(source) + " baseUrlAsString=" + baseUrlAsString + " url=" + url + " webappPath(url)=" + getWebappPath(url));
-        String sourceForm = source.toExternalForm();
-        int bang = sourceForm.indexOf("!/");
-        if (bang != -1) {                                    // jar-hosted → archive is the boundary
-            String archive = sourceForm.substring(0, bang + 2);
-            if (!url.toExternalForm().startsWith(archive)) {
-                throw new FacesFileNotFoundException(path + " is not within the application root");
-            }
-            return;
+    private void requireSameOrigin(URL source, URL url, String path) throws FacesFileNotFoundException {
+        if (!url.getProtocol().equals(source.getProtocol()) || !Objects.equals(getOrigin(url), getOrigin(source))) {
+            throw new FacesFileNotFoundException(path + RELATIVE_PATH_REQUIRED);
         }
-        if (url.getProtocol().equals(baseUrl.getProtocol()) // file-hosted → webapp root, when comparable
-                && !url.toExternalForm().startsWith(baseUrlAsString)) {
+    }
+
+    /**
+     * A container serves its Facelets from a union of resource roots: the webapp itself, any further resource base it
+     * was configured with, and every {@code META-INF/resources} on the classpath. A resolved url is within the
+     * application when it lands in the webapp, or in the resource root of the Facelet declaring the path, so that a
+     * Facelet which a resource library contributes may resolve a relative path within that library whether the library
+     * is deployed as an archive or exploded on disk.
+     *
+     * @param source url of the Facelet declaring the path.
+     * @param url url the path resolved to.
+     * @param path path as declared by that Facelet.
+     * @throws FacesFileNotFoundException if the resolved url lies in neither.
+     */
+    private void requireWithinApplicationRoot(URL source, URL url, String path) throws FacesFileNotFoundException {
+        String urlAsString = url.toExternalForm();
+
+        if (!urlAsString.startsWith(baseUrlAsString) && !urlAsString.startsWith(getResourceRoot(source.toExternalForm()))) {
             throw new FacesFileNotFoundException(path + " is not within the application root");
         }
     }
 
     /**
-     * A relative src/template must be a plain path: no scheme (which URL would let discard the base, or would
-     * make it throw for a scheme with no handler such as data:) and no authority. Validated on the raw string
-     * before any URL is constructed from it, because the contracts check runs a new URL(src, path) of its own
-     * ahead of resolveURL.
+     * Returns the resource root the given Facelet comes out of: the resource library directory it lives under, else the
+     * contract or flow directory it lives under, else its own directory. The root must be a pure function of the url.
+     * Anything request scoped, such as the locale or the active resource library contracts, would let the request order
+     * decide how far a relative path may reach.
+     * <p>
+     * The markers below are the complete set of directories this implementation serves Facelets out of. A further one
+     * has to be added here, or Facelets under it are bounded by their own directory.
+     *
+     * @param source external form of the Facelet url to return the resource root of.
+     * @return the resource root, as a url prefix ending in a slash.
      */
-    private static void requireRelativeReference(String path) throws FacesFileNotFoundException {
-        if (path.startsWith("/")) {
-            return; // absolute-in-webapp, handled by the resolver / requireFaceletResource
+    private static String getResourceRoot(String source) {
+        int library = source.lastIndexOf(RESOURCE_LIBRARY_DIR);
+
+        if (library >= 0) {
+            return source.substring(0, library + RESOURCE_LIBRARY_DIR.length());
         }
-        URI uri;
-        try {
-            uri = new URI(path);
-        } catch (URISyntaxException e) {
-            throw new FacesFileNotFoundException(path + " Invalid path");
+
+        String contract = getNamedRoot(source, CONTRACTS_DIR);
+
+        if (contract != null) {
+            return contract;
         }
-        if (uri.getScheme() != null || uri.getAuthority() != null) {
-            throw new FacesFileNotFoundException(path + " Invalid path");
+
+        String flow = getNamedRoot(source, FLOWS_DIR);
+
+        if (flow != null) {
+            return flow;
         }
+
+        int directory = source.lastIndexOf('/');
+
+        return directory < 0 ? source + '/' : source.substring(0, directory + 1);
+    }
+
+    /**
+     * Returns the root of a directory whose contents are one level of named subdirectories, such as the contracts and
+     * the flows directory: the root is the named subdirectory the Facelet lives in, not the directory holding them all,
+     * so that one contract or flow cannot reach into another.
+     *
+     * @param source external form of the Facelet url to return the resource root of.
+     * @param marker the directory holding the named subdirectories, slash delimited on both ends.
+     * @return the resource root, as a url prefix ending in a slash, or null if the Facelet does not live under one.
+     */
+    private static String getNamedRoot(String source, String marker) {
+        int start = source.lastIndexOf(marker);
+
+        if (start < 0) {
+            return null;
+        }
+
+        int end = source.indexOf('/', start + marker.length());
+
+        return end < 0 ? null : source.substring(0, end + 1);
     }
 
     /**
@@ -288,27 +356,14 @@ public class DefaultFaceletFactory {
      * @throws MalformedURLException if the path cannot be resolved against the source url.
      */
     public boolean isContractsResourceAccessDenied(URL src, String relativePath) throws MalformedURLException {
-        // A non-relative reference (scheme or authority) is not a contract resource. Return false so the
-        // include proceeds to resolveURL, which rejects it with the proper message; also avoids new URL
-        // throwing here on a scheme with no handler such as data:.
-        if (!relativePath.startsWith("/") && !isPlainRelative(relativePath)) {
-            return false;
-        }
         String targetPath = relativePath.startsWith("/") ? relativePath : getWebappPath(new URL(src, relativePath));
+
         if (targetPath == null || !manager.isContractsResource(targetPath)) {
             return false;
         }
+
         String sourcePath = getWebappPath(src);
         return sourcePath == null || !manager.isContractsResource(sourcePath);
-    }
-
-    private static boolean isPlainRelative(String path) {
-        try {
-            URI uri = new URI(path);
-            return uri.getScheme() == null && uri.getAuthority() == null;
-        } catch (URISyntaxException e) {
-            return false;
-        }
     }
 
     /**
@@ -418,7 +473,7 @@ public class DefaultFaceletFactory {
             }
 
             URL fabricatedFaceletPage = tempFile.toURI().toURL();
-            Facelet fabricatedFacelet = createFacelet(fabricatedFaceletPage);
+            Facelet fabricatedFacelet = createFabricatedFacelet(fabricatedFaceletPage);
             UIComponent tmp = app.createComponent("jakarta.faces.NamingContainer");
             tmp.setId(context.getViewRoot().createUniqueId());
             fabricatedFacelet.apply(context, tmp);
@@ -531,27 +586,47 @@ public class DefaultFaceletFactory {
      * @throws ELException
      */
     private DefaultFacelet createFacelet(URL url) throws IOException {
-        String escapedBaseURL = Pattern.quote(this.baseUrl.getFile());
-        String alias = '/' + url.getFile().replaceFirst(escapedBaseURL, "");
-        return createFacelet(url, alias);
+        return createFacelet(url, null);
     }
 
-    private DefaultFacelet createFacelet(URL url, String alias) throws IOException {
+    /**
+     * Creates the Facelet for the one-shot page {@link #_createComponent} fabricates. Every such page lives in its own
+     * temporary file, so its alias is a key the application scoped {@link #idMappers} cache would never see again: it
+     * gets its own mapper instead.
+     */
+    private DefaultFacelet createFabricatedFacelet(URL url) throws IOException {
+        return createFacelet(url, createFabricatedIdMapper());
+    }
+
+    /**
+     * Returns the {@link IdMapper} a fabricated Facelet installs for its own build, numbered so that its ids stay
+     * apart from those of every other mapper, or null when this application does not alias ids at all.
+     */
+    IdMapper createFabricatedIdMapper() {
+        return idMappers == null ? null : IdMapper.numbered(fabricatedFaceletCount.incrementAndGet());
+    }
+
+    private DefaultFacelet createFacelet(URL url, IdMapper ownIdMapper) throws IOException {
         if (log.isLoggable(Level.FINE)) {
             log.fine("Creating Facelet for: " + url);
         }
+        String alias = getAlias(url);
         try {
             FaceletHandler h = compiler.compile(url, alias);
-            return new DefaultFacelet(this, compiler.createExpressionFactory(), url, alias, h);
+            return new DefaultFacelet(this, compiler.createExpressionFactory(), url, alias, h, ownIdMapper);
         } catch (FileNotFoundException fnfe) {
             throw new FileNotFoundException("Facelet " + alias + " not found at: " + url.toExternalForm());
         }
     }
 
+    private String getAlias(URL url) {
+        return '/' + url.getFile().replaceFirst(quote(baseUrl.getFile()), "");
+    }
+
     private DefaultFacelet createMetadataFacelet(URL url) throws IOException {
         log.fine(() -> "Creating Metadata Facelet for: " + url);
 
-        String alias = '/' + url.getFile().replaceFirst(quote(baseUrl.getFile()), "");
+        String alias = getAlias(url);
         try {
             return new DefaultFacelet(this,
                 compiler.createExpressionFactory(),
