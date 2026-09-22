@@ -28,8 +28,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.sun.faces.util.Util;
-
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.inject.spi.Bean;
@@ -198,7 +196,7 @@ abstract class CdiProducer<T> implements Bean<T>, PassivationCapable, Serializab
             return Set.of(elem);
         }
         else {
-            Set<T> set = new HashSet<>(Util.calculateMapCapacity(elems.length + 1));
+            Set<T> set = new HashSet<>(elems.length + 1, 1.0f);
             set.add(elem);
             set.addAll(asList(elems));
             return set;
