@@ -42,7 +42,7 @@ public class IdMapper {
     }
 
     private IdMapper(String prefix) {
-        idCache = new Cache<>(new IdGen(prefix));
+        idCache = new Cache<>(new IdGenerator(prefix));
     }
 
     /**
@@ -102,7 +102,7 @@ public class IdMapper {
 
         // -------------------------------------------------------- Constructors
 
-        private IdGen(String prefix) {
+        private IdGenerator(String prefix) {
             this.prefix = prefix;
         }
 

@@ -839,7 +839,7 @@ public class ELFlash extends Flash {
     private void reapFlashes() {
         Map<String, Map<String, Object>> sessionlessFlashes = flashInnerMap.get(NO_SESSION_OWNER);
 
-        if (sessionlessFlashes == null || sessionlessFlashes.size() < numberOfConcurentFlashUsers) {
+        if (sessionlessFlashes == null || sessionlessFlashes.size() < numberOfConcurrentFlashUsers) {
             return;
         }
 
