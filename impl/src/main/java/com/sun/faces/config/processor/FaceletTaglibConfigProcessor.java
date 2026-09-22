@@ -240,12 +240,12 @@ public class FaceletTaglibConfigProcessor extends AbstractConfigProcessor {
         ApplicationAssociate associate = ApplicationAssociate.getInstance(facesContext.getExternalContext());
         Compiler compiler = associate.getCompiler();
 
-        for (DocumentInfo documentInfo : documentInfos) {
+        for (int i = 0, length = documentInfos.length; i < length; i++) {
             if (LOGGER.isLoggable(FINE)) {
-                LOGGER.log(FINE, format("Processing facelet-taglibrary document: ''{0}''", documentInfo.getSourceURI()));
+                LOGGER.log(FINE, format("Processing facelet-taglibrary document: ''{0}''", documentInfos[i].getSourceURI()));
             }
 
-            Document document = documentInfo.getDocument();
+            Document document = documentInfos[i].getDocument();
             String namespace = document.getDocumentElement().getNamespaceURI();
             Element documentElement = document.getDocumentElement();
             NodeList libraryClass = documentElement.getElementsByTagNameNS(namespace, LIBRARY_CLASS);
