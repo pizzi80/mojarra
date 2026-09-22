@@ -46,14 +46,14 @@ import jakarta.faces.FacesWrapper;
  */
 public abstract class PartialViewContextFactory implements FacesWrapper<PartialViewContextFactory> {
 
-    private final PartialViewContextFactory wrapped;
+    private PartialViewContextFactory wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated(forRemoval=true)
+    @Deprecated
     public PartialViewContextFactory() {
-        wrapped = null;
+
     }
 
     /**

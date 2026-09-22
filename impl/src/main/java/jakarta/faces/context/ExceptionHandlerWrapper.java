@@ -38,7 +38,15 @@ import jakarta.faces.event.SystemEvent;
  */
 public abstract class ExceptionHandlerWrapper extends ExceptionHandler implements FacesWrapper<ExceptionHandler> {
 
-    private final ExceptionHandler wrapped;
+    private ExceptionHandler wrapped;
+
+    /**
+     * @deprecated Use the other constructor taking the implementation being wrapped.
+     */
+    @Deprecated
+    public ExceptionHandlerWrapper() {
+
+    }
 
     /**
      * <p class="changed_added_2_3">

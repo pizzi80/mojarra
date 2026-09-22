@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -811,7 +810,7 @@ public abstract class FacesContext {
 
     /**
      * <p class="changed_added_2_0">
-     * Allows control of whether the runtime will publish events when
+     * Allows control of wheter or not the runtime will publish events when
      * {@link Application#publishEvent(FacesContext, Class, Object)} or
      * {@link Application#publishEvent(FacesContext, Class, Class, Object)} is called.
      * </p>

@@ -44,14 +44,14 @@ import jakarta.faces.FacesWrapper;
 
 public abstract class ExternalContextFactory implements FacesWrapper<ExternalContextFactory> {
 
-    private final ExternalContextFactory wrapped;
+    private ExternalContextFactory wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated(forRemoval=true)
+    @Deprecated
     public ExternalContextFactory() {
-        wrapped = null;
+
     }
 
     /**

@@ -50,14 +50,14 @@ import jakarta.faces.lifecycle.ClientWindow;
  */
 public abstract class ExternalContextWrapper extends ExternalContext implements FacesWrapper<ExternalContext> {
 
-    private final ExternalContext wrapped;
+    private ExternalContext wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated(forRemoval=true)
+    @Deprecated
     public ExternalContextWrapper() {
-        wrapped = null;
+
     }
 
     /**

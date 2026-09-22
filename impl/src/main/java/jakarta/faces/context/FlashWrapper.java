@@ -38,14 +38,14 @@ import jakarta.faces.FacesWrapper;
  */
 public abstract class FlashWrapper extends Flash implements FacesWrapper<Flash> {
 
-    private final Flash wrapped;
+    private Flash wrapped;
 
     /**
      * @deprecated Use the other constructor taking the implementation being wrapped.
      */
-    @Deprecated(forRemoval=true)
+    @Deprecated
     public FlashWrapper() {
-        this.wrapped = null;
+
     }
 
     /**
