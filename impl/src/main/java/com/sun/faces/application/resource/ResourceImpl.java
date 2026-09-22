@@ -192,7 +192,7 @@ public class ResourceImpl extends Resource implements Externalizable {
 
         if (isResourceRequest()) {
             if (responseHeaders == null) {
-                responseHeaders = new HashMap<>(Util.calculateMapCapacity(6));
+                responseHeaders = new HashMap<>(6, 1.0f);
             }
 
             if (FacesContext.getCurrentInstance().isProjectStage(Development)) {
