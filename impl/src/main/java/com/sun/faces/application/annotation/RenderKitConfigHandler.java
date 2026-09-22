@@ -39,7 +39,8 @@ import jakarta.faces.render.Renderer;
  */
 public class RenderKitConfigHandler implements ConfigAnnotationHandler {
 
-    private static final Collection<Class<? extends Annotation>> HANDLES = List.of(FacesRenderer.class,FacesBehaviorRenderer.class);
+    private static final Collection<Class<? extends Annotation>> HANDLES = List.of(
+            FacesRenderer.class,FacesBehaviorRenderer.class);
 
     Map<Class<?>, Annotation> annotatedRenderers;
 

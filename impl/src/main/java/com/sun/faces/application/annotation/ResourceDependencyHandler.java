@@ -42,9 +42,10 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
     // ------------------------------------------------------------ Constructors
 
     public ResourceDependencyHandler(ResourceDependency[] dependencies) {
+
         this.dependencies = dependencies;
         Map<Object, Object> attrs = FacesContext.getCurrentInstance().getAttributes();
-        expressionsMap = new HashMap<>(Util.calculateMapCapacity(dependencies.length));
+        expressionsMap = new HashMap<>(dependencies.length, 1.0f);
         for (ResourceDependency dep : dependencies) {
             Expressions exprs = new Expressions();
             exprs.name = dep.name();
@@ -65,6 +66,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
             }
             expressionsMap.put(dep, exprs);
         }
+
     }
 
     // ----------------------------------- Methods from RuntimeAnnotationHandler
@@ -78,6 +80,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
                 markProcessed(ctx, dep);
             }
         }
+
     }
 
     // --------------------------------------------------------- Private Methods
@@ -91,6 +94,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
     private void pushResourceToRoot(FacesContext ctx, UIComponent c) {
 
         ctx.getViewRoot().addComponentResource(ctx, c, (String) c.getAttributes().get("target"));
+
     }
 
     /**
@@ -104,6 +108,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
 
         Set<ResourceDependency> dependencies = RequestStateManager.get(ctx, RequestStateManager.PROCESSED_RESOURCE_DEPENDENCIES);
         return dependencies != null && dependencies.contains(dep);
+
     }
 
     /**
@@ -129,6 +134,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
             attrs.put("target", exprs.getTarget(ctx));
         }
         return c;
+
     }
 
     /**
