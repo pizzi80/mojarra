@@ -238,8 +238,8 @@ public final class ByteArrayGuard {
     }
 
     private SecretKey getSecretKey(FacesContext facesContext) {
-        SecretKey result = sk;
 
+        SecretKey result = sk;
         final Object sessionObj = facesContext.getExternalContext().getSession(false);
 
         // Don't break on portlets.
