@@ -47,7 +47,7 @@
     </licenses>
 
     <modules>
-        <module>cdi</module>
+<!--        <module>cdi</module>-->
         <module>impl</module>
 <!--        <module>action</module>-->
 <!--        <module>rest</module>-->
