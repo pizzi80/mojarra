@@ -23,7 +23,6 @@ import java.util.Set;
 
 import com.sun.faces.el.ELUtils;
 import com.sun.faces.util.RequestStateManager;
-import com.sun.faces.util.Util;
 
 import jakarta.el.ValueExpression;
 import jakarta.faces.application.Application;
@@ -147,7 +146,7 @@ class ResourceDependencyHandler implements RuntimeAnnotationHandler {
 
         Set<ResourceDependency> dependencies = RequestStateManager.get(ctx, RequestStateManager.PROCESSED_RESOURCE_DEPENDENCIES);
         if (dependencies == null) {
-            dependencies = new HashSet<>(6);
+            dependencies = new HashSet<>(6, 1.0f);
             RequestStateManager.set(ctx, RequestStateManager.PROCESSED_RESOURCE_DEPENDENCIES, dependencies);
         }
         dependencies.add(dep);
