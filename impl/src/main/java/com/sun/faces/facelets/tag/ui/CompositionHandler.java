@@ -80,7 +80,8 @@ public final class CompositionHandler extends TagHandlerImpl implements Template
                 paramC.add(iteratorParams.next());
             }
             if (!paramC.isEmpty()) {
-                params = paramC.toArray(new ParamHandler[paramC.size()]);
+                params = new ParamHandler[paramC.size()];
+                paramC.toArray(params);
             } else {
                 params = null;
             }
