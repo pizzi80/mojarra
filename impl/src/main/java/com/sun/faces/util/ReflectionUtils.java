@@ -16,7 +16,6 @@
 
 package com.sun.faces.util;
 
-import static com.sun.faces.util.Util.calculateMapCapacity;
 import static java.beans.Introspector.getBeanInfo;
 import static java.beans.PropertyEditorManager.findEditor;
 
@@ -498,34 +497,32 @@ public final class ReflectionUtils {
 
             this.clazz = clazz;
             Constructor<?>[] ctors = clazz.getConstructors();
-            constructors = new HashMap<>(calculateMapCapacity(ctors.length));
+            constructors = new HashMap<>(ctors.length, 1.0f);
             for (Constructor<?> ctor : ctors) {
                 constructors.put(getKey(ctor.getParameterTypes()), ctor);
             }
             Method[] meths = clazz.getMethods();
-            methods = new HashMap<>(calculateMapCapacity(meths.length));
-
-            String name;
+            methods = new HashMap<>(meths.length, 1.0f);
             for (Method method : meths) {
-                name = method.getName();
-                methods.computeIfAbsent(name, k -> new HashMap<>(calculateMapCapacity(4)))
+                String name = method.getName();
+                methods.computeIfAbsent(name, k -> new HashMap<>(4, 1.0f))
                        .put(getKey(method.getParameterTypes()), method);
             }
 
             meths = clazz.getDeclaredMethods();
-            declaredMethods = new HashMap<>(calculateMapCapacity(meths.length));
+            declaredMethods = new HashMap<>(meths.length, 1.0f);
             for (Method meth : meths) {
-                name = meth.getName();
-                declaredMethods.computeIfAbsent(name, k -> new HashMap<>(calculateMapCapacity(4)))
+                String name = meth.getName();
+                declaredMethods.computeIfAbsent(name, k -> new HashMap<>(4, 1.0f))
                                .put(getKey(meth.getParameterTypes()), meth);
             }
 
             try {
-                final BeanInfo info = Introspector.getBeanInfo(clazz);
-                final PropertyDescriptor[] pds = info.getPropertyDescriptors();
+                BeanInfo info = Introspector.getBeanInfo(clazz);
+                PropertyDescriptor[] pds = info.getPropertyDescriptors();
                 if (pds != null) {
                     if (propertyDescriptors == null) {
-                        propertyDescriptors = new HashMap<>(calculateMapCapacity(pds.length));
+                        propertyDescriptors = new HashMap<>(pds.length, 1.0f);
                     }
                     for (PropertyDescriptor pd : pds) {
                         propertyDescriptors.put(pd.getName(), pd);
