@@ -106,7 +106,7 @@ public class SerializationCopier implements Copier {
 
     private static class Out extends ObjectOutputStream {
 
-        private final Queue<Class<?>> queue = new ArrayDeque<>(10);
+        private final Queue<Class<?>> queue = new ArrayDeque<>();
 
         Out(OutputStream out) throws IOException {
             super(out);
