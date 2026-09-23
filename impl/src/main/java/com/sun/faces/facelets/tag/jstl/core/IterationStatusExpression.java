@@ -105,11 +105,8 @@ public final class IterationStatusExpression extends ValueExpression {
 
     @Override
     public boolean equals(Object obj) {
-        if ( !(obj instanceof IterationStatusExpression expression) ) {
-            return false;
-        }
-
-        return Objects.equals(status, expression.status);
+        return obj instanceof IterationStatusExpression expression
+            && Objects.equals(status, expression.status);
     }
 
     /*
