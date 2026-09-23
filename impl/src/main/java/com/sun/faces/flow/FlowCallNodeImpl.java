@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.el.ValueExpression;
@@ -28,7 +29,6 @@ import jakarta.faces.flow.FlowCallNode;
 import jakarta.faces.flow.Parameter;
 
 public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
-
     private static final long serialVersionUID = 543332738561754405L;
 
     private final String id;
@@ -44,7 +44,8 @@ public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
         this.id = id;
 
         if (null != calledFlowDocumentId) {
-            calledFlowDocumentIdVE = context.getApplication().getExpressionFactory().createValueExpression(context.getELContext(), calledFlowDocumentId, String.class);
+            calledFlowDocumentIdVE = context.getApplication().getExpressionFactory().createValueExpression(context.getELContext(), calledFlowDocumentId,
+                    String.class);
         } else {
             calledFlowDocumentIdVE = null;
         }
@@ -74,21 +75,10 @@ public class FlowCallNodeImpl extends FlowCallNode implements Serializable {
             return false;
         }
         final FlowCallNodeImpl other = (FlowCallNodeImpl) obj;
-        if (id == null ? other.id != null : !id.equals(other.id)) {
-            return false;
-        }
-        if (calledFlowIdVE != other.calledFlowIdVE && (calledFlowIdVE == null || !calledFlowIdVE.equals(other.calledFlowIdVE))) {
-            return false;
-        }
-        if (calledFlowDocumentIdVE != other.calledFlowDocumentIdVE
-                && (calledFlowDocumentIdVE == null || !calledFlowDocumentIdVE.equals(other.calledFlowDocumentIdVE))) {
-            return false;
-        }
-        if (_outboundParameters != other._outboundParameters
-                && (_outboundParameters == null || !_outboundParameters.equals(other._outboundParameters))) {
-            return false;
-        }
-        return true;
+        return Objects.equals(id, other.id)
+            && Objects.equals(calledFlowIdVE, other.calledFlowIdVE)
+            && Objects.equals(calledFlowDocumentIdVE, other.calledFlowDocumentIdVE)
+            && Objects.equals(_outboundParameters, other._outboundParameters);
     }
 
     @Override
