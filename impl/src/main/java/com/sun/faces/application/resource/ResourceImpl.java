@@ -51,7 +51,6 @@ import java.util.logging.Logger;
 import com.sun.faces.application.ApplicationAssociate;
 import com.sun.faces.util.FacesLogger;
 import com.sun.faces.util.MojarraVersion;
-import com.sun.faces.util.Util;
 
 import jakarta.faces.application.ProjectStage;
 import jakarta.faces.application.Resource;
