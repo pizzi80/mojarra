@@ -16,8 +16,6 @@
 
 package com.sun.faces.util.copier;
 
-import static java.util.Arrays.asList;
-
 import java.util.List;
 
 /**
@@ -47,9 +45,7 @@ public class MultiStrategyCopier implements Copier {
 
             try {
                 return copier.copy(object);
-            } catch (Exception ignore) {
-                continue;
-            }
+            } catch (Exception ignore) {}
 
         }
 
