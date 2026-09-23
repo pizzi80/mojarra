@@ -178,7 +178,7 @@ public class RenderKitImpl extends RenderKit {
         if (desiredContentTypeList == null || contentTypeNullFromResponse) {
             String[] typeArray = context.getExternalContext().getRequestHeaderValuesMap().get("Accept");
             if (typeArray.length > 0) {
-                StringBuilder builder = new StringBuilder();
+                StringBuilder builder = new StringBuilder(16 * typeArray.length);
                 builder.append(typeArray[0]);
                 for (int i = 1, len = typeArray.length; i < len; i++) {
                     builder.append(',');
