@@ -150,7 +150,15 @@ public class WebsocketUserManager {
     private Set<String> getApplicationUserChannelIds(String userId, String channel) {
         Map<String, Set<String>> channels = userChannels.get(userId);
 
-        return channels != null ? channels.getOrDefault(channel, emptySet()) : emptySet();
+        if (channels != null) {
+            Set<String> channelIds = channels.get(channel);
+
+            if (channelIds != null) {
+                return channelIds;
+            }
+        }
+
+        return emptySet();
     }
 
 }
