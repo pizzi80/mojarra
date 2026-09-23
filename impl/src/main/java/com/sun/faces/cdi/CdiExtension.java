@@ -49,7 +49,6 @@ import com.sun.faces.push.WebsocketChannelManager;
 import com.sun.faces.push.WebsocketSessionManager;
 import com.sun.faces.push.WebsocketUserManager;
 import com.sun.faces.util.FacesLogger;
-import com.sun.faces.util.Util;
 
 /**
  * The CDI extension.
@@ -260,7 +259,7 @@ public class CdiExtension implements Extension {
         // Use the sorting computed above to order the Map on this. Note that a linked hash map is used
         // to preserve this ordering.
 
-        Map<Class<?>, Class<? extends DataModel<?>>> linkedForClassToDataModelClass = new LinkedHashMap<>(Util.calculateMapCapacity(sortedForDataModelClasses.size()));
+        Map<Class<?>, Class<? extends DataModel<?>>> linkedForClassToDataModelClass = new LinkedHashMap<>(sortedForDataModelClasses.size(), 1.0f);
         for (Class<?> sortedClass : sortedForDataModelClasses) {
             linkedForClassToDataModelClass.put(sortedClass, forClassToDataModelClass.get(sortedClass));
         }
