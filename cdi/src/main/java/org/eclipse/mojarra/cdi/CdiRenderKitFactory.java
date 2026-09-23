@@ -26,7 +26,6 @@ import jakarta.faces.render.RenderKitFactory;
 import jakarta.inject.Named;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -45,14 +44,12 @@ public class CdiRenderKitFactory extends RenderKitFactory {
     /**
      * Stores the BeanManager.
      */
-    private final BeanManager beanManager;
+    public BeanManager beanManager;
 
     /**
      * Constructor.
      */
     public CdiRenderKitFactory() {
-        super();
-        beanManager = null;
     }
 
     /**
@@ -62,7 +59,18 @@ public class CdiRenderKitFactory extends RenderKitFactory {
      */
     public CdiRenderKitFactory(RenderKitFactory wrapped) {
         super(wrapped);
-        beanManager = CDI.current().getBeanManager();
+        try {
+            InitialContext initialContext = new InitialContext();
+            beanManager = (BeanManager) initialContext.lookup("java:comp/BeanManager");
+        } catch (NamingException ne) {
+        }
+        if (beanManager == null) {
+            try {
+                InitialContext initialContext = new InitialContext();
+                beanManager = (BeanManager) initialContext.lookup("java:comp/env/BeanManager");
+            } catch (NamingException ne) {
+            }
+        }
     }
 
     @Override
@@ -78,7 +86,9 @@ public class CdiRenderKitFactory extends RenderKitFactory {
         } else {
             AnnotatedType<RenderKit> type = beanManager.createAnnotatedType(RenderKit.class);
             Set<Bean<?>> beans = beanManager.getBeans(type.getBaseType(), NamedLiteral.of(renderKitId));
-            for (Bean<?> bean : beans) {
+            Iterator<Bean<?>> iterator = beans.iterator();
+            while (iterator.hasNext()) {
+                Bean<?> bean = iterator.next();
                 Named named = bean.getBeanClass().getAnnotation(Named.class);
                 if (named.value().equals(renderKitId)) {
                     result = (RenderKit) CDI.current().select(named).get();
@@ -91,11 +101,13 @@ public class CdiRenderKitFactory extends RenderKitFactory {
 
     @Override
     public Iterator<String> getRenderKitIds() {
-        List<String> renderKitIds = new ArrayList<>();
+        ArrayList<String> renderKitIds = new ArrayList<>();
         getWrapped().getRenderKitIds().forEachRemaining(renderKitIds::add);
         AnnotatedType<RenderKit> type = beanManager.createAnnotatedType(RenderKit.class);
         Set<Bean<?>> beans = beanManager.getBeans(type.getBaseType());
-        for (Bean<?> bean : beans) {
+        Iterator<Bean<?>> iterator = beans.iterator();
+        while (iterator.hasNext()) {
+            Bean<?> bean = iterator.next();
             if (bean.getBeanClass().isAnnotationPresent(Named.class)) {
                 Named named = bean.getBeanClass().getAnnotation(Named.class);
                 renderKitIds.add(named.value());
