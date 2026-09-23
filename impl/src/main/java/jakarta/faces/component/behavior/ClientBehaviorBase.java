@@ -28,8 +28,6 @@ import jakarta.faces.context.FacesContext;
 import jakarta.faces.render.ClientBehaviorRenderer;
 import jakarta.faces.render.RenderKit;
 
-import com.sun.faces.util.Util;
-
 /**
  * <p class="changed_added_2_0">
  * <strong>ClientBehaviorBase</strong> is a convenience base class that implements the default concrete behavior of all
@@ -72,7 +70,7 @@ public class ClientBehaviorBase extends BehaviorBase implements ClientBehavior {
     public String getScript(ClientBehaviorContext behaviorContext) {
         requireNonNull(behaviorContext);
 
-        final ClientBehaviorRenderer renderer = getRenderer(behaviorContext.getFacesContext());
+        ClientBehaviorRenderer renderer = getRenderer(behaviorContext.getFacesContext());
 
         String script = null;
         if (renderer != null) {
@@ -97,7 +95,9 @@ public class ClientBehaviorBase extends BehaviorBase implements ClientBehavior {
      */
     @Override
     public void decode(FacesContext context, UIComponent component) {
-        Util.notNullArgs(context, component);
+        if (context == null || component == null) {
+            throw new NullPointerException();
+        }
 
         ClientBehaviorRenderer renderer = getRenderer(context);
         if (renderer != null) {
