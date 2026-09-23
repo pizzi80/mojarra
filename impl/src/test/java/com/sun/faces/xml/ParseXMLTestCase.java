@@ -31,9 +31,8 @@ import org.xml.sax.InputSource;
 
 public class ParseXMLTestCase {
 
-    private static final String xmlDir = "/conf/share";
-
-    private final List<File> list = new ArrayList<>();
+    List<File> list = new ArrayList<>();
+    private final static String xmlDir = "/conf/share";
 
     // ------------------------------------------------------------ Test Methods
     /**

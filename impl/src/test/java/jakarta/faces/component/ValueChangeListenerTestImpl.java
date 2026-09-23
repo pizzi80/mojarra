@@ -47,13 +47,13 @@ public class ValueChangeListenerTestImpl implements ValueChangeListener, StateHo
     }
 
     @Override
-    public void processValueChange(ValueChangeEvent<?> event) {
+    public void processValueChange(ValueChangeEvent event) {
         trace(getId());
     }
 
     // ---------------------------------------------------- Static Trace Methods
     // Accumulated trace log
-    private static final StringBuffer trace = new StringBuffer();
+    private static StringBuffer trace = new StringBuffer();
 
     // Append to the current trace log (or clear if null)
     public static void trace(String text) {

@@ -22,12 +22,12 @@ import jakarta.faces.application.ApplicationFactory;
 
 public class MockApplicationFactory extends ApplicationFactory {
 
-    public MockApplicationFactory() {
+    public MockApplicationFactory(ApplicationFactory oldImpl) {
+        System.setProperty(FactoryFinder.APPLICATION_FACTORY,
+                this.getClass().getName());
     }
 
-    public MockApplicationFactory(ApplicationFactory oldImpl) {
-        super(null);
-        System.setProperty(FactoryFinder.APPLICATION_FACTORY, this.getClass().getName());
+    public MockApplicationFactory() {
     }
 
     private Application application = null;

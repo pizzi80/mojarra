@@ -26,20 +26,20 @@ import jakarta.faces.event.ValueChangeListener;
  */
 public class InputValueChangeListenerTestImpl implements ValueChangeListener {
 
-    protected final String valueChangeListenerId;
+    protected String valueChangeListenerId = null;
 
     public InputValueChangeListenerTestImpl(String valueChangeListenerId) {
         this.valueChangeListenerId = valueChangeListenerId;
     }
 
     @Override
-    public void processValueChange(ValueChangeEvent<?> event) {
+    public void processValueChange(ValueChangeEvent event) {
         trace(valueChangeListenerId);
     }
 
     // ---------------------------------------------------- Static Trace Methods
     // Accumulated trace log
-    private static final StringBuffer trace = new StringBuffer();
+    private static StringBuffer trace = new StringBuffer();
 
     // Append to the current trace log (or clear if null)
     public static void trace(String text) {

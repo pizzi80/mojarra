@@ -21,13 +21,12 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import com.sun.faces.util.CollectionsUtils;
 
 import jakarta.faces.FacesException;
 import jakarta.faces.context.ExternalContext;
@@ -36,22 +35,21 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 
+
 public class MockExternalContext extends ExternalContext {
 
-    private final ServletContext context;
-    private final HttpServletRequest request;
-    private final ServletResponse response;
-    private Map<String,String> initParams;
-    private Map<String, Object> applicationMap = null;
-    private Map<String, Object> sessionMap = null;
-    private Map<String, Object> requestMap = null;
-    private Map<String, String> requestParameterMap = null;
-
-    public MockExternalContext(ServletContext context, ServletRequest request, ServletResponse response) {
+    public MockExternalContext(ServletContext context,
+                               ServletRequest request,
+                               ServletResponse response) {
         this.context = context;
-        this.request = (HttpServletRequest)request;
+        this.request = request;
         this.response = response;
     }
+
+    private ServletContext context = null;
+    private ServletRequest request = null;
+    private ServletResponse response = null;
+    private Map<String,String> initParams;
 
     @Override
     public Object getSession(boolean create) {
@@ -60,7 +58,7 @@ public class MockExternalContext extends ExternalContext {
 
     @Override
     public Object getContext() {
-        return context;
+        return (context);
     }
 
     @Override
@@ -75,7 +73,7 @@ public class MockExternalContext extends ExternalContext {
 
     @Override
     public Object getRequest() {
-        return request;
+        return (request);
     }
 
     @Override
@@ -85,7 +83,7 @@ public class MockExternalContext extends ExternalContext {
 
     @Override
     public Object getResponse() {
-        return response;
+        return (response);
     }
 
     @Override
@@ -98,6 +96,7 @@ public class MockExternalContext extends ExternalContext {
 	throw new UnsupportedOperationException();
     }
 
+    private Map<String, Object> applicationMap = null;
     @Override
     public Map<String, Object> getApplicationMap() {
         if (applicationMap == null) {
@@ -106,14 +105,17 @@ public class MockExternalContext extends ExternalContext {
         return applicationMap;
     }
 
+    private Map<String, Object> sessionMap = null;
     @Override
     public Map<String, Object> getSessionMap() {
         if (sessionMap == null) {
-            sessionMap = new MockSessionMap(request.getSession(true));
+            sessionMap = new MockSessionMap
+                (((HttpServletRequest) request).getSession(true));
         }
         return sessionMap;
     }
 
+    private Map<String, Object> requestMap = null;
     @Override
     public Map<String, Object> getRequestMap() {
         if (requestMap == null) {
@@ -122,6 +124,7 @@ public class MockExternalContext extends ExternalContext {
         return requestMap;
     }
 
+    private Map<String, String> requestParameterMap = null;
     @Override
     public Map<String, String> getRequestParameterMap() {
         if (requestParameterMap != null) {
@@ -167,12 +170,12 @@ public class MockExternalContext extends ExternalContext {
 
     @Override
     public Locale getRequestLocale() {
-        return request.getLocale();
+        return (request.getLocale());
     }
 
     @Override
     public Iterator<Locale> getRequestLocales() {
-        return CollectionsUtils.unmodifiableIterator(request.getLocales());
+        return (new LocalesIterator(request.getLocales()));
     }
 
     @Override
@@ -217,13 +220,14 @@ public class MockExternalContext extends ExternalContext {
 
     @Override
     public String getInitParameter(String name) {
-        if (jakarta.faces.application.StateManager.STATE_SAVING_METHOD_PARAM_NAME.equals(name)) {
+        if (name
+              .equals(jakarta.faces.application.StateManager.STATE_SAVING_METHOD_PARAM_NAME)) {
             return null;
         }
-        if (jakarta.faces.webapp.FacesServlet.LIFECYCLE_ID_ATTR.equals(name)) {
+        if (name.equals(jakarta.faces.webapp.FacesServlet.LIFECYCLE_ID_ATTR)) {
             return null;
         }
-        return initParams == null ? null : initParams.get(name);
+        return ((initParams == null) ? null : initParams.get(name));
     }
 
     public void addInitParameter(String name, String value) {
@@ -299,12 +303,14 @@ public class MockExternalContext extends ExternalContext {
     }
 
     @Override
-    public void dispatch(String requestURI) throws IOException, FacesException {
+    public void dispatch(String requestURI)
+        throws IOException, FacesException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void redirect(String requestURI) throws IOException {
+    public void redirect(String requestURI)
+        throws IOException {
         throw new UnsupportedOperationException();
     }
 
@@ -320,26 +326,49 @@ public class MockExternalContext extends ExternalContext {
 
     @Override
     public String getAuthType() {
-        return request.getAuthType();
+        return (((HttpServletRequest) request).getAuthType());
     }
 
     @Override
     public String getRemoteUser() {
-        return request.getRemoteUser();
+        return (((HttpServletRequest) request).getRemoteUser());
     }
 
     @Override
     public java.security.Principal getUserPrincipal() {
-        return request.getUserPrincipal();
+        return (((HttpServletRequest) request).getUserPrincipal());
     }
 
     @Override
     public boolean isUserInRole(String role) {
-        return request.isUserInRole(role);
+        return (((HttpServletRequest) request).isUserInRole(role));
     }
 
     @Override
     public void release() {
+    }
+
+    private class LocalesIterator implements Iterator<Locale> {
+        public LocalesIterator(Enumeration<Locale> locales) {
+            this.locales = locales;
+        }
+
+        private Enumeration<Locale> locales;
+
+        @Override
+        public boolean hasNext() {
+            return locales.hasMoreElements();
+        }
+
+        @Override
+        public Locale next() {
+            return locales.nextElement();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
 
 }

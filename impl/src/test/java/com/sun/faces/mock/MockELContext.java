@@ -25,7 +25,7 @@ public class MockELContext extends ELContext {
 
     private FunctionMapper functionMapper;
     private VariableMapper variableMapper;
-    private final ELResolver resolver;
+    private ELResolver resolver;
 
     protected MockELContext(ELResolver resolver) {
         this.resolver = resolver;

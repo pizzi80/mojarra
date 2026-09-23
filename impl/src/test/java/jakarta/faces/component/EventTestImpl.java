@@ -21,9 +21,10 @@ import jakarta.faces.event.FacesListener;
 
 public class EventTestImpl extends FacesEvent {
 
+    /**
+     *
+     */
     private static final long serialVersionUID = 1L;
-
-    private final String id;
 
     public EventTestImpl(UIComponent component) {
         this(component, null);
@@ -33,6 +34,8 @@ public class EventTestImpl extends FacesEvent {
         super(component);
         this.id = id;
     }
+
+    private String id;
 
     public String getId() {
         return this.id;

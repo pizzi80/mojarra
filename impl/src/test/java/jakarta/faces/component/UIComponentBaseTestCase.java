@@ -30,8 +30,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import com.sun.faces.renderkit.RenderKitUtils;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -439,14 +438,14 @@ public class UIComponentBaseTestCase extends UIComponentTestCase {
         c.getAttributes().put("attr1", "value1");
         c.markInitialState();
         c.getAttributes().put("attr2", "value2");
-        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get(RenderKitUtils.ATTRIBUTES_THAT_ARE_SET_KEY));
+        assertEquals(Arrays.asList("attr1", "attr2"), c.getAttributes().get("jakarta.faces.component.UIComponentBase.attributesThatAreSet"));
 
         Object state = c.saveState(facesContext);
         c = new ComponentTestImpl();
         c.pushComponentToEL(facesContext, c);
         c.restoreState(facesContext, state);
         c.popComponentFromEL(facesContext);
-        assertEquals(Arrays.asList("attr2"), c.getAttributes().get(RenderKitUtils.ATTRIBUTES_THAT_ARE_SET_KEY));
+        assertEquals(Arrays.asList("attr2"), c.getAttributes().get("jakarta.faces.component.UIComponentBase.attributesThatAreSet"));
     }
 
     /**

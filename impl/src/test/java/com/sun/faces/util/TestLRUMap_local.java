@@ -31,7 +31,7 @@ public class TestLRUMap_local {
     @Test
     public void testLRUMap() {
 
-        LRUMap<String, String> map = new LRUMap<>(5);
+        LRUMap<String, String> map = new LRUMap<String, String>(5);
         map.put("one", "one");
         map.put("two", "two");
         map.put("three", "three");

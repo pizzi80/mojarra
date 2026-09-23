@@ -26,7 +26,7 @@ import jakarta.faces.validator.Validator;
  */
 public class InputValidatorTestImpl implements Validator<Object> {
 
-    protected String validatorId;
+    protected String validatorId = null;
 
     public InputValidatorTestImpl(String validatorId) {
         this.validatorId = validatorId;
@@ -39,7 +39,7 @@ public class InputValidatorTestImpl implements Validator<Object> {
 
     // ---------------------------------------------------- Static Trace Methods
     // Accumulated trace log
-    private static final StringBuffer trace = new StringBuffer();
+    private static StringBuffer trace = new StringBuffer();
 
     // Append to the current trace log (or clear if null)
     public static void trace(String text) {

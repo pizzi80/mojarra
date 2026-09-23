@@ -16,13 +16,12 @@
 
 package com.sun.faces.xml;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -32,7 +31,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 public class XHTMLResolvingHandler extends DefaultHandler {
 
-    private final ResourceBundle bundle;
+    private ResourceBundle bundle;
 
     public XHTMLResolvingHandler() {
         bundle = ResourceBundle.getBundle(this.getClass().getPackage().getName() + ".Entities",
@@ -55,13 +54,18 @@ public class XHTMLResolvingHandler extends DefaultHandler {
 
                 @Override
                 public InputStream getByteStream() {
-                    InputStream inputStream = new ByteArrayInputStream(value.getBytes(UTF_8));
+                    InputStream inputStream = null;
+                    try {
+                        inputStream = new ByteArrayInputStream(value.getBytes("UTF-8"));
+                    } catch (UnsupportedEncodingException ex) {
+                    }
                     return inputStream;
                 }
 
                 @Override
                 public Reader getCharacterStream() {
-                    Reader reader = new StringReader(value);
+                    Reader reader = null;
+                    reader = new StringReader(value);
                     return reader;
                 }
 

@@ -29,8 +29,8 @@ public class MockResponseWriter extends ResponseWriter {
         this.encoding = encoding;
     }
 
-    private final Writer writer;
-    private final String encoding;
+    private Writer writer;
+    private String encoding;
 
     // ---------------------------------------------------------- Writer Methods
     @Override

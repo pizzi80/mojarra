@@ -206,7 +206,7 @@ public class MockHttpServletRequest implements HttpServletRequest {
         if (pathInfo != null) {
             sb.append(pathInfo);
         }
-        if (!sb.isEmpty()) {
+        if (sb.length() > 0) {
             return (sb.toString());
         }
         throw new UnsupportedOperationException();

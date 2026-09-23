@@ -16,8 +16,8 @@
 
 package com.sun.faces.mock;
 
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import jakarta.faces.FactoryFinder;
 import jakarta.faces.lifecycle.Lifecycle;
@@ -25,17 +25,17 @@ import jakarta.faces.lifecycle.LifecycleFactory;
 
 public class MockLifecycleFactory extends LifecycleFactory {
 
-    public MockLifecycleFactory() {
-        super(null);
+    public MockLifecycleFactory(LifecycleFactory oldImpl) {
+        System.setProperty(FactoryFinder.LIFECYCLE_FACTORY,
+                this.getClass().getName());
     }
 
-    public MockLifecycleFactory(LifecycleFactory oldImpl) {
-        super(null);
-        System.setProperty(FactoryFinder.LIFECYCLE_FACTORY, this.getClass().getName());
+    public MockLifecycleFactory() {
     }
 
     @Override
-    public void addLifecycle(String lifecycleId, Lifecycle lifecycle) {
+    public void addLifecycle(String lifecycleId,
+            Lifecycle lifecycle) {
     }
 
     @Override
@@ -44,8 +44,9 @@ public class MockLifecycleFactory extends LifecycleFactory {
     }
 
     @Override
-    public Iterator<String> getLifecycleIds() {
-        return List.of(LifecycleFactory.DEFAULT_LIFECYCLE).iterator();
+    public Iterator getLifecycleIds() {
+        ArrayList result = new ArrayList(1);
+        result.add(LifecycleFactory.DEFAULT_LIFECYCLE);
+        return result.iterator();
     }
-
 }

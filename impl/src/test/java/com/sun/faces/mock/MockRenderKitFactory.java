@@ -16,12 +16,9 @@
 
 package com.sun.faces.mock;
 
-import static com.sun.faces.util.Util.notNullArgs;
-import static java.util.Objects.requireNonNull;
-
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map;
 
 import jakarta.faces.FactoryFinder;
 import jakarta.faces.context.FacesContext;
@@ -30,44 +27,47 @@ import jakarta.faces.render.RenderKitFactory;
 
 public class MockRenderKitFactory extends RenderKitFactory {
 
-    private final ConcurrentMap<String,RenderKit> renderKits = new ConcurrentHashMap<>();
+    public MockRenderKitFactory(RenderKitFactory oldImpl) {
+        System.setProperty(FactoryFinder.RENDER_KIT_FACTORY,
+                this.getClass().getName());
+    }
 
     public MockRenderKitFactory() {
-        super(null);
     }
 
-    public MockRenderKitFactory(RenderKitFactory oldImpl) {
-        super(null);
-        System.setProperty(FactoryFinder.RENDER_KIT_FACTORY, this.getClass().getName());
-    }
+    private Map renderKits = new HashMap();
 
     @Override
     public void addRenderKit(String renderKitId, RenderKit renderKit) {
-        notNullArgs(renderKitId, renderKit);
-
-        // putIfAbsent returns the previous value in the Map
-        RenderKit registered = renderKits.putIfAbsent(renderKitId, renderKit);
-
-        // if there was a value -> error
-        if (registered != null) {
-            throw new IllegalArgumentException(renderKitId);
+        if ((renderKitId == null) || (renderKit == null)) {
+            throw new NullPointerException();
+        }
+        synchronized (renderKits) {
+            if (renderKits.containsKey(renderKitId)) {
+                throw new IllegalArgumentException(renderKitId);
+            }
+            renderKits.put(renderKitId, renderKit);
         }
     }
 
     @Override
     public RenderKit getRenderKit(FacesContext context, String renderKitId) {
-        requireNonNull(renderKitId);
-
-        RenderKit renderKit = renderKits.get(renderKitId);
-        if (renderKit == null) {
-            throw new IllegalArgumentException(renderKitId);
+        if (renderKitId == null) {
+            throw new NullPointerException();
         }
-        return renderKit;
+        synchronized (renderKits) {
+            RenderKit renderKit = (RenderKit) renderKits.get(renderKitId);
+            if (renderKit == null) {
+                throw new IllegalArgumentException(renderKitId);
+            }
+            return (renderKit);
+        }
     }
 
     @Override
-    public Iterator<String> getRenderKitIds() {
-        return renderKits.keySet().iterator();
+    public Iterator getRenderKitIds() {
+        synchronized (renderKits) {
+            return (renderKits.keySet().iterator());
+        }
     }
-
 }

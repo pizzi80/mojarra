@@ -35,7 +35,7 @@ public class ComponentTestImpl extends UIComponentBase {
 
     @Override
     public String getFamily() {
-        return "Test";
+        return ("Test");
     }
 
     private String label = null;
@@ -46,9 +46,9 @@ public class ComponentTestImpl extends UIComponentBase {
         }
         ValueExpression vb = getValueExpression("label");
         if (vb != null) {
-            return vb.getValue(getFacesContext().getELContext());
+            return ((String) vb.getValue(getFacesContext().getELContext()));
         } else {
-            return null;
+            return (null);
         }
     }
 

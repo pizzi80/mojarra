@@ -28,6 +28,8 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -35,9 +37,6 @@ import com.sun.faces.config.manager.documents.DocumentInfo;
 import com.sun.faces.config.manager.documents.DocumentOrderingWrapper;
 
 import jakarta.faces.context.FacesContext;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 public class FacesConfigOrderingTestCase {
 
@@ -67,13 +66,15 @@ public class FacesConfigOrderingTestCase {
 		DocumentInfo doca = createDocument("a", null, null);
 		DocumentInfo docb = createDocument(null, null, null);
 
-		List<DocumentOrderingWrapper> documents = List.of(
-				new DocumentOrderingWrapper(docC),
-				new DocumentOrderingWrapper(doca),
-				new DocumentOrderingWrapper(docb)
-		);
+		List<DocumentOrderingWrapper> documents = new ArrayList<DocumentOrderingWrapper>();
+		// J-
+		Collections.addAll(documents, new DocumentOrderingWrapper(docC),
+				new DocumentOrderingWrapper(doca), new DocumentOrderingWrapper(
+						docb));
+		// J+
 
-		DocumentOrderingWrapper[] wrappers = documents.toArray(new DocumentOrderingWrapper[documents.size()]);
+		DocumentOrderingWrapper[] wrappers = documents
+				.toArray(new DocumentOrderingWrapper[documents.size()]);
 		String[] originalOrder = extractNames(wrappers);
 		DocumentOrderingWrapper.sort(wrappers);
 
@@ -94,17 +95,21 @@ public class FacesConfigOrderingTestCase {
 
     @Test
 	public void testCafteraStartWithCab() throws Exception {
-		List<String> docCAfterIds = List.of("a");
+		List<String> docCAfterIds = new ArrayList<String>();
+		Collections.addAll(docCAfterIds, "a");
 
 		DocumentInfo docC = createDocument("C", null, docCAfterIds);
 		DocumentInfo doca = createDocument("a", null, null);
 		DocumentInfo docb = createDocument(null, null, null);
 
-		List<DocumentOrderingWrapper> documents = List.of(
-				new DocumentOrderingWrapper(docC),
-				new DocumentOrderingWrapper(doca),
-				new DocumentOrderingWrapper(docb)
+		List<DocumentOrderingWrapper> documents = new ArrayList<DocumentOrderingWrapper>();
+		//J-
+		Collections.addAll(documents,
+			new DocumentOrderingWrapper(docC),
+			new DocumentOrderingWrapper(doca),
+			new DocumentOrderingWrapper(docb)
 		);
+		//J+
 
 		DocumentOrderingWrapper[] wrappers = documents.toArray(new DocumentOrderingWrapper[documents.size()]);
 		String[] originalOrder = extractNames(wrappers);
@@ -127,20 +132,20 @@ public class FacesConfigOrderingTestCase {
 
     @Test
 	public void testAafterD_BafterCbeforeOthers_CafterDbeforeB_startWithABCD() throws Exception {
-		List<String> docAAfterIds = new ArrayList<>();
+		List<String> docAAfterIds = new ArrayList<String>();
 		Collections.addAll(docAAfterIds, "D");
 
 		// C should before B, hence B needs to be after C
-		List<String> docBAfterIds = new ArrayList<>();
+		List<String> docBAfterIds = new ArrayList<String>();
 		Collections.addAll(docBAfterIds, "C");
 
-		List<String> docBBeforeIds = new ArrayList<>();
+		List<String> docBBeforeIds = new ArrayList<String>();
 		Collections.addAll(docBBeforeIds, "@others");
 
-		List<String> docCAfterIds = new ArrayList<>();
+		List<String> docCAfterIds = new ArrayList<String>();
 		Collections.addAll(docCAfterIds, "D");
 
-		List<String> docCBeforeIds = new ArrayList<>();
+		List<String> docCBeforeIds = new ArrayList<String>();
 		Collections.addAll(docCBeforeIds, "B");
 
 		DocumentInfo docA = createDocument("A", null, docAAfterIds);
@@ -148,7 +153,7 @@ public class FacesConfigOrderingTestCase {
 		DocumentInfo docC = createDocument("C", docCBeforeIds, docCAfterIds);
 		DocumentInfo docD = createDocument("D", null, null);
 
-		List<DocumentOrderingWrapper> documents = new ArrayList<>();
+		List<DocumentOrderingWrapper> documents = new ArrayList<DocumentOrderingWrapper>();
 		//J-
 		Collections.addAll(documents,
 			new DocumentOrderingWrapper(docA),
@@ -181,28 +186,36 @@ public class FacesConfigOrderingTestCase {
     @Test
 	public void testAafterD_BafterCbeforeOthers_CafterDbeforeB_startWithADBC() throws Exception {
 
-		List<String> docAAfterIds = List.of("D");
+		List<String> docAAfterIds = new ArrayList<String>();
+		Collections.addAll(docAAfterIds, "D");
 
 		// C should before B, hence B needs to be after C
-		List<String> docBAfterIds = List.of("C");
+		List<String> docBAfterIds = new ArrayList<String>();
+		Collections.addAll(docBAfterIds, "C");
 
-		List<String> docBBeforeIds = List.of("@others");
+		List<String> docBBeforeIds = new ArrayList<String>();
+		Collections.addAll(docBBeforeIds, "@others");
 
-		List<String> docCAfterIds = List.of("D");
+		List<String> docCAfterIds = new ArrayList<String>();
+		Collections.addAll(docCAfterIds, "D");
 
-		List<String> docCBeforeIds = List.of("B");
+		List<String> docCBeforeIds = new ArrayList<String>();
+		Collections.addAll(docCBeforeIds, "B");
 
 		DocumentInfo docA = createDocument("A", null, docAAfterIds);
 		DocumentInfo docB = createDocument("B", docBBeforeIds, docBAfterIds);
 		DocumentInfo docC = createDocument("C", docCBeforeIds, docCAfterIds);
 		DocumentInfo docD = createDocument("D", null, null);
 
-		List<DocumentOrderingWrapper> documents = List.of(
-				new DocumentOrderingWrapper(docA),
-				new DocumentOrderingWrapper(docD),
-				new DocumentOrderingWrapper(docB),
-				new DocumentOrderingWrapper(docC)
+		List<DocumentOrderingWrapper> documents = new ArrayList<DocumentOrderingWrapper>();
+		//J-
+		Collections.addAll(documents,
+			new DocumentOrderingWrapper(docA),
+			new DocumentOrderingWrapper(docD),
+			new DocumentOrderingWrapper(docB),
+			new DocumentOrderingWrapper(docC)
 		);
+		//J+
 
 		DocumentOrderingWrapper[] wrappers = documents.toArray(new DocumentOrderingWrapper[documents.size()]);
 		String[] originalOrder = extractNames(wrappers);
@@ -217,7 +230,8 @@ public class FacesConfigOrderingTestCase {
 
 		List<String> possibility1 = Arrays.asList("D", "C", "B", "A");
 
-		boolean assertion = (actually.equals(possibility1));
+		boolean assertion = (actually.equals(possibility1)
+				);
 		String message = "\n original: " + original + "\n expected: " + possibility1 +
 			"\n actually: " + actually + "\n";
 		assertTrue(assertion, message);
@@ -227,23 +241,28 @@ public class FacesConfigOrderingTestCase {
     @Test
 	public void testAafterD_BafterCbeforeOthers_CafterDbeforeB_shuffle() throws Exception {
 
-		List<String> docAAfterIds = List.of("D");
+		List<String> docAAfterIds = new ArrayList<String>();
+		Collections.addAll(docAAfterIds, "D");
 
 		// C should before B, hence B needs to be after C
-		List<String> docBAfterIds = List.of("C");
+		List<String> docBAfterIds = new ArrayList<String>();
+		Collections.addAll(docBAfterIds, "C");
 
-		List<String> docBBeforeIds = List.of("@others");
+		List<String> docBBeforeIds = new ArrayList<String>();
+		Collections.addAll(docBBeforeIds, "@others");
 
-		List<String> docCAfterIds = List.of("D");
+		List<String> docCAfterIds = new ArrayList<String>();
+		Collections.addAll(docCAfterIds, "D");
 
-		List<String> docCBeforeIds = List.of("B");
+		List<String> docCBeforeIds = new ArrayList<String>();
+		Collections.addAll(docCBeforeIds, "B");
 
 		DocumentInfo docA = createDocument("A", null, docAAfterIds);
 		DocumentInfo docB = createDocument("B", docBBeforeIds, docBAfterIds);
 		DocumentInfo docC = createDocument("C", docCBeforeIds, docCAfterIds);
 		DocumentInfo docD = createDocument("D", null, null);
 
-		List<DocumentOrderingWrapper> documents = new ArrayList<>();
+		List<DocumentOrderingWrapper> documents = new ArrayList<DocumentOrderingWrapper>();
 		//J-
 		Collections.addAll(documents,
 			new DocumentOrderingWrapper(docA),

@@ -33,6 +33,8 @@ import org.junit.jupiter.api.Test;
  */
 class ResourceHandlerImplExcludesTest {
 
+    private final Map<String, Object> appMap = new HashMap<>();
+
     private String[] parse(String excludesParam) {
         return parseExcludedExtensions(excludesParam);
     }
