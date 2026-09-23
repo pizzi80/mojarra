@@ -79,7 +79,8 @@ public class RenderKitConfigHandler implements ConfigAnnotationHandler {
             RenderKitFactory rkf = (RenderKitFactory) FactoryFinder.getFactory(FactoryFinder.RENDER_KIT_FACTORY);
             for (Map.Entry<Class<?>, Annotation> entry : annotatedRenderers.entrySet()) {
                 Class<?> rClass = entry.getKey();
-                if (entry.getValue() instanceof FacesRenderer ra) {
+                if (entry.getValue() instanceof FacesRenderer) {
+                    FacesRenderer ra = (FacesRenderer) entry.getValue();
                     try {
                         RenderKit rk = rkf.getRenderKit(ctx, ra.renderKitId());
                         if (rk == null) {
@@ -91,14 +92,16 @@ public class RenderKitConfigHandler implements ConfigAnnotationHandler {
                     } catch (IllegalStateException | ReflectiveOperationException | SecurityException e) {
                         throw new FacesException(e);
                     }
-                } else if (entry.getValue() instanceof FacesBehaviorRenderer bra) {
+                } else if (entry.getValue() instanceof FacesBehaviorRenderer) {
+                    FacesBehaviorRenderer bra = (FacesBehaviorRenderer) entry.getValue();
                     try {
                         RenderKit rk = rkf.getRenderKit(ctx, bra.renderKitId());
                         if (rk == null) {
                             throw new IllegalStateException("Error processing annotated ClientBehaviorRenderer " + bra + " on class "
                                     + rClass.getName() + ".  Unable to find specified RenderKit.");
                         }
-                        rk.addClientBehaviorRenderer(bra.rendererType(), (ClientBehaviorRenderer) rClass.getDeclaredConstructor().newInstance());
+                        rk.addClientBehaviorRenderer(bra.rendererType(),
+                                (ClientBehaviorRenderer) rClass.getDeclaredConstructor().newInstance());
                     } catch (IllegalStateException | ReflectiveOperationException | SecurityException e) {
                         throw new FacesException(e);
                     }
