@@ -15,11 +15,6 @@
  */
 package org.eclipse.mojarra.cdi;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
 import jakarta.enterprise.inject.literal.NamedLiteral;
 import jakarta.enterprise.inject.spi.AnnotatedType;
 import jakarta.enterprise.inject.spi.Bean;
@@ -29,6 +24,12 @@ import jakarta.faces.context.FacesContext;
 import jakarta.faces.render.RenderKit;
 import jakarta.faces.render.RenderKitFactory;
 import jakarta.inject.Named;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 
 /**
  * The CDI RenderKitFactory.
@@ -49,10 +50,9 @@ public class CdiRenderKitFactory extends RenderKitFactory {
     /**
      * Constructor.
      */
-    @Deprecated(forRemoval=true)
     public CdiRenderKitFactory() {
-        super(null);
-        beanManager = CDI.current().getBeanManager();
+        super();
+        beanManager = null;
     }
 
     /**
