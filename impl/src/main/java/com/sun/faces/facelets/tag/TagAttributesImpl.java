@@ -16,16 +16,10 @@
 
 package com.sun.faces.facelets.tag;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-
-import com.sun.faces.facelets.tag.faces.PassThroughAttributeLibrary;
 
 import com.sun.faces.RIConstants;
+import com.sun.faces.facelets.tag.faces.PassThroughAttributeLibrary;
 import com.sun.faces.util.Util;
 
 import jakarta.faces.view.facelets.Tag;
@@ -34,72 +28,121 @@ import jakarta.faces.view.facelets.TagAttributes;
 
 /**
  * A set of TagAttributesImpl, usually representing all attributes on a Tag.
+ * <p>
+ * Attributes are grouped per namespace once, when the tag is compiled. A tag almost always declares attributes in a
+ * single namespace (a few in two), so namespaces are looked up with a linear scan: on one or two entries it is cheaper
+ * than hashing or a binary search, and {@link String#equals(Object)} short-circuits on identity for the interned
+ * namespace strings coming from the parser.
+ * <p>
+ * Namespaces, and attributes within a namespace, are kept in declaration order. Namespaces are assumed non-null, as
+ * the compiler always passes the empty string for attributes without a namespace.
  *
  * @see jakarta.faces.view.facelets.TagAttribute
  * @author Jacob Hookom
  * @version $Id$
  */
 public final class TagAttributesImpl extends TagAttributes {
-    private final static TagAttribute[] EMPTY = {};
+    private static final TagAttribute[] EMPTY = {};
 
     private final TagAttribute[] attrs;
 
+    /** Distinct namespaces, in order of first appearance. */
     private final String[] ns;
 
-    private final List nsattrs;
+    /** Attributes of each namespace, parallel to {@link #ns}, in declaration order. */
+    private final TagAttribute[][] nsAttrs;
 
+    /** Attributes in a pass-through namespace, in declaration order. */
     private final TagAttribute[] passthroughAttrs;
 
     private Tag tag;
 
     /**
-     *
+     * @param attrs all attributes of the tag, in declaration order
      */
     public TagAttributesImpl(TagAttribute[] attrs) {
         this.attrs = attrs;
-        passthroughAttrs = collectPassthrough(attrs);
 
-        // grab namespaces => uniq + sort => toArray
-        Set<String> set = new HashSet<>(Util.calculateMapCapacity(this.attrs.length));
-        for (TagAttribute attr : this.attrs) {
-            set.add(attr.getNamespace());
+        int length = attrs.length;
+
+        // distinct namespaces in order of first appearance, attribute count per namespace,
+        // namespace index of each attribute
+        String[] found = new String[length];
+        int[] counts = new int[length];
+        int[] attrNs = new int[length];
+        int n = 0;
+
+        for (int i = 0; i < length; i++) {
+            String namespace = attrs[i].getNamespace();
+            int idx = indexOf(found, n, namespace);
+            if (idx < 0) {
+                idx = n++;
+                found[idx] = namespace;
+            }
+            counts[idx]++;
+            attrNs[i] = idx;
         }
-        ns = set.toArray(new String[set.size()]);
-        Arrays.sort(ns);
 
-        // build the matrix assign attrs
-        nsattrs = new ArrayList<>();
-        for (int i = 0; i < ns.length; i++) {
-            nsattrs.add(new ArrayList<>());
-        }
+        this.ns = n == length ? found : Arrays.copyOf(found, n);
 
-        for (TagAttribute attr : this.attrs) {
-            ((List) nsattrs.get(getNamespaceIndex(attr.getNamespace()))).add(attr);
-        }
-        for (int i = 0; i < ns.length; i++) {
-            List r = (List) nsattrs.get(i);
-            nsattrs.set(i, r.toArray(new TagAttribute[r.size()]));
-        }
-    }
+        // pass-through: one Set lookup per namespace, not per attribute
+        boolean[] passthrough = new boolean[n];
+        int passthroughCount = 0;
 
-    private static TagAttribute[] collectPassthrough(TagAttribute[] attrs) {
-        List<TagAttribute> passthrough = null;
-
-        for (TagAttribute attr : attrs) {
-            if (PassThroughAttributeLibrary.NAMESPACES.contains(attr.getNamespace())) {
-                if (passthrough == null) {
-                    passthrough = new ArrayList<>(attrs.length);
-                }
-                passthrough.add(attr);
+        for (int k = 0; k < n; k++) {
+            if (PassThroughAttributeLibrary.NAMESPACES.contains(found[k])) {
+                passthrough[k] = true;
+                passthroughCount += counts[k];
             }
         }
 
-        return passthrough == null ? EMPTY : passthrough.toArray(new TagAttribute[passthrough.size()]);
+        // group per namespace (must come after the pass-through count: counts is reused as fill cursor)
+        TagAttribute[][] grouped = new TagAttribute[n][];
+
+        if (n == 1) {
+            // by far the most common case: a single namespace, its attributes are all of them
+            grouped[0] = attrs;
+        } else {
+            for (int k = 0; k < n; k++) {
+                grouped[k] = new TagAttribute[counts[k]];
+                counts[k] = 0;
+            }
+            for (int i = 0; i < length; i++) {
+                int idx = attrNs[i];
+                grouped[idx][counts[idx]++] = attrs[i];
+            }
+        }
+
+        this.nsAttrs = grouped;
+
+        // collect pass-through attributes, preserving declaration order across pass-through namespaces
+        if (passthroughCount == 0) {
+            this.passthroughAttrs = EMPTY;
+        } else if (passthroughCount == length) {
+            this.passthroughAttrs = attrs;
+        } else {
+            TagAttribute[] result = new TagAttribute[passthroughCount];
+            int j = 0;
+            for (int i = 0; i < length; i++) {
+                if (passthrough[attrNs[i]]) {
+                    result[j++] = attrs[i];
+                }
+            }
+            this.passthroughAttrs = result;
+        }
     }
 
-    private int getNamespaceIndex(String namespace) {
-//        return nsIndex.computeIfAbsent(namespace, $ -> Arrays.binarySearch(ns, namespace));
-        return Arrays.binarySearch(ns, namespace);
+    private static int indexOf(String[] namespaces, int length, String namespace) {
+        for (int i = 0; i < length; i++) {
+            if (namespaces[i].equals(namespace)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private int indexOf(String namespace) {
+        return indexOf(ns, ns.length, namespace);
     }
 
     /**
@@ -145,12 +188,11 @@ public final class TagAttributesImpl extends TagAttributes {
     @Override
     public TagAttribute get(String ns, String localName) {
         if (ns != null && localName != null) {
-            int idx = getNamespaceIndex(ns);
+            int idx = indexOf(ns);
             if (idx >= 0) {
-                TagAttribute[] uia = (TagAttribute[]) nsattrs.get(idx);
-                for (TagAttribute tagAttribute : uia) {
-                    if (localName.equals(tagAttribute.getLocalName())) {
-                        return tagAttribute;
+                for (TagAttribute attr : nsAttrs[idx]) {
+                    if (localName.equals(attr.getLocalName())) {
+                        return attr;
                     }
                 }
             }
@@ -166,15 +208,12 @@ public final class TagAttributesImpl extends TagAttributes {
      */
     @Override
     public TagAttribute[] getAll(String namespace) {
-        int idx = getNamespaceIndex(Util.coalesce(namespace, RIConstants.EMPTY_STRING));
-        if (idx >= 0) {
-            return (TagAttribute[]) nsattrs.get(idx);
-        }
-        return EMPTY;
+        int idx = indexOf(Util.coalesce(namespace, RIConstants.EMPTY_STRING));
+        return idx >= 0 ? nsAttrs[idx] : EMPTY;
     }
 
     /**
-     * A list of Namespaces found in this set
+     * A list of Namespaces found in this set, in order of first appearance
      *
      * @return a list of Namespaces found in this set
      */
@@ -191,8 +230,8 @@ public final class TagAttributesImpl extends TagAttributes {
     @Override
     public void setTag(Tag tag) {
         this.tag = tag;
-        for (TagAttribute cur : attrs) {
-            cur.setTag(tag);
+        for (TagAttribute attr : attrs) {
+            attr.setTag(tag);
         }
     }
 
@@ -203,13 +242,13 @@ public final class TagAttributesImpl extends TagAttributes {
      */
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (TagAttribute attr : attrs) {
-            sb.append(attr);
-            sb.append(' ');
+        if (attrs.length == 0) {
+            return "";
         }
-        if (sb.length() > 1) {
-            sb.setLength(sb.length() - 1);
+        StringBuilder sb = new StringBuilder(attrs.length * 64);
+        sb.append(attrs[0]);
+        for (int i = 1; i < attrs.length; i++) {
+            sb.append(' ').append(attrs[i]);
         }
         return sb.toString();
     }
