@@ -141,8 +141,11 @@ public class CdiConverter implements Converter, StateHolder {
      */
     private Converter getDelegate(FacesContext facesContext) {
         if (delegate == null) {
-            // if the converterId is not defined, use the forClass property
-            delegate = converterId.isEmpty() ? facesContext.getApplication().createConverter(forClass) : facesContext.getApplication().createConverter(converterId);
+            if (!converterId.isEmpty()) {
+                delegate = facesContext.getApplication().createConverter(converterId);
+            } else {
+                delegate = facesContext.getApplication().createConverter(forClass);
+            }
         }
         return delegate;
     }
