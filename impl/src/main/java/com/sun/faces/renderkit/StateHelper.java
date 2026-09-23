@@ -99,8 +99,7 @@ public abstract class StateHelper {
      * Constructs a new <code>StateHelper</code> instance.
      */
     public StateHelper() {
-        final FacesContext context = FacesContext.getCurrentInstance();
-        final ExternalContext externalContext = context.getExternalContext();
+        final ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
         serialProvider = SerializationProviderFactory.createInstance(externalContext);
         webConfig = WebConfiguration.getInstance(externalContext);
         compressViewState = webConfig.isOptionEnabled(CompressViewState);
