@@ -35,12 +35,6 @@ public class ConcurrentLruMap<K, V> implements ConcurrentMap<K, V>, Serializable
         this.sync = Collections.synchronizedMap(lru);
     }
 
-
-    // ---- specifici LRU ----
-    public Map.Entry<K, V> popEldestEntry() {
-        synchronized (sync) { return lru.popEldestEntry(); }
-    }
-
     /** Snapshot consistente e *staccato*, preso sotto lock: sicuro da iterare. */
     public List<Map.Entry<K, V>> snapshot() {
         synchronized (sync) {

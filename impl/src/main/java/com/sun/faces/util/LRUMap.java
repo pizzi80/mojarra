@@ -18,7 +18,6 @@ package com.sun.faces.util;
 
 import static com.sun.faces.util.Util.calculateMapCapacity;
 
-import java.io.Serial;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -27,9 +26,7 @@ import java.util.Map;
  */
 public class LRUMap<K, V> extends LinkedHashMap<K, V> {
 
-    @Serial
     private static final long serialVersionUID = -7137951139094651602L;
-
     private final int maxCapacity;
 
     // ------------------------------------------------------------ Constructors
@@ -59,20 +56,6 @@ public class LRUMap<K, V> extends LinkedHashMap<K, V> {
     @Override
     protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
         return size() > maxCapacity;
-    }
-
-    // ---------------------------------------------- Custom Methods
-
-    /**
-     * Remove and return the eldest element from the Map if we've reached the maximum capacity.
-     * @return the eldest element, if we've reached the maximum capacity, null otherwise.
-     */
-    public Map.Entry<K,V> popEldestEntry() {
-        if (isEmpty()) return null;
-
-        K eldestKey = keySet().iterator().next();   // the eldest key is the first one
-        V eldestValue = remove(eldestKey);          // remove and return the element
-        return Map.entry(eldestKey, eldestValue);
     }
 
     // TEST: com.sun.faces.TestLRUMap_local
