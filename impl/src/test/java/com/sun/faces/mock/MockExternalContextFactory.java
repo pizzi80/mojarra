@@ -40,5 +40,4 @@ public class MockExternalContextFactory extends ExternalContextFactory {
         return new MockExternalContext((ServletContext) context,
                 (ServletRequest) request, (ServletResponse) response);
     }
-
 }

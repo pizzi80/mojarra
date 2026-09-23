@@ -44,5 +44,4 @@ public class MockApplicationFactory extends ApplicationFactory {
     public void setApplication(Application application) {
         this.application = application;
     }
-
 }
