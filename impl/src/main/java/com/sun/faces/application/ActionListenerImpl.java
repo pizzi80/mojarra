@@ -28,7 +28,6 @@ import jakarta.el.ELException;
 import jakarta.el.MethodExpression;
 import jakarta.faces.FacesException;
 import jakarta.faces.application.NavigationHandler;
-import jakarta.faces.application.ViewExpiredException;
 import jakarta.faces.component.ActionSource;
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.context.FacesContext;
