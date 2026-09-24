@@ -107,7 +107,7 @@ public class TagAttributeImpl extends TagAttribute {
         if (literal) {
             return Boolean.parseBoolean(value);
         } else {
-            Boolean value = this.getObject(ctx, Boolean.class);
+            Boolean value = getObject(ctx, Boolean.class);
             return Boolean.TRUE.equals(value);
         }
     }
@@ -126,7 +126,7 @@ public class TagAttributeImpl extends TagAttribute {
         if (literal) {
             return Integer.parseInt(value);
         } else {
-            return this.getObject(ctx, Integer.class);
+            return getObject(ctx, Integer.class);
         }
     }
 
@@ -211,7 +211,7 @@ public class TagAttributeImpl extends TagAttribute {
      */
     @Override
     public Object getObject(FaceletContext ctx) {
-        return this.getObject(ctx, Object.class);
+        return getObject(ctx, Object.class);
     }
 
     /**
