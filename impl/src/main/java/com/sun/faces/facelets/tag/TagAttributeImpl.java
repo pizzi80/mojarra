@@ -51,23 +51,14 @@ import com.sun.faces.util.Util;
 public class TagAttributeImpl extends TagAttribute {
 
     private final boolean literal;
-
     private final boolean compositeComponentExpr;
-
     private final boolean compositeComponentLookupWithArgs;
-
     private final String localName;
-
     private final Location location;
-
     private final String namespace;
-
     private final String qName;
-
     private final String value;
-
     private String string;
-
     private Tag tag;
 
     public TagAttributeImpl() {
@@ -85,12 +76,12 @@ public class TagAttributeImpl extends TagAttribute {
 
     public TagAttributeImpl(Location location, String ns, String localName, String qName, String value) {
         this.location = location;
-        namespace = ns;
+        this.namespace = ns;
         this.localName = null == localName || localName.isEmpty() ? qName : localName;
         this.qName = qName;
         this.value = value;
         try {
-            literal = ELText.isLiteral(this.value);
+            this.literal = ELText.isLiteral(this.value);
         } catch (ELException e) {
             throw new TagAttributeException(this, e);
         }
@@ -173,7 +164,7 @@ public class TagAttributeImpl extends TagAttribute {
     @Override
     public MethodExpression getMethodExpression(FaceletContext ctx, Class<?> type, Class<?>[] paramTypes) {
 
-        MethodExpression result;
+        final MethodExpression result;
 
         try {
             ExpressionFactory f = ctx.getExpressionFactory();
@@ -265,7 +256,7 @@ public class TagAttributeImpl extends TagAttribute {
         if (literal) {
             return value;
         } else {
-            return this.getObject(ctx, String.class);
+            return getObject(ctx, String.class);
         }
     }
 
@@ -372,13 +363,11 @@ public class TagAttributeImpl extends TagAttribute {
         private final ValueExpression lookupExpression;
 
         public AttributeLookupMethodExpression(ValueExpression lookupExpression) {
-
             Util.notNull("lookupExpression", lookupExpression);
             this.lookupExpression = lookupExpression;
-
         }
 
-        @SuppressWarnings({ "UnusedDeclaration" })
+        @SuppressWarnings("UnusedDeclaration")
         public AttributeLookupMethodExpression() {
             lookupExpression = null;
         } // for serialization
@@ -415,13 +404,11 @@ public class TagAttributeImpl extends TagAttribute {
 
         @Override
         public String getExpressionString() {
-
             return lookupExpression.getExpressionString();
         }
 
         @Override
         public boolean equals(Object object) {
-
             final boolean result;
             if (object instanceof AttributeLookupMethodExpression expression) {
                 result = lookupExpression.getExpressionString().equals(expression.lookupExpression.getExpressionString());
@@ -429,22 +416,17 @@ public class TagAttributeImpl extends TagAttribute {
                 result = false;
             }
             return result;
-
         }
 
         @Override
         public boolean isLiteralText() {
-
             return lookupExpression.isLiteralText();
-
         }
 
         @Override
         public int hashCode() {
-
             return lookupExpression.hashCode();
-
         }
 
-    } // END AttributeLookupMethodExpression
+    }
 }
