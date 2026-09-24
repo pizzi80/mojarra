@@ -16,7 +16,6 @@
 
 package com.sun.faces.util;
 
-import java.io.Serial;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -191,7 +190,9 @@ public class MultiKeyConcurrentHashMap<K, V> {
          * As a guide, all critical volatile reads and writes to the count field are marked in code comments.
          */
 
-        @Serial
+        /**
+         *
+         */
         private static final long serialVersionUID = -5546647604753877171L;
 
         /**
@@ -243,7 +244,9 @@ public class MultiKeyConcurrentHashMap<K, V> {
          * Return properly casted first entry of bin for given hash
          */
         HashEntry<K, V> getFirst(int hash) {
-            return table[hash & table.length - 1];
+            HashEntry[] tab = table;
+            // noinspection unchecked
+            return tab[hash & tab.length - 1];
         }
 
         /**
@@ -300,11 +303,10 @@ public class MultiKeyConcurrentHashMap<K, V> {
             if (count != 0) { // read-volatile
                 HashEntry<K,V>[] tab = table;
                 int len = tab.length;
-                for (HashEntry<K, V> kvHashEntry : tab) {
-                    for (HashEntry<K, V> e = kvHashEntry; e != null; e = e.next) {
+                for (int i = 0; i < len; i++) {
+                    for (HashEntry<K, V> e = tab[i]; e != null; e = e.next) {
                         V v = e.value;
-                        if (v == null) // recheck
-                        {
+                        if (v == null) { // recheck
                             v = readValueUnderLock(e);
                         }
                         if (value.equals(v)) {
@@ -410,9 +412,11 @@ public class MultiKeyConcurrentHashMap<K, V> {
             HashEntry<K,V>[] newTable = new HashEntry[oldCapacity << 1];
             threshold = (int) (newTable.length * loadFactor);
             int sizeMask = newTable.length - 1;
-            for (HashEntry<K, V> e : oldTable) {
+            for (int i = 0; i < oldCapacity; i++) {
                 // We need to guarantee that any existing reads of old Map can
                 // proceed. So we cannot yet null out each bin.
+                HashEntry<K, V> e = oldTable[i];
+
                 if (e != null) {
                     HashEntry<K, V> next = e.next;
                     int idx = e.hash & sizeMask;
