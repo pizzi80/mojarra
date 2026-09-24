@@ -17,7 +17,6 @@
 package com.sun.faces.facelets.component;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Map;
 
 import jakarta.faces.component.UIComponent;
@@ -45,22 +44,16 @@ public class RepeatRenderer extends Renderer {
                 ResponseWriter out = context.getResponseWriter();
                 out.startElement(tag, component);
                 String[] attrs = (String[]) attributes.get("alias.attributes");
-                String attr;
+
                 if (attrs != null) {
                     for (String s : attrs) {
-                        attr = s;
-                        if ("styleClass".equals(attr)) {
-                            attr = "class";
-                        }
+                        String attr = "styleClass".equals(s) ? "class" : s;
                         out.writeAttribute(attr, attributes.get(s), s);
                     }
                 }
             }
 
-            Iterator<UIComponent> itr = component.getChildren().iterator();
-            UIComponent c;
-            while (itr.hasNext()) {
-                c = itr.next();
+            for (UIComponent c : component.getChildren()) {
                 c.encodeAll(context);
             }
 
