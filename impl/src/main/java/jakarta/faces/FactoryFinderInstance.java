@@ -249,7 +249,8 @@ final class FactoryFinderInstance {
     // -------------------------------------------------------- Private methods
 
     private void copyInjectionProviderFromFacesContext(FacesContext facesContext) {
-        final InjectionProvider injectionProvider = facesContext != null ? (InjectionProvider) facesContext.getAttributes().get(ConfigManager.INJECTION_PROVIDER_KEY) : null;
+        final InjectionProvider injectionProvider = facesContext != null ?
+                (InjectionProvider) facesContext.getAttributes().get(ConfigManager.INJECTION_PROVIDER_KEY) : null;
 
         if (injectionProvider != null) {
             factories.put(INJECTION_PROVIDER_KEY, injectionProvider);
@@ -326,8 +327,10 @@ final class FactoryFinderInstance {
 
         // step 2.
         List<String> fromServices = getImplNameFromServices(classLoader, factoryName);
-        for (String name : fromServices) {
-            implementation = getImplGivenPreviousImpl(classLoader, factoryName, name, implementation);
+        if (fromServices != null) {
+            for (String name : fromServices) {
+                implementation = getImplGivenPreviousImpl(classLoader, factoryName, name, implementation);
+            }
         }
 
         // step 3.
@@ -406,9 +409,8 @@ final class FactoryFinderInstance {
             // We have a previous factory implementation AND the appropriate one argument ctor.
 
             try {
-                factoryImplementation = Class.forName(factoryImplClassName, false, classLoader)
-                                             .getConstructor(factoryClass)
-                                             .newInstance(previousFactoryImplementation);
+                factoryImplementation = Class.forName(factoryImplClassName, false, classLoader).getConstructor(factoryClass)
+                        .newInstance(previousFactoryImplementation);
 
             } catch (NoSuchMethodException nsme) {
                 // fall through to "zero-arg-ctor" case
@@ -428,9 +430,8 @@ final class FactoryFinderInstance {
                 // Since this is the hard coded implementation default, there is no preceding implementation,
                 // so don't bother with a non-zero-argument ctor.
 
-                factoryImplementation = Class.forName(factoryImplClassName, false, classLoader)
-                                             .getDeclaredConstructor()
-                                             .newInstance();
+                factoryImplementation = Class.forName(factoryImplClassName, false, classLoader).getDeclaredConstructor()
+                        .newInstance();
 
             } catch (IllegalArgumentException | ReflectiveOperationException | SecurityException e) {
                 throw new FacesException(factoryImplClassName, e);
