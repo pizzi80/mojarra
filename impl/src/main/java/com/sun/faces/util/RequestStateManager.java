@@ -127,7 +127,7 @@ public class RequestStateManager {
     /**
      * Attributes to be removed while changing the view root
      */
-    private static final Set<String> ATTRIBUTES_TO_CLEAR_ON_CHANGE_OF_VIEW = Set.of( SCRIPT_STATE, PROCESSED_RESOURCE_DEPENDENCIES, PROCESSED_RADIO_BUTTON_GROUPS );
+    private static final Set<String> ATTRIBUTES_TO_CLEAR_ON_CHANGE_OF_VIEW = Set.of(SCRIPT_STATE, PROCESSED_RESOURCE_DEPENDENCIES, PROCESSED_RADIO_BUTTON_GROUPS);
 
     /**
      * <p>
