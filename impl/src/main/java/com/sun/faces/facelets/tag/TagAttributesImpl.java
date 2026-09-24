@@ -29,10 +29,16 @@ import jakarta.faces.view.facelets.TagAttributes;
 /**
  * A set of TagAttributesImpl, usually representing all attributes on a Tag.
  * <p>
- * Attributes are grouped per namespace once, when the tag is compiled. A tag almost always declares attributes in a
- * single namespace (a few in two), so namespaces are looked up with a linear scan: on one or two entries it is cheaper
- * than hashing or a binary search, and {@link String#equals(Object)} short-circuits on identity for the interned
- * namespace strings coming from the parser.
+ * Instances live in the Facelet cache for the lifetime of the application, one per tag in every compiled file, so the
+ * layout is tuned for footprint:
+ * <ul>
+ * <li>Unprefixed attributes have no namespace (the empty string, as reported by SAX), so almost every tag declares
+ * all of its attributes in a single namespace. That case allocates nothing beyond the instance itself: the group is
+ * {@link #attrs} and the namespace array is shared.</li>
+ * <li>Only tags mixing namespaces (pass-through, HTML5-friendly markup) group attributes per namespace.</li>
+ * </ul>
+ * Namespaces are looked up with a linear scan: on one or two entries it is cheaper than hashing or a binary search, and
+ * {@link String#equals(Object)} short-circuits on identity for the interned namespace strings coming from the parser.
  * <p>
  * Namespaces, and attributes within a namespace, are kept in declaration order. Namespaces are assumed non-null, as
  * the compiler always passes the empty string for attributes without a namespace.
@@ -42,14 +48,23 @@ import jakarta.faces.view.facelets.TagAttributes;
  * @version $Id$
  */
 public final class TagAttributesImpl extends TagAttributes {
+
     private static final TagAttribute[] EMPTY = {};
+
+    private static final String[] NO_NAMESPACES = {};
+
+    /** Shared by every tag whose attributes are all unprefixed. Must never be modified. */
+    private static final String[] DEFAULT_NAMESPACE_ONLY = { RIConstants.EMPTY_STRING };
 
     private final TagAttribute[] attrs;
 
     /** Distinct namespaces, in order of first appearance. */
     private final String[] ns;
 
-    /** Attributes of each namespace, parallel to {@link #ns}, in declaration order. */
+    /**
+     * Attributes of each namespace, parallel to {@link #ns}, in declaration order; {@code null} when there is at most
+     * one namespace, whose attributes are then {@link #attrs} itself.
+     */
     private final TagAttribute[][] nsAttrs;
 
     /** Attributes in a pass-through namespace, in declaration order. */
@@ -65,7 +80,28 @@ public final class TagAttributesImpl extends TagAttributes {
 
         int length = attrs.length;
 
-        // distinct namespaces in order of first appearance, attribute count per namespace,
+        // A tag without attributes: <h:head>, <h:body>, <f:metadata>, the <ui:composition> root of a tag file or
+        // include, and at compile time every plain markup element without attributes, since the compiler builds a
+        // Tag for each element before deciding whether it is a handler or literal text. Nothing to group, and the
+        // single-namespace path below would read attrs[0].
+        if (length == 0) {
+            this.ns = NO_NAMESPACES;
+            this.nsAttrs = null;
+            this.passthroughAttrs = EMPTY;
+            return;
+        }
+
+        // fast path, by far the most common case: a single namespace, no temporary allocation
+        String first = attrs[0].getNamespace();
+
+        if (isSingleNamespace(attrs, first)) {
+            this.ns = RIConstants.EMPTY_STRING.equals(first) ? DEFAULT_NAMESPACE_ONLY : new String[] { first };
+            this.nsAttrs = null;
+            this.passthroughAttrs = PassThroughAttributeLibrary.NAMESPACES.contains(first) ? attrs : EMPTY;
+            return;
+        }
+
+        // general case: distinct namespaces in order of first appearance, attribute count per namespace,
         // namespace index of each attribute
         String[] found = new String[length];
         int[] counts = new int[length];
@@ -88,39 +124,41 @@ public final class TagAttributesImpl extends TagAttributes {
         // pass-through: one Set lookup per namespace, not per attribute
         boolean[] passthrough = new boolean[n];
         int passthroughCount = 0;
+        int passthroughNsCount = 0;
+        int passthroughNsIndex = -1;
 
         for (int k = 0; k < n; k++) {
             if (PassThroughAttributeLibrary.NAMESPACES.contains(found[k])) {
                 passthrough[k] = true;
                 passthroughCount += counts[k];
+                passthroughNsCount++;
+                passthroughNsIndex = k;
             }
         }
 
-        // group per namespace (must come after the pass-through count: counts is reused as fill cursor)
+        // group per namespace (after the pass-through count: counts is reused as fill cursor)
         TagAttribute[][] grouped = new TagAttribute[n][];
 
-        if (n == 1) {
-            // by far the most common case: a single namespace, its attributes are all of them
-            grouped[0] = attrs;
-        } else {
-            for (int k = 0; k < n; k++) {
-                grouped[k] = new TagAttribute[counts[k]];
-                counts[k] = 0;
-            }
-            for (int i = 0; i < length; i++) {
-                int idx = attrNs[i];
-                grouped[idx][counts[idx]++] = attrs[i];
-            }
+        for (int k = 0; k < n; k++) {
+            grouped[k] = new TagAttribute[counts[k]];
+            counts[k] = 0;
+        }
+        for (int i = 0; i < length; i++) {
+            int idx = attrNs[i];
+            grouped[idx][counts[idx]++] = attrs[i];
         }
 
         this.nsAttrs = grouped;
 
-        // collect pass-through attributes, preserving declaration order across pass-through namespaces
         if (passthroughCount == 0) {
             this.passthroughAttrs = EMPTY;
         } else if (passthroughCount == length) {
             this.passthroughAttrs = attrs;
+        } else if (passthroughNsCount == 1) {
+            // a single pass-through namespace: its group already is the pass-through set
+            this.passthroughAttrs = grouped[passthroughNsIndex];
         } else {
+            // both pass-through namespaces on the same tag: merge in declaration order
             TagAttribute[] result = new TagAttribute[passthroughCount];
             int j = 0;
             for (int i = 0; i < length; i++) {
@@ -130,6 +168,15 @@ public final class TagAttributesImpl extends TagAttributes {
             }
             this.passthroughAttrs = result;
         }
+    }
+
+    private static boolean isSingleNamespace(TagAttribute[] attrs, String namespace) {
+        for (int i = 1; i < attrs.length; i++) {
+            if (!namespace.equals(attrs[i].getNamespace())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static int indexOf(String[] namespaces, int length, String namespace) {
@@ -142,7 +189,13 @@ public final class TagAttributesImpl extends TagAttributes {
     }
 
     private int indexOf(String namespace) {
+        String[] ns = this.ns;
         return indexOf(ns, ns.length, namespace);
+    }
+
+    private TagAttribute[] group(int idx) {
+        TagAttribute[][] nsAttrs = this.nsAttrs;
+        return nsAttrs == null ? attrs : nsAttrs[idx];
     }
 
     /**
@@ -190,7 +243,7 @@ public final class TagAttributesImpl extends TagAttributes {
         if (ns != null && localName != null) {
             int idx = indexOf(ns);
             if (idx >= 0) {
-                for (TagAttribute attr : nsAttrs[idx]) {
+                for (TagAttribute attr : group(idx)) {
                     if (localName.equals(attr.getLocalName())) {
                         return attr;
                     }
@@ -209,11 +262,12 @@ public final class TagAttributesImpl extends TagAttributes {
     @Override
     public TagAttribute[] getAll(String namespace) {
         int idx = indexOf(Util.coalesce(namespace, RIConstants.EMPTY_STRING));
-        return idx >= 0 ? nsAttrs[idx] : EMPTY;
+        return idx >= 0 ? group(idx) : EMPTY;
     }
 
     /**
-     * A list of Namespaces found in this set, in order of first appearance
+     * A list of Namespaces found in this set, in order of first appearance. The returned array may be shared between
+     * instances and must not be modified.
      *
      * @return a list of Namespaces found in this set
      */
@@ -242,8 +296,9 @@ public final class TagAttributesImpl extends TagAttributes {
      */
     @Override
     public String toString() {
+        TagAttribute[] attrs = this.attrs;
         if (attrs.length == 0) {
-            return "";
+            return RIConstants.EMPTY_STRING;
         }
         StringBuilder sb = new StringBuilder(attrs.length * 64);
         sb.append(attrs[0]);
