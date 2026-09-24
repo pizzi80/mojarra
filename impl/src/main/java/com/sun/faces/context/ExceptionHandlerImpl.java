@@ -59,7 +59,10 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
     private static final String LOG_AFTER_KEY = "faces.context.exception.handler.log_after";
     private static final String LOG_KEY = "faces.context.exception.handler.log";
 
-    public static final java.util.logging.Level INCIDENT_ERROR = Level.parse(Integer.toString(Level.SEVERE.intValue() + 100));
+    public static final Level INCIDENT_ERROR = new Level("INCIDENT_ERROR", Level.SEVERE.intValue() + 100) {};
+
+    // Usually 0 (lazy) or 1 per request; 2 covers a secondary failure while rendering the error page.
+    private static final int INITIAL_QUEUE_CAPACITY = 2;
 
     private Queue<ExceptionQueuedEvent> unhandledExceptions;
     private Queue<ExceptionQueuedEvent> handledExceptions;
@@ -94,7 +97,6 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
     /**
      * @see jakarta.faces.context.ExceptionHandler#handle()
      */
-    @SuppressWarnings({ "ThrowableInstanceNeverThrown" })
     @Override
     public void handle() throws FacesException {
 
@@ -127,7 +129,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
             } finally {
                 if (handledExceptions == null) {
-                    handledExceptions = new ArrayDeque<>(4);
+                    handledExceptions = new ArrayDeque<>(INITIAL_QUEUE_CAPACITY);
                 }
                 handledExceptions.add(event);
                 i.remove();
@@ -154,7 +156,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
         if (event != null) {
             if (unhandledExceptions == null) {
-                unhandledExceptions = new ArrayDeque<>(4);
+                unhandledExceptions = new ArrayDeque<>(INITIAL_QUEUE_CAPACITY);
             }
             unhandledExceptions.add((ExceptionQueuedEvent) event);
         }
@@ -270,7 +272,7 @@ public class ExceptionHandlerImpl extends ExceptionHandler {
 
     /**
      * @param c <code>Throwable</code> implementation class
-     * @return <code>true</code> if <code>c</code> is FacesException.class or ELException.class
+     * @return <code>true</code> if <code>c</code> is assignable from FacesException.class or ELException.class
      */
     private boolean shouldUnwrap(Class<? extends Throwable> c) {
         // https://github.com/jakartaee/faces/issues/864
