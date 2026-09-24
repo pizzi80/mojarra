@@ -21,7 +21,6 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -60,45 +59,40 @@ public class MetaRulesetImpl extends MetaRuleset {
     // ------------------------------------------------------------ Constructors
 
     public MetaRulesetImpl(Tag tag, Class<?> type) {
-
         this.tag = tag;
         this.type = type;
-        attributes = new HashMap<>();
         mappers = new ArrayList<>();
         rules = new ArrayList<>();
 
         // setup attributes
         TagAttribute[] attrs = this.tag.getAttributes().getAll();
-        for (int i = 0; i < attrs.length; i++) {
-            if (PassThroughAttributeLibrary.NAMESPACES.contains(attrs[i].getNamespace())) {
+        attributes = new HashMap<>(attrs.length, 1.0f);
+        for (TagAttribute attr : attrs) {
+            if (PassThroughAttributeLibrary.NAMESPACES.contains(attr.getNamespace())) {
                 continue;
             }
-            if (attrs[i].getLocalName().equals("class")) {
-                attributes.put("styleClass", attrs[i]);
+            if (attr.getLocalName().equals("class")) {
+                attributes.put("styleClass", attr);
             } else {
-                attributes.put(attrs[i].getLocalName(), attrs[i]);
+                attributes.put(attr.getLocalName(), attr);
             }
         }
 
         // add default rules
         rules.add(BeanPropertyTagRule.Instance);
-
     }
 
     // ---------------------------------------------------------- Public Methods
 
     @Override
     public MetaRuleset ignore(String attribute) {
-
         Util.notNull("attribute", attribute);
         attributes.remove(attribute);
         return this;
-
     }
 
     @Override
     public MetaRuleset alias(String attribute, String property) {
-
         Util.notNull("attribute", attribute);
         Util.notNull("property", property);
         TagAttribute attr = attributes.remove(attribute);
@@ -106,27 +100,22 @@ public class MetaRulesetImpl extends MetaRuleset {
             attributes.put(property, attr);
         }
         return this;
-
     }
 
     @Override
     public MetaRuleset add(Metadata mapper) {
-
         Util.notNull("mapper", mapper);
         if (!mappers.contains(mapper)) {
             mappers.add(mapper);
         }
         return this;
-
     }
 
     @Override
     public MetaRuleset addRule(MetaRule rule) {
-
         Util.notNull("rule", rule);
         rules.add(rule);
         return this;
-
     }
 
     @Override
@@ -172,10 +161,8 @@ public class MetaRulesetImpl extends MetaRuleset {
 
     @Override
     public MetaRuleset ignoreAll() {
-
         attributes.clear();
         return this;
-
     }
 
     // ------------------------------------------------------- Protected Methods
@@ -192,7 +179,6 @@ public class MetaRulesetImpl extends MetaRuleset {
             metadata.put(type, new WeakReference<>(meta));
         }
         return meta;
-
     }
 
     // --------------------------------------------------------- Private Methods
