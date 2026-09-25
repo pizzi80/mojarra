@@ -322,7 +322,7 @@ if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{app
         // --- HTML as String processing functions ----------------------------------------------------------------------------
 
         // Regex to find all scripts, isolating their attributes [1] and content [2]
-        // g: used with matchAll to iterate over all the script tags
+        // g: used with matchAll and replace to process all the script tags
         // i: case-insensitive (<SCRIPT>, <Script>, ...)
         const SCRIPT_TAG_REGEX = /<script([^>]*)>([\S\s]*?)<\/script>/gi;
 
@@ -330,7 +330,19 @@ if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{app
         const TAG_ATTRIBUTE_TYPE_REGEX = /type="([\S]*?)"/im;
 
         /**
-         * Get all scripts from supplied string, return them as an array for later processing.
+         * Check if a script is executable: its type is not specified or it is text/javascript.
+         * Scripts with other types (ld+json for example) are data and must be left in the html.
+         * @param attributes the attributes of a script tag
+         * @returns {boolean} true if the script is executable
+         * @ignore
+         */
+        const isExecutableScript = function isExecutableScript(attributes) {
+            const type = attributes.match(TAG_ATTRIBUTE_TYPE_REGEX);
+            return !type || type[1] === "text/javascript";
+        };
+
+        /**
+         * Get all executable scripts from supplied string, return them as an array for later processing.
          * @param html a String containing a portion of html
          * @returns {RegExpExecArray[]} the script matches: [0] full tag, [1] attributes, [2] content
          * @ignore
@@ -338,30 +350,22 @@ if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{app
         const getScripts = function getScripts(html) {
             const scripts = [];
             for (const script of html.matchAll(SCRIPT_TAG_REGEX)) {
-                // check the type - skip if specified but not text/javascript (ld+json for example)
-                const type = script[1].match(TAG_ATTRIBUTE_TYPE_REGEX);
-                if (type && type[1] !== "text/javascript") {
-                    continue;
+                if (isExecutableScript(script[1])) {
+                    scripts.push(script);
                 }
-                scripts.push(script);
             }
             return scripts;
         };
 
         /**
-         * Remove all the portion of code matching the script pattern from the passed string,
+         * Remove all the executable scripts from the passed string,
          * preserving scripts whose type is set to something other than text/javascript.
          * @param html a String containing a portion of html
+         * @returns {string} the html without the executable scripts
          * @ignore
          */
         const removeScripts = function removeScripts(html) {
-            return html.replace(/<script[^>]*>([\S\s]*?)<\/script>/igm, (match) => {
-                const type = match.match(TAG_ATTRIBUTE_TYPE_REGEX);
-                if (!!type && type[1] !== "text/javascript") {
-                    return match; // keep non-text/javascript scripts
-                }
-                return EMPTY;
-            });
+            return html.replace(SCRIPT_TAG_REGEX, (tag, attributes) => isExecutableScript(attributes) ? EMPTY : tag);
         };
 
         /**
@@ -1361,92 +1365,89 @@ if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{app
              * @ignore
              */
             req.sendRequest = function () {
-                if (isNotNull(req.xmlReq)) {
-                    // if there is already a request on the queue waiting to be processed..
-                    // just queue this request
-                    // TODO: add support for async ajax requests
-                    // https://github.com/eclipse-ee4j/mojarra/issues/4946
-                    if (!req.que.isEmpty()) {
-                        if (!req.fromQueue) {
-                            req.que.enqueue(req);
-                            return;
-                        }
-                    }
-                    // If the queue is empty, queue up this request and send
+                // if there is already a request on the queue waiting to be processed..
+                // just queue this request
+                // TODO: add support for async ajax requests
+                // https://github.com/eclipse-ee4j/mojarra/issues/4946
+                if (!req.que.isEmpty()) {
                     if (!req.fromQueue) {
                         req.que.enqueue(req);
+                        return;
                     }
-                    // Some logic to get the real request URL
-                    if (req.generateUniqueUrl && req.method === "GET") {
-                        req.parameters["AjaxRequestUniqueId"] = new Date().getTime() + EMPTY + req.requestIndex;
-                    }
-
-                    // is a multipart form data ?
-                    const isMultiPart = (req.method === "POST" && context.form.enctype === 'multipart/form-data');
-
-                    // If multipart prepare the FormData
-                    const formData = isMultiPart ? new FormData(context.form) : undefined;
-
-                    // Add parameters encoded or multipart
-                    const params = new URLSearchParams(req.queryString);
-                    for ( const i of Object.keys(req.parameters) ) {
-                        // if is multipart request -> add parameter to FormData
-                        if ( isMultiPart ) {
-                            formData.append(i,req.parameters[i]);
-                        }
-                        // else is a normal post request -> add to URLSearchParams for POST
-                        else {
-                            params.append(i, req.parameters[i]);
-                        }
-                    }
-                    req.queryString = params.toString();
-
-                    if (req.method === "GET") {
-                        if (req.queryString.length > 0) {
-                            req.url += ((req.url.indexOf("?") > -1) ? "&" : "?") + req.queryString;
-                        }
-                    }
-
-                    // Open Ajax request
-                    req.xmlReq.open(req.method, req.url, req.async);
-
-                    // note that we are including the charset=UTF-8 as part of the content type (even
-                    // if URLSearchParams encodes as UTF-8), because with some
-                    // browsers it will not be set in the request.  Some server implementations need to
-                    // determine the character encoding from the request header content type.
-                    if (req.method === "POST") {
-                        req.xmlReq.setRequestHeader('Faces-Request', 'partial/ajax');
-
-                        // file upload
-                        if ( isMultiPart ) {
-                            formData.append('Faces-Request','partial/ajax');
-
-                            // register an upload onprogress callback
-                            if (context.includesInputFile) req.xmlReq.upload.onprogress = event => sendUploadProgressEvent(event, req.context);
-                        }
-
-                        // GET or POST
-                        // req.xmlReq.setRequestHeader('Content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
-                        else req.xmlReq.setRequestHeader( 'Content-type' , context.form.enctype+';charset=UTF-8' );
-                    }
-
-                    // note that async == false is not a supported feature.  We may change it in ways
-                    // that break existing programs at any time, with no warning.
-                    if (!req.async) req.xmlReq.onreadystatechange = null; // no need for readystate change listening
-
-                    // Send begin event
-                    sendEvent(req.xmlReq, req.context, "begin");
-
-                    // IF multipart/form-data use FormData
-                    if (isMultiPart) req.xmlReq.send(formData);
-
-                    // ELSE use query string
-                    else req.xmlReq.send(req.queryString);
-
-                    // call OnComplete if not async
-                    if(!req.async) req.onComplete();
-
                 }
+                // If the queue is empty, queue up this request and send
+                if (!req.fromQueue) {
+                    req.que.enqueue(req);
+                }
+                // Some logic to get the real request URL
+                if (req.generateUniqueUrl && req.method === "GET") {
+                    req.parameters["AjaxRequestUniqueId"] = new Date().getTime() + EMPTY + req.requestIndex;
+                }
+
+                // is a multipart form data ?
+                const isMultiPart = (req.method === "POST" && context.form.enctype === 'multipart/form-data');
+
+                // If multipart prepare the FormData
+                const formData = isMultiPart ? new FormData(context.form) : undefined;
+
+                // Add parameters encoded or multipart
+                const params = new URLSearchParams(req.queryString);
+                for ( const i of Object.keys(req.parameters) ) {
+                    // if is multipart request -> add parameter to FormData
+                    if ( isMultiPart ) {
+                        formData.append(i,req.parameters[i]);
+                    }
+                    // else is a normal post request -> add to URLSearchParams for POST
+                    else {
+                        params.append(i, req.parameters[i]);
+                    }
+                }
+                req.queryString = params.toString();
+
+                if (req.method === "GET") {
+                    if (req.queryString.length > 0) {
+                        req.url += ((req.url.indexOf("?") > -1) ? "&" : "?") + req.queryString;
+                    }
+                }
+
+                // Open Ajax request
+                req.xmlReq.open(req.method, req.url, req.async);
+
+                // note that we are including the charset=UTF-8 as part of the content type (even
+                // if URLSearchParams encodes as UTF-8), because with some
+                // browsers it will not be set in the request.  Some server implementations need to
+                // determine the character encoding from the request header content type.
+                if (req.method === "POST") {
+                    req.xmlReq.setRequestHeader('Faces-Request', 'partial/ajax');
+
+                    // file upload
+                    if ( isMultiPart ) {
+                        formData.append('Faces-Request','partial/ajax');
+
+                        // register an upload onprogress callback
+                        if (context.includesInputFile) req.xmlReq.upload.onprogress = event => sendUploadProgressEvent(event, req.context);
+                    }
+
+                    // GET or POST
+                    // req.xmlReq.setRequestHeader('Content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
+                    else req.xmlReq.setRequestHeader( 'Content-type' , context.form.enctype+';charset=UTF-8' );
+                }
+
+                // note that async == false is not a supported feature.  We may change it in ways
+                // that break existing programs at any time, with no warning.
+                if (!req.async) req.xmlReq.onreadystatechange = null; // no need for readystate change listening
+
+                // Send begin event
+                sendEvent(req.xmlReq, req.context, "begin");
+
+                // IF multipart/form-data use FormData
+                if (isMultiPart) req.xmlReq.send(formData);
+
+                // ELSE use query string
+                else req.xmlReq.send(req.queryString);
+
+                // call OnComplete if not async
+                if(!req.async) req.onComplete();
             };
 
             return req;
