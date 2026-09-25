@@ -321,11 +321,10 @@ if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{app
 
         // --- HTML as String processing functions ----------------------------------------------------------------------------
 
-        // Regex to find all scripts in a string
-        const SCRIPT_TAG_REGEX = /<script[^>]*>([\S\s]*?)<\/script>/igm;
-
-        // Regex to find one script, to isolate it's content [2] and attributes [1]
-        const SINGLE_SCRIPT_TAG_REGEX = /<script([^>]*)>([\S\s]*?)<\/script>/im;
+        // Regex to find all scripts, isolating their attributes [1] and content [2]
+        // g: used with matchAll to iterate over all the script tags
+        // i: case-insensitive (<SCRIPT>, <Script>, ...)
+        const SCRIPT_TAG_REGEX = /<script([^>]*)>([\S\s]*?)<\/script>/gi;
 
         // Regex to find type attribute
         const TAG_ATTRIBUTE_TYPE_REGEX = /type="([\S]*?)"/im;
@@ -333,22 +332,18 @@ if (!((window.faces && faces.specversion && faces.specversion >= parseInt('#{app
         /**
          * Get all scripts from supplied string, return them as an array for later processing.
          * @param html a String containing a portion of html
-         * @returns {array} of script text
+         * @returns {RegExpExecArray[]} the script matches: [0] full tag, [1] attributes, [2] content
          * @ignore
          */
         const getScripts = function getScripts(html) {
             const scripts = [];
-            const matchingNodes = html.match(SCRIPT_TAG_REGEX);
-            if (matchingNodes && matchingNodes.length > 0) {
-                for (const node of matchingNodes) {
-                    const scriptStr = node.match(SINGLE_SCRIPT_TAG_REGEX);
-                    // check the type - skip if specified but not text/javascript (json+ld for example)
-                    const type = scriptStr[1].match(TAG_ATTRIBUTE_TYPE_REGEX);
-                    if (!!type && type[1] !== "text/javascript") {
-                        continue;
-                    }
-                    scripts.push(scriptStr);
+            for (const script of html.matchAll(SCRIPT_TAG_REGEX)) {
+                // check the type - skip if specified but not text/javascript (ld+json for example)
+                const type = script[1].match(TAG_ATTRIBUTE_TYPE_REGEX);
+                if (type && type[1] !== "text/javascript") {
+                    continue;
                 }
+                scripts.push(script);
             }
             return scripts;
         };
