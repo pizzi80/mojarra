@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("removal")
 public class MostlySingletonTest {
 
     public MostlySingletonTest() {

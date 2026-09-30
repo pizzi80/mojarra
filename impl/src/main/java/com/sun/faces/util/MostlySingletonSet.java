@@ -27,12 +27,16 @@ import java.util.Set;
 /**
  * Non-thread safe implementation of {@link Set} for use when most of the time there
  * is only one element, but sometimes there are more than one.
- *
  * <p>
- * Invariant: {@code inner} is {@code null} when empty, an immutable
- * {@link Collections#singleton(Object)} when holding exactly one element added to an empty set,
- * otherwise a {@link HashSet} (which may temporarily hold a single element).
+ * This is solely for the removed children ids of {@link com.sun.faces.context.StateContext.StatelessAddRemoveListener}.
+ * It supports only what that use case needs: {@code add}, {@code remove}, {@code contains} and {@code isEmpty}
+ * with non-null elements. The other {@link Set} methods do not fully honor the {@link Set} contract.
+ * <p>
+ * Instances end up in the full view state, so the class name is part of the serialized state.
+ *
+ * @deprecated Do not reuse this class, it is removed in 5.0.
  */
+@Deprecated(since = "4.0.27", forRemoval = true)
 public class MostlySingletonSet<E> implements Set<E>, Serializable {
 
     private static final long serialVersionUID = 2818326518724772145L;
