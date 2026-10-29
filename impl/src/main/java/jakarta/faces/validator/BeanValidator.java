@@ -624,7 +624,7 @@ public class BeanValidator implements Validator, PartialStateHolder {
 
     private static class FacesAwareMessageInterpolator implements MessageInterpolator {
 
-        private MessageInterpolator delegate;
+        private final MessageInterpolator delegate;
 
         public FacesAwareMessageInterpolator(MessageInterpolator delegate) {
             this.delegate = delegate;
