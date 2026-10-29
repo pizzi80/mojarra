@@ -50,6 +50,8 @@ public abstract class StateHelper {
 
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
 
+    public static final String STATELESS = "stateless";
+
     /**
      * <p>
      * Factory for serialization streams. These are pluggable via the
@@ -154,7 +156,7 @@ public abstract class StateHelper {
             throw new IllegalStateException("Cannot determine whether or not the request is stateless");
         }
 
-        return "stateless".equals(getStateParamValue(ctx));
+        return STATELESS.equals(getStateParamValue(ctx));
     }
 
     // ------------------------------------------------------- Protected Methods
