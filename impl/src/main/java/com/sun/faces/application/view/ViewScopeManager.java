@@ -691,7 +691,13 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
      * Generates a key for the session-scoped active view map registry.
      * <p>
      * The registry is per-session and bounded (default 25 entries), so 64 random bits
-     * are already overkill: birthday collision probability is ~3e-18 at full capacity.
+     * are already overkill: birthday collision probability is ~1.6e-17 at full capacity.
+     * <p>
+     * The key is an identifier, not a credential: it never reaches the client in a form
+     * the client can choose (server state: kept in session; client state: inside the
+     * encrypted and MAC'd blob). Access is guarded by the session and the view state.
+     * {@code ThreadLocalRandom} output is trivially predictable (invertible mix64 of a
+     * per-thread counter): do NOT reuse this method for anything a client sends back.
      * <p>
      * {@code ThreadLocalRandom} has no shared state, unlike the {@code SecureRandom}
      * instance behind {@code UUID.randomUUID()}, which serializes under load.
