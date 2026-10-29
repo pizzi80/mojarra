@@ -136,8 +136,7 @@ public class ServerSideStateHelper extends StateHelper {
     public void writeState(FacesContext ctx, Object state, StringBuilder stateCapture) throws IOException {
         notNull("context", ctx);
 
-        // NOTE: we use a single value String array to use it inside lambdas
-        final String[] id = new String[1];
+        final String id;
 
         final UIViewRoot viewRoot = ctx.getViewRoot();
 
@@ -181,7 +180,7 @@ public class ServerSideStateHelper extends StateHelper {
                         logicalMap.put(idInLogicalMap, actualMap);
                     }
 
-                    id[0] = idInLogicalMap + ':' + idInActualMap;
+                    id = idInLogicalMap + ':' + idInActualMap;
 
                     Object[] stateArray = actualMap.get(idInActualMap);
                     // reuse the array if possible
@@ -194,19 +193,19 @@ public class ServerSideStateHelper extends StateHelper {
 
                     // always call put/setAttribute as we may be in a clustered environment.
                     sessionMap.put(LOGICAL_VIEW_MAP, logicalMap);
-                    ctx.getAttributes().put("com.sun.faces.ViewStateValue", id[0]);
+                    ctx.getAttributes().put("com.sun.faces.ViewStateValue", id);
                 }
             }
             else {
-                id[0] = (String) ctx.getAttributes().get("com.sun.faces.ViewStateValue");
+                id = (String) ctx.getAttributes().get("com.sun.faces.ViewStateValue");
             }
         }
         else {
-            id[0] = STATELESS;
+            id = STATELESS;
         }
 
         if (stateCapture != null) {
-            stateCapture.append(id[0]);
+            stateCapture.append(id);
         }
         else {
             ResponseWriter writer = ctx.getResponseWriter();
@@ -218,7 +217,7 @@ public class ServerSideStateHelper extends StateHelper {
                 String viewStateId = Util.getViewStateId(ctx);
                 writer.writeAttribute("id", viewStateId, null);
             }
-            writer.writeAttribute("value", id[0], null);
+            writer.writeAttribute("value", id, null);
             writer.writeAttribute("autocomplete", webConfig.isOptionEnabled(AutoCompleteOffOnViewState) ? "off" : "one-time-code", null);
             writer.endElement("input");
 
