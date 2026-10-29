@@ -29,6 +29,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableList;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.SEVERE;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -36,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -123,12 +123,11 @@ public class ConfigManager {
     private static final String ANNOTATIONS_SCAN_TASK_KEY = ConfigManager.class.getName() + "_ANNOTATION_SCAN_TASK";
 
     /**
-     * <p>
-     * Contains each <code>ServletContext</code> that we've initialized. The <code>ServletContext</code> will be removed
-     * when the application is destroyed.
-     * </p>
+     * Whether the application of this instance has been initialized. There is one instance per application, see
+     * {@link #getInstance(ServletContext)}. The container may pass each listener a different <code>ServletContext</code>
+     * object for the same application.
      */
-    private final List<ServletContext> initializedContexts = new CopyOnWriteArrayList<>();
+    private volatile boolean initialized;
 
     private final List<ConfigProcessor> configProcessors = List.of(
                 new FactoryConfigProcessor(),
@@ -222,7 +221,7 @@ public class ConfigManager {
     public void initialize(ServletContext servletContext, InitFacesContext facesContext) {
         if (!hasBeenInitialized(servletContext)) {
 
-            initializedContexts.add(servletContext);
+            initialized = true;
             initializeConfigProcessors(servletContext, facesContext);
             ExecutorService executor = null;
 
@@ -258,15 +257,8 @@ public class ConfigManager {
                 // This invokes a chain or processors where each processor grabs its own elements of interest
                 // from each document.
 
-                final DocumentInfo[] facesDocuments2 = facesDocuments;
-                configProcessors.subList(0, 3).forEach(processor -> {
-                    try {
-                        processor.process(servletContext, facesContext, facesDocuments2);
-                    } catch (Exception e2) {
-                        // TODO Auto-generated catch block
-                        e2.printStackTrace();
-                    }
-                });
+                DocumentInfo[] facesDocuments2 = facesDocuments;
+                configProcessors.subList(0, 3).stream().forEach(e -> process(e, servletContext, facesContext, facesDocuments2));
 
                 long parentThreadId = Thread.currentThread().getId();
                 ClassLoader parentContextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -274,7 +266,7 @@ public class ConfigManager {
                 ThreadContext threadContext = getThreadContext(containerConnector);
                 Object parentWebContext = threadContext != null ? threadContext.getParentWebContext() : null;
 
-                configProcessors.subList(3, configProcessors.size()).forEach(processor -> {
+                configProcessors.subList(3, configProcessors.size()).forEach(e -> {
 
                     long currentThreadId = Thread.currentThread().getId();
 
@@ -291,10 +283,7 @@ public class ConfigManager {
                     }
 
                     try {
-                        processor.process(servletContext, initFacesContext, facesDocuments2);
-                    } catch (Exception e1) {
-                        // TODO Auto-generated catch block
-                        e1.printStackTrace();
+                        process(e, servletContext, initFacesContext, facesDocuments2);
                     } finally {
                         if (currentThreadId != parentThreadId) {
                             Thread.currentThread().setContextClassLoader(null);
@@ -335,10 +324,21 @@ public class ConfigManager {
      * @return <code>true</code> if this application has already been initialized, otherwise returns <code>fase</code>
      */
     public boolean hasBeenInitialized(ServletContext servletContext) {
-        return initializedContexts.contains(servletContext);
+        return initialized;
     }
 
     // --------------------------------------------------------- Private Methods
+
+    /**
+     * Lets the given processor process the given documents, and logs a failure as SEVERE.
+     */
+    static void process(ConfigProcessor configProcessor, ServletContext servletContext, FacesContext facesContext, DocumentInfo[] documentInfos) {
+        try {
+            configProcessor.process(servletContext, facesContext, documentInfos);
+        } catch (Exception e) {
+            LOGGER.log(SEVERE, e, () -> configProcessor.getClass().getName() + " failed to process the Faces configuration");
+        }
+    }
 
     /**
      * Execute the Task responsible for finding annotation classes
@@ -398,7 +398,7 @@ public class ConfigManager {
     }
 
     private List<ApplicationConfigurationPopulator> getConfigPopulators() {
-        List<ApplicationConfigurationPopulator> configPopulators = new ArrayList<>(2);
+        List<ApplicationConfigurationPopulator> configPopulators = new ArrayList<>();
 
         configPopulators.add(new MojarraRuntimePopulator());
 
@@ -464,8 +464,8 @@ public class ConfigManager {
     private void releaseFactories() {
         try {
             FactoryFinder.releaseFactories();
-        } catch (FacesException e) {
-            LOGGER.log(FINE, "Exception thrown from FactoryFinder.releaseFactories()", e);
+        } catch (FacesException ignored) {
+            LOGGER.log(FINE, "Exception thrown from FactoryFinder.releaseFactories()", ignored);
         }
     }
 
@@ -477,7 +477,7 @@ public class ConfigManager {
      */
     public void destroy(ServletContext servletContext, FacesContext facesContext) {
         configProcessors.forEach( processor -> processor.destroy(servletContext, facesContext) );
-        initializedContexts.remove(servletContext);
+        initialized = false;
     }
 
 }

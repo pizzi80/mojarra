@@ -62,10 +62,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.sun.faces.util.Util;
+import com.sun.faces.util.PropertyAccessors;
 
 import jakarta.el.ELException;
 import jakarta.el.ValueExpression;
@@ -132,27 +134,10 @@ public abstract class UIComponentBase extends UIComponent {
     static final String STANDARD_COMPONENT_PACKAGE = "jakarta.faces.component.";
 
     /**
-     * This class's <code>PropertyDescriptor</code>s (keyed by property name), held per class in the
-     * {@link #COMPONENT_METADATA} cache.
+     * This class's reflective metadata (property descriptors, access-suppressed accessor methods and generated getter
+     * invokers), shared by all instances through the {@link #COMPONENT_METADATA} cache.
      */
-    private Map<String, PropertyDescriptor> propertyDescriptorMap;
-
-    /**
-     * This class's access-suppressed read methods (keyed by property name), held strongly per class in the
-     * {@link #COMPONENT_METADATA} cache. Holding the suppressed read {@link Method}s strongly keeps the suppression
-     * durable (a {@link PropertyDescriptor}'s read method is handed back via a soft reference that
-     * can be regenerated) and lets the hot attribute-read path skip re-suppressing and re-caching it per component.
-     */
-    private Map<String, Method> readMethodMap;
-
-    /**
-     * This class's write methods (keyed by property name), the write-side counterpart of {@link #readMethodMap} kept in
-     * the same {@link #COMPONENT_METADATA} cache. Holds the access-suppressed
-     * setter {@link Method}s strongly so the {@code getAttributes().put} property-write path (Facelets applying a
-     * literal-text {@code ValueExpression} or a non-property literal during buildView) skips the per-put access check
-     * and the soft-reference setter rediscovery.
-     */
-    private Map<String, Method> writeMethodMap;
+    private ComponentMetadata componentMetadata;
 
     private Map<Class<? extends SystemEvent>, List<SystemEventListener>> listenersByEventClass;
 
@@ -916,7 +901,7 @@ public abstract class UIComponentBase extends UIComponent {
         notNullArgs(eventClass, componentListener);
 
         if (listenersByEventClass == null) {
-            listenersByEventClass = new HashMap<>(Util.calculateMapCapacity(3));
+            listenersByEventClass = new HashMap<>(3, 1.0f);
         }
 
         SystemEventListener facesLifecycleListener = new ComponentSystemEventListenerAdapter(componentListener, this);
@@ -1667,7 +1652,7 @@ public abstract class UIComponentBase extends UIComponent {
         Object[] values = (Object[]) state;
         String[] names = (String[]) values[0];
         Object[] states = (Object[]) values[1];
-        Map<String, ValueExpression> bindings = new HashMap<>(Util.calculateMapCapacity(names.length));
+        Map<String, ValueExpression> bindings = new HashMap<>(names.length, 1.0f);
         for (int i = 0; i < names.length; i++) {
             bindings.put(names[i], (ValueExpression) restoreAttachedState(context, states[i]));
         }
@@ -1681,7 +1666,7 @@ public abstract class UIComponentBase extends UIComponent {
             return null;
         }
 
-        Object values[] = new Object[2];
+        Object[] values = new Object[2];
         values[0] = bindings.keySet().toArray(new String[bindings.size()]);
 
         Object[] bindingValues = bindings.values().toArray();
@@ -1727,7 +1712,7 @@ public abstract class UIComponentBase extends UIComponent {
         }
 
         Object[][] listeners = (Object[][]) state;
-        Map<Class<? extends SystemEvent>, List<SystemEventListener>> m = new HashMap<>(Util.calculateMapCapacity(listeners.length));
+        Map<Class<? extends SystemEvent>, List<SystemEventListener>> m = new HashMap<>(listeners.length, 1.0f);
         for (int i = 0, len = listeners.length; i < len; i++) {
             Object[] source = listeners[i];
             m.put((Class<? extends SystemEvent>) source[0], (List<SystemEventListener>) restoreAttachedState(ctx, source[1]));
@@ -1737,15 +1722,15 @@ public abstract class UIComponentBase extends UIComponent {
     }
 
     Map<String, PropertyDescriptor> getDescriptorMap() {
-        return propertyDescriptorMap;
+        return componentMetadata == null ? null : componentMetadata.propertyDescriptors;
     }
 
     Map<String, Method> getReadMethodMap() {
-        return readMethodMap;
+        return componentMetadata == null ? null : componentMetadata.readMethods;
     }
 
     Map<String, Method> getWriteMethodMap() {
-        return writeMethodMap;
+        return componentMetadata == null ? null : componentMetadata.writeMethods;
     }
 
     // ---- Field-backed Facelets markers (authoritative cache for AttributesMap) ----
@@ -1924,7 +1909,7 @@ public abstract class UIComponentBase extends UIComponent {
                 // Typically we only have a small number of behaviors for
                 // any component - in most cases only 1. Using a very small
                 // initial capacity so that we keep the footprint to a minimum.
-                Map<String, List<ClientBehavior>> modifiableMap = new HashMap<>(Util.calculateMapCapacity(5));
+                Map<String, List<ClientBehavior>> modifiableMap = new HashMap<>(5, 1.0f);
                 behaviors = new BehaviorsMap(modifiableMap);
             }
 
@@ -2251,11 +2236,13 @@ public abstract class UIComponentBase extends UIComponent {
 
         // private Map<String, Object> attributes;
         private transient Map<String, PropertyDescriptor> pdMap;
-        // Per-class, application-scoped cache of access-suppressed read methods (see UIComponentBase.readMethodMap);
+        // Per-class, application-scoped cache of access-suppressed read methods (see UIComponentBase.componentMetadata);
         // a hit skips the PropertyDescriptor lookup, the access-check suppression and the reflective getter discovery.
         private transient Map<String, Method> readMap;
-        // Write-side counterpart of readMap (see UIComponentBase.writeMethodMap); used by the property-write path in put.
+        // Write-side counterpart of readMap (see UIComponentBase.componentMetadata); used by the property-write path in put.
         private transient Map<String, Method> writeMap;
+        // Per-class metadata holding the generated getter invokers used by the hot property-read path in get.
+        private transient ComponentMetadata metadata;
         private transient UIComponentBase component;
 
         // -------------------------------------------------------- Constructors
@@ -2265,6 +2252,7 @@ public abstract class UIComponentBase extends UIComponent {
             pdMap = this.component.getDescriptorMap();
             readMap = this.component.getReadMethodMap();
             writeMap = this.component.getWriteMethodMap();
+            metadata = this.component.componentMetadata;
         }
 
         @Override
@@ -2320,13 +2308,13 @@ public abstract class UIComponentBase extends UIComponent {
                 // The access-suppressed property getter is cached per class by name. Invoke it directly and skip the
                 // per-read PropertyDescriptor lookup and access-check suppression -- the descriptor is only needed to
                 // discover the getter once per class. This is the hot path for every property-backed attribute read.
-                Method readMethod = readMap == null ? null : readMap.get(key);
-                if (readMethod != null) {
-                    result = invokeReadMethod(readMethod);
+                Function<Object, Object> reader = metadata == null ? null : metadata.reader(key);
+                if (reader != null) {
+                    result = invokeReader(reader);
                 } else {
                     PropertyDescriptor pd = getPropertyDescriptor(key);
                     if (pd != null) {
-                        readMethod = pd.getReadMethod();
+                        Method readMethod = pd.getReadMethod();
                         if (readMethod != null) {
                             suppressAccessCheck(readMethod);
                             result = invokeReadMethod(readMethod);
@@ -2606,6 +2594,15 @@ public abstract class UIComponentBase extends UIComponent {
                 component.setCompositeComponentFlag(true);
             }
             return component.getStateHelper().put(PropertyKeys.attributes, key, value);
+        }
+
+        private Object invokeReader(Function<Object, Object> reader) {
+            try {
+                return reader.apply(component);
+            } catch (Throwable t) {
+                // Same wrapping as invokeReadMethod applies to the InvocationTargetException's target.
+                throw new FacesException(t);
+            }
         }
 
         private Object invokeReadMethod(Method readMethod) {
@@ -3563,10 +3560,27 @@ public abstract class UIComponentBase extends UIComponent {
         private final Map<String, Method> readMethods;
         private final Map<String, Method> writeMethods;
 
+        // Generated getter invokers by property name, created on first use (see PropertyAccessors): only the
+        // properties actually read through getAttributes() get one.
+        private final ConcurrentHashMap<String, Function<Object, Object>> readers = new ConcurrentHashMap<>();
+
         private ComponentMetadata(Map<String, PropertyDescriptor> propertyDescriptors, Map<String, Method> readMethods, Map<String, Method> writeMethods) {
             this.propertyDescriptors = propertyDescriptors;
             this.readMethods = readMethods;
             this.writeMethods = writeMethods;
+        }
+
+        /** The invoker of the named property's getter, or {@code null} when the property has no getter. */
+        Function<Object, Object> reader(String name) {
+            Function<Object, Object> reader = readers.get(name);
+            if (reader == null) {
+                Method readMethod = readMethods.get(name);
+                if (readMethod == null) {
+                    return null;
+                }
+                reader = readers.computeIfAbsent(name, k -> PropertyAccessors.reader(readMethod));
+            }
+            return reader;
         }
     }
 
@@ -3584,12 +3598,7 @@ public abstract class UIComponentBase extends UIComponent {
     };
 
     private void populateDescriptorsMapIfNecessary() {
-        ComponentMetadata metadata = COMPONENT_METADATA.get(getClass());
-        if (metadata != null) {
-            propertyDescriptorMap = metadata.propertyDescriptors;
-            readMethodMap = metadata.readMethods;
-            writeMethodMap = metadata.writeMethods;
-        }
+        componentMetadata = COMPONENT_METADATA.get(getClass());
     }
 
     /**
@@ -3931,7 +3940,6 @@ public abstract class UIComponentBase extends UIComponent {
 
     private List<Object> collectFacetsState(FacesContext context, List<Object> stateList) {
         if (getFacetCount() > 0) {
-
             for (Entry<String, UIComponent> entry : getFacets().entrySet()) {
                 UIComponent facet = entry.getValue();
                 if (!facet.isTransient()) {

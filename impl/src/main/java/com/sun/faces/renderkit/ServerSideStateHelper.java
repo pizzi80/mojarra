@@ -239,7 +239,7 @@ public class ServerSideStateHelper extends StateHelper {
      */
     @Override
     public Object getState(FacesContext ctx, String viewId) {
-        final String compoundId = getStateParamValue(ctx);
+        String compoundId = getStateParamValue(ctx);
 
         if (compoundId == null) {
             return null;
@@ -259,8 +259,8 @@ public class ServerSideStateHelper extends StateHelper {
         String idInLogicalMap = compoundId.substring(0, sep);
         String idInActualMap = compoundId.substring(sep + 1);
 
-        final ExternalContext externalCtx = ctx.getExternalContext();
-        final Object sessionObj = externalCtx.getSession(false);
+        ExternalContext externalCtx = ctx.getExternalContext();
+        Object sessionObj = externalCtx.getSession(false);
 
         // stop evaluating if the session is not available
         if (sessionObj == null) {
@@ -363,24 +363,6 @@ public class ServerSideStateHelper extends StateHelper {
 
     private String createRandomId() {
         return Long.valueOf(random.nextLong()).toString();
-    }
-
-    /**
-     * Is stateless.
-     *
-     * @param facesContext the Faces context.
-     * @param viewId the view id.
-     * @return true if stateless, false otherwise.
-     * @throws IllegalStateException when the request was not a postback.
-     */
-    @Override
-    public boolean isStateless(FacesContext facesContext, String viewId) throws IllegalStateException {
-        if (!facesContext.isPostback()) {
-            throw new IllegalStateException("Cannot determine whether or not the request is stateless");
-        }
-
-        String compoundId = getStateParamValue(facesContext);
-        return STATELESS.equals(compoundId);
     }
 
     // ---------------------------------------------------------------------------------- Utility Methods

@@ -142,6 +142,15 @@ public class RenderKitUtils {
      */
     public static final String OPTIMIZED_PACKAGE = "jakarta.faces.component.";
 
+    /** Whether a component class is in {@link #OPTIMIZED_PACKAGE}: asked for every attribute read while rendering. */
+    private static final ClassValue<Boolean> IN_OPTIMIZED_PACKAGE = new ClassValue<>() {
+        @Override
+        protected Boolean computeValue(Class<?> type) {
+            String name = type.getName();
+            return name != null && name.startsWith(OPTIMIZED_PACKAGE);
+        }
+    };
+
     /**
      * IMPLEMENTATION NOTE: This must be kept in sync with UIComponentBase.ATTRIBUTES_THAT_ARE_SET and the copies in
      * HtmlComponentUtils and PassthroughElement. Spelled out as a literal so that all of them are the same interned
@@ -438,7 +447,7 @@ public class RenderKitUtils {
      * getter when it was never set -- the common case on large views.
      */
     public static Object getAttributeIfSet(UIComponent component, List<String> setAttributes, String name) {
-        if (component.getClass().getName().startsWith(OPTIMIZED_PACKAGE)) {
+        if (IN_OPTIMIZED_PACKAGE.get(component.getClass())) {
             return setAttributes != null && setAttributes.contains(name) ? component.getAttributes().get(name) : null;
         }
         return component.getAttributes().get(name);
@@ -668,8 +677,7 @@ public class RenderKitUtils {
         assert component != null;
         assert behaviors != null;
 
-        String name = component.getClass().getName();
-        if (name.startsWith(OPTIMIZED_PACKAGE)) {
+        if (IN_OPTIMIZED_PACKAGE.get(component.getClass())) {
 
             // If we've got behaviors attached to multiple events
             // it is difficult to optimize, so fall back to the
@@ -1022,48 +1030,49 @@ public class RenderKitUtils {
         double highestQFactor = 0;
         // the record with the highest quality
         int idx = 0;
-        for (String[] serverSupportedContentType : serverSupportedContentTypes) {
+        for (int sidx = 0, slen = serverSupportedContentTypes.length; sidx < slen; sidx++) {
             // get server type
-            String serverType = serverSupportedContentType[1];
+            String serverType = serverSupportedContentTypes[sidx][1];
             if (serverType != null) {
-                for (String[] clientContentType : clientContentTypes) {
+                for (int cidx = 0, clen = clientContentTypes.length; cidx < clen; cidx++) {
                     // get browser type
-                    String browserType = clientContentType[1];
+                    String browserType = clientContentTypes[cidx][1];
                     if (browserType != null) {
                         // compare them and check for wildcard
                         if (browserType.equalsIgnoreCase(serverType) || browserType.equals("*")) {
                             // types are equal or browser type is wildcard - compare subtypes
-                            if (clientContentType[2].equalsIgnoreCase(serverSupportedContentType[2]) || clientContentType[2].equals("*")) {
+                            if (clientContentTypes[cidx][2].equalsIgnoreCase(serverSupportedContentTypes[sidx][2])
+                                    || clientContentTypes[cidx][2].equals("*")) {
                                 // subtypes are equal or browser subtype is wildcard
                                 // found match: multiplicative qualities and add to result array
                                 // if there was a level associated, this gets higher precedence, so
                                 // factor in the level in the calculation.
                                 double cLevel = 0.0;
                                 double sLevel = 0.0;
-                                if (clientContentType[3] != null) {
-                                    cLevel = Double.parseDouble(clientContentType[3]) * .10;
+                                if (clientContentTypes[cidx][3] != null) {
+                                    cLevel = Double.parseDouble(clientContentTypes[cidx][3]) * .10;
                                 }
-                                if (serverSupportedContentType[3] != null) {
-                                    sLevel = Double.parseDouble(serverSupportedContentType[3]) * .10;
+                                if (serverSupportedContentTypes[sidx][3] != null) {
+                                    sLevel = Double.parseDouble(serverSupportedContentTypes[sidx][3]) * .10;
                                 }
-                                double cQfactor = Double.parseDouble(clientContentType[0]) + cLevel;
-                                double sQfactor = Double.parseDouble(serverSupportedContentType[0]) + sLevel;
+                                double cQfactor = Double.parseDouble(clientContentTypes[cidx][0]) + cLevel;
+                                double sQfactor = Double.parseDouble(serverSupportedContentTypes[sidx][0]) + sLevel;
                                 double resultQuality = cQfactor * sQfactor;
 
                                 String[] curResult = new String[MAX_CONTENT_TYPE_PARTS];
                                 resultList.add(curResult);
                                 curResult[0] = String.valueOf(resultQuality);
 
-                                if (clientContentType[2].equals("*")) {
+                                if (clientContentTypes[cidx][2].equals("*")) {
                                     // browser subtype is wildcard
                                     // return type and subtype (wildcard)
-                                    curResult[1] = clientContentType[1];
-                                    curResult[2] = clientContentType[2];
+                                    curResult[1] = clientContentTypes[cidx][1];
+                                    curResult[2] = clientContentTypes[cidx][2];
                                 } else {
                                     // return server type and subtype
-                                    curResult[1] = serverSupportedContentType[1];
-                                    curResult[2] = serverSupportedContentType[2];
-                                    curResult[3] = serverSupportedContentType[3];
+                                    curResult[1] = serverSupportedContentTypes[sidx][1];
+                                    curResult[2] = serverSupportedContentTypes[sidx][2];
+                                    curResult[3] = serverSupportedContentTypes[sidx][3];
                                 }
                                 // check if this was the highest factor
                                 if (resultQuality > highestQFactor) {
@@ -1148,11 +1157,13 @@ public class RenderKitUtils {
 
     /**
      * <p>
-     * Renders the Javascript necessary to add and remove request parameters to the current form.
+     * Renders the Faces script resource at the current position in the response, unless it is installed as component
+     * resource or is already rendered. Use this when the script rendered at the current position only runs on a later
+     * user event. When it runs immediately, use {@link #renderFacesJsBeforeImmediateScript(FacesContext)} instead.
      * </p>
      *
      * @param context the <code>FacesContext</code> for the current request
-     * @throws java.io.IOException if an error occurs writing to the response
+     * @throws IOException if an error occurs writing to the response
      */
     public static void renderFacesJsIfNecessary(FacesContext context) throws IOException {
 
@@ -1160,14 +1171,37 @@ public class RenderKitUtils {
             return;
         }
 
-        ResourceHandler resourceHandler = context.getApplication().getResourceHandler();
-        if (resourceHandler.isResourceRendered(context, FACES_SCRIPT_RESOURCE_NAME, FACES_SCRIPT_LIBRARY_NAME)) {
+        renderFacesJsUnlessMarkedRendered(context);
+    }
+
+    /**
+     * <p>
+     * Renders the Faces script resource at the current position in the response, unless it is already rendered before
+     * this position. Use this when the script rendered at the current position runs immediately. Unlike
+     * {@link #renderFacesJsIfNecessary(FacesContext)}, an installed Faces script component resource which is rendered
+     * later, e.g. in the "body" target, does not count. During an Ajax request, an installed Faces script component
+     * resource does count, because the page has then already loaded it.
+     * </p>
+     *
+     * @param context the <code>FacesContext</code> for the current request
+     * @throws IOException if an error occurs writing to the response
+     */
+    public static void renderFacesJsBeforeImmediateScript(FacesContext context) throws IOException {
+
+        if (context.getPartialViewContext().isAjaxRequest() && isFacesJsInstalled(context)) {
             return;
         }
 
-        // Since we've now determined that it's not in the page, we need to manually render it.
-        createFacesJs().encodeAll(context);
-        resourceHandler.markResourceRendered(context, FACES_SCRIPT_RESOURCE_NAME, FACES_SCRIPT_LIBRARY_NAME);
+        renderFacesJsUnlessMarkedRendered(context);
+    }
+
+    private static void renderFacesJsUnlessMarkedRendered(FacesContext context) throws IOException {
+        ResourceHandler resourceHandler = context.getApplication().getResourceHandler();
+
+        if (!resourceHandler.isResourceRendered(context, FACES_SCRIPT_RESOURCE_NAME, FACES_SCRIPT_LIBRARY_NAME)) {
+            createFacesJs().encodeAll(context);
+            resourceHandler.markResourceRendered(context, FACES_SCRIPT_RESOURCE_NAME, FACES_SCRIPT_LIBRARY_NAME);
+        }
     }
 
     public static boolean isFacesJsInstalled(FacesContext context) {
@@ -1279,7 +1313,7 @@ public class RenderKitUtils {
     // been triggered either via faces.ajax.request() or via a submitting
     // behavior.
     public static boolean isPartialOrBehaviorAction(FacesContext context, String clientId) {
-        if ( Util.isEmpty(clientId) ) {
+        if (Util.isEmpty(clientId)) {
             return false;
         }
 
@@ -1384,7 +1418,7 @@ public class RenderKitUtils {
         } else {
 
             String value = (String) component.getAttributes().get(attrName);
-            if ( Util.isEmpty(value) ) {
+            if (value == null || value.isEmpty()) {
                 return EMPTY_STRING;
             }
             WebConfiguration webConfig = WebConfiguration.getInstance();
@@ -1445,7 +1479,7 @@ public class RenderKitUtils {
     // Appends a script to a faces.util.chain() call
     private static void appendScriptToChain(StringBuilder builder, String script) {
 
-        if ( Util.isEmpty(script) ) {
+        if (script == null || script.isEmpty()) {
             return;
         }
 
@@ -1471,7 +1505,7 @@ public class RenderKitUtils {
     // object has already been opened by the caller.
     public static void appendProperty(StringBuilder builder, String name, Object value, boolean quoteValue) {
 
-        if ( Util.isEmpty(name) ) {
+        if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException();
         }
 
@@ -1527,7 +1561,7 @@ public class RenderKitUtils {
 
         for (ClientBehavior behavior : behaviors) {
             String script = behavior.getScript(bContext);
-            if ( Util.isNotEmpty(script) ) {
+            if (script != null && !script.isEmpty()) {
                 appendScriptToChain(builder, script);
 
                 if (isSubmitting(behavior)) {
@@ -1739,7 +1773,7 @@ public class RenderKitUtils {
         List<ClientBehavior> behaviors = getClientBehaviors(component, behaviorEventName);
 
         // Don't render behavior scripts if component is disabled
-        if ( Util.isNotEmpty(behaviors) && Util.componentIsDisabled(component)) {
+        if (Util.isNotEmpty(behaviors) && Util.componentIsDisabled(component)) {
             behaviors = null;
         }
 
@@ -1813,18 +1847,20 @@ public class RenderKitUtils {
     }
 
     public static void addEventListener(FacesContext context, UIComponent component, String clientId, String domEventName, String function) throws IOException {
-        StringBuilder script = new StringBuilder("mojarra.ael('")
-            .append(clientId != null ? clientId : component.getClientId(context))
-            .append("','")
-            .append(domEventName)
-            .append("',function(event){").append(function).append("})");
+        String script = "mojarra.ael('"
+                + (clientId != null ? clientId : component.getClientId(context))
+                + "','"
+                + domEventName
+                + "',function(event){" + function + "})";
 
-        if (context.getPartialViewContext().isAjaxRequest()) {
-            context.getPartialViewContext().getEvalScripts().add(script.toString());
+        PartialViewContext partialViewContext = context.getPartialViewContext();
+
+        if (partialViewContext.isAjaxRequest()) {
+            partialViewContext.getEvalScripts().add(script);
         }
         else {
-            renderFacesJsIfNecessary(context);
-            renderScript(context, component, null, script.toString());
+            renderFacesJsBeforeImmediateScript(context);
+            renderScript(context, component, null, script);
         }
     }
 
@@ -1857,7 +1893,7 @@ public class RenderKitUtils {
 
         if (behaviors == null || behaviors.isEmpty()) {
 
-            // No behaviors and no params mean user handler only,
+            // No behaviors and no params means user handler only,
             // if we have a param only because of includeExec while having
             // no behaviors, also, user handler only
             if (params.isEmpty() && !needsSubmit || includeExec) {

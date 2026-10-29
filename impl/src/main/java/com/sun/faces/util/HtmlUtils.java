@@ -18,12 +18,18 @@ package com.sun.faces.util;
 
 import static java.lang.Character.isHighSurrogate;
 import static java.lang.Character.isLowSurrogate;
+import static java.lang.Character.isSurrogate;
+import static java.lang.Character.toCodePoint;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -53,17 +59,133 @@ public final class HtmlUtils {
         writeText(out, escapeUnicode, escapeIsocode, text, 0, text.length, forXml);
     }
 
+    // ---------------------------------------------------------------- escaping core
+    //
+    // Every character falls in one of two classes:
+    //   NEEDS_HANDLING  escaped, dropped or otherwise handled one by one,
+    //   UNCHANGED       written unchanged: ASCII printable, TAB, LF, CR, DEL, C1 controls, and non-ASCII characters
+    //                   whenever the writer does not escape them.
+    // UNCHANGED characters extend the current run, so an accented, CJK or multi-line text is written in bulk.
+    //
+    // A String is first scanned in place; when nothing needs handling (by far the most common case) it is written as
+    // is, without copying it into the char buffer. Long inputs are scanned with String.indexOf (a SIMD intrinsic) plus a
+    // SWAR test for control characters. The scan is conservative: it may stop early on a character that turns out to be
+    // UNCHANGED, after which the exact loop takes over, so it never changes the output.
+
+    private static final byte NEEDS_HANDLING = 0;
+    private static final byte UNCHANGED = 1;
+
+    private static final byte[] TEXT_CLASS = new byte[128];
+    private static final byte[] ATTRIBUTE_CLASS = new byte[128];
+
+    static {
+        for (int c = 0x20; c < 0x7F; c++) {
+            TEXT_CLASS[c] = UNCHANGED;
+        }
+        TEXT_CLASS['<'] = TEXT_CLASS['>'] = TEXT_CLASS['&'] = NEEDS_HANDLING;
+        TEXT_CLASS['\t'] = TEXT_CLASS['\n'] = TEXT_CLASS['\r'] = TEXT_CLASS[0x7F] = UNCHANGED;
+        // FF (0x0C) is written in HTML but dropped in XML; it stays NEEDS_HANDLING so the slow path decides.
+        System.arraycopy(TEXT_CLASS, 0, ATTRIBUTE_CLASS, 0, 128);
+        ATTRIBUTE_CLASS['"'] = NEEDS_HANDLING;
+    }
+
+    /** Minimum length from which a String is scanned with String.indexOf plus SWAR (measured break-even ~40). */
+    static final int INTRINSIC_SCAN_MIN_LENGTH = 48;
+
+    private static final long SWAR_ONES = 0x0101010101010101L;
+    private static final long SWAR_HIGHS = 0x8080808080808080L;
+    private static final long SWAR_SPACES = SWAR_ONES * 0x20;
+    private static final VarHandle LONGS = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
+    private static final ThreadLocal<byte[]> SWAR_BUFFER = ThreadLocal.withInitial(() -> new byte[1024]);
+
+    private static byte classOf(char ch, byte[] asciiClasses, boolean escapeUnicode, boolean escapeIsocode, boolean forXml) {
+        if (ch < 0x80) {
+            return asciiClasses[ch];
+        }
+        if (ch < 0xA0) {
+            return UNCHANGED;
+        }
+        if (ch <= 0xFF) {
+            return escapeIsocode ? NEEDS_HANDLING : UNCHANGED;
+        }
+        if (escapeUnicode) {
+            return NEEDS_HANDLING;
+        }
+        // In XML, surrogates are kept only in valid pairs and U+FFFE/U+FFFF are dropped: decided on the slow path.
+        if (forXml && ch >= 0xD800 && (ch <= 0xDFFF || ch >= 0xFFFE)) {
+            return NEEDS_HANDLING;
+        }
+        return UNCHANGED;
+    }
+
+    /**
+     * Index of the first character of {@code text} that may need handling (conservative), or its length if none.
+     * {@code attribute} adds the double quote; script: detection is the caller's business.
+     */
+    private static int scan(String text, boolean attribute, boolean escapeUnicode, boolean escapeIsocode, boolean forXml) {
+        int length = text.length();
+        boolean nonAsciiSensitive = escapeUnicode || escapeIsocode;
+
+        if (length >= INTRINSIC_SCAN_MIN_LENGTH && !nonAsciiSensitive && !forXml) {
+            return intrinsicScan(text, attribute);
+        }
+
+        byte[] classes = attribute ? ATTRIBUTE_CLASS : TEXT_CLASS;
+        for (int i = 0; i < length; i++) {
+            if (classOf(text.charAt(i), classes, escapeUnicode, escapeIsocode, forXml) == NEEDS_HANDLING) {
+                return i;
+            }
+        }
+        return length;
+    }
+
+    /**
+     * Conservative scan of an HTML (non-XML, non-escaping) String: String.indexOf, which HotSpot replaces with a SIMD
+     * stub, finds the special characters, and the low byte of each char (copied with the deprecated but arraycopy-fast
+     * String.getBytes) is tested 8 at a time for control characters. The low-byte copy can only cause false positives.
+     */
+    @SuppressWarnings("deprecation")
+    private static int intrinsicScan(String text, boolean attribute) {
+        int length = text.length();
+        int found = indexOf(text, '<', length);
+        found = indexOf(text, '>', found);
+        found = indexOf(text, '&', found);
+        if (attribute) {
+            found = indexOf(text, '"', found);
+        }
+
+        byte[] bytes = SWAR_BUFFER.get();
+        if (bytes.length < found) {
+            bytes = new byte[found];
+        }
+        text.getBytes(0, found, bytes, 0);
+        int i = 0;
+        for (; i + 8 <= found; i += 8) {
+            long x = (long) LONGS.get(bytes, i);
+            long controls = (x - SWAR_SPACES) & ~x & SWAR_HIGHS;
+            if (controls != 0) {
+                return i + (Long.numberOfTrailingZeros(controls) >>> 3);
+            }
+        }
+        for (; i < found; i++) {
+            if ((bytes[i] & 0xFF) < 0x20) {
+                return i;
+            }
+        }
+        return found;
+    }
+
+    /** Index of {@code ch} in {@code text} before {@code limit}, or {@code limit}. */
+    private static int indexOf(String text, char ch, int limit) {
+        int index = text.indexOf(ch);
+        return index >= 0 && index < limit ? index : limit;
+    }
+
     /**
      * Write char array text, escaping HTML special characters as needed.
      *
-     * <p>Uses a range-emit strategy: walks the input character by character, tracking the start
-     * of the current safe run. When a character requires escaping (or dropping), the pending
-     * safe run is bulk-written to the underlying writer via {@code Writer.write(char[], off, len)},
-     * the escape sequence is emitted, and a new run begins. At the end the remaining tail is
-     * flushed. For plain ASCII content this collapses to a single underlying write.
-     *
      * @param out the writer to emit to
-     * @param escapeUnicode if true, chars &gt; 0xFF are emitted as numeric character references
+     * @param escapeUnicode if true, characters above U+00FF are emitted as numeric character references
      * @param escapeIsocode if true, chars in [0xA0, 0xFF] are emitted as named ISO-8859-1 entities
      * @param text the input characters
      * @param start start offset into {@code text}
@@ -71,19 +193,23 @@ public final class HtmlUtils {
      * @param forXml if true, drop characters not valid in XML (per XML 1.0 spec)
      */
     public static void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] text, int start, int length, boolean forXml) throws IOException {
-        int end = start + length;
+        writeText(out, escapeUnicode, escapeIsocode, text, start, start, start + length, forXml);
+    }
+
+    /**
+     * The exact text loop. Characters in [start, from) are known not to need handling and form the initial run.
+     */
+    private static void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] text, int start, int from, int end, boolean forXml) throws IOException {
         int runStart = start;
 
-        for (int i = start; i < end; i++) {
+        for (int i = from; i < end; i++) {
             char ch = text[i];
 
-            // Fast path: ASCII printable except <>& (writeText does NOT escape '"' or "'").
-            // Hits 99%+ of characters in typical HTML5+UTF-8 output.
-            if (ch >= 0x20 && ch < 0x7f && ch != '<' && ch != '>' && ch != '&') {
+            if (classOf(ch, TEXT_CLASS, escapeUnicode, escapeIsocode, forXml) != NEEDS_HANDLING) {
                 continue;
             }
 
-            // Flush the pending safe run before handling this character.
+            // Flush the pending run before handling this character.
             if (i > runStart) {
                 out.write(text, runStart, i - runStart);
             }
@@ -100,26 +226,12 @@ public final class HtmlUtils {
                 out.write(GT_CHARS);
             } else if (ch == '&') {
                 out.write(AMP_CHARS);
-            } else if (ch < 0xA0) {
-                // 0x7F (DEL) and 0x80-0x9F (Latin-1 Supplement control range): pass through as-is,
-                // matching the legacy behavior. These weren't on the fast path because ch < 0x7f
-                // bounded it.
-                out.write(ch);
             } else if (ch <= 0xff) {
-                if (escapeIsocode) {
-                    out.write(sISO8859_1_Entities[ch - 0xA0]);
-                } else {
-                    out.write(ch);
-                }
+                // only reached with escapeIsocode (otherwise UNCHANGED)
+                out.write(sISO8859_1_Entities[ch - 0xA0]);
             } else {
-                // ch > 0xff
-                if (escapeUnicode) {
-                    writeDecRefDirect(out, ch);
-                } else if (forXml && !(isAllowedXmlCharacter(ch) || isAllowedSurrogateCharacter(ch, i, text))) {
-                    // drop (already advanced runStart)
-                } else {
-                    out.write(ch);
-                }
+                i = writeAboveLatin1(out, escapeUnicode, text, i, end, forXml);
+                runStart = i + 1;
             }
         }
 
@@ -129,24 +241,27 @@ public final class HtmlUtils {
     }
 
     /**
-     * Write String text, escaping HTML special characters as needed. Routes through the char[]
-     * variant via {@link String#getChars(int, int, char[], int)}; the {@code textBuff} parameter
-     * is reused unless the input exceeds its capacity (uncommon for typical attribute values).
+     * Write String text, escaping HTML special characters as needed. When nothing needs escaping the String is written
+     * as is; otherwise it is copied into {@code textBuff} (or a new array when it does not fit) and escaped from there.
      */
     public static void writeText(Writer out, boolean escapeUnicode, boolean escapeIsocode, String text, char[] textBuff, boolean forXml) throws IOException {
         int length = text.length();
         if (length == 0) {
             return;
         }
+        int from = scan(text, false, escapeUnicode, escapeIsocode, forXml);
+        if (from == length) {
+            out.write(text);
+            return;
+        }
         char[] target = (length > textBuff.length) ? new char[length] : textBuff;
         text.getChars(0, length, target, 0);
-        writeText(out, escapeUnicode, escapeIsocode, target, 0, length, forXml);
+        writeText(out, escapeUnicode, escapeIsocode, target, 0, from, length, forXml);
     }
 
     /**
-     * Write String attribute, escaping HTML special characters. Routes through the char[] variant
-     * via {@link String#getChars(int, int, char[], int)}; the {@code textBuff} parameter is reused
-     * unless the input exceeds its capacity.
+     * Write String attribute, escaping HTML special characters. When nothing needs escaping the String is written as
+     * is; otherwise it is copied into {@code textBuff} (or a new array when it does not fit) and escaped from there.
      */
     public static void writeAttribute(Writer out, boolean escapeUnicode, boolean escapeIsocode, String text, char[] textBuff,
             boolean isScriptInAttributeValueEnabled, boolean forXml) throws IOException {
@@ -154,51 +269,53 @@ public final class HtmlUtils {
         if (length == 0) {
             return;
         }
+        if (!isScriptInAttributeValueEnabled && isScriptURL(text)) {
+            return;
+        }
+        int from = scan(text, true, escapeUnicode, escapeIsocode, forXml);
+        if (from == length) {
+            out.write(text);
+            return;
+        }
         char[] target = (length > textBuff.length) ? new char[length] : textBuff;
         text.getChars(0, length, target, 0);
-        writeAttribute(out, escapeUnicode, escapeIsocode, target, 0, length, isScriptInAttributeValueEnabled, forXml);
+        writeAttribute(out, escapeUnicode, escapeIsocode, target, 0, from, length, forXml);
     }
 
     /**
-     * Write char array attribute, escaping HTML special characters as needed.
-     *
-     * <p>Range-emit strategy (see {@link #writeText(Writer, boolean, boolean, char[], int, int, boolean)}):
-     * walks the input character by character, tracking the start of the current safe run, and
-     * bulk-writes safe runs to the underlying writer. Differences from {@code writeText}:
+     * Write char array attribute, escaping HTML special characters as needed. Differences from {@code writeText}:
      * <ul>
      *   <li>The {@code "} double quote is escaped to {@code &quot;}</li>
      *   <li>An ampersand immediately followed by an open brace is NOT escaped (HTML 4 spec B.7.1 -
      *       Netscape-style JavaScript object literal in attribute value)</li>
-     *   <li>When {@code !isScriptInAttributeValueEnabled} (default), encountering the literal string
-     *       {@code "script:"} in the value causes the method to return WITHOUT writing the pending
-     *       safe run -- effectively dropping the entire attribute output as a defence against
-     *       JavaScript-URL injection.</li>
+     *   <li>When {@code !isScriptInAttributeValueEnabled}, a value which {@link #isScriptURL(CharSequence)} is not
+     *       written at all, as a defense against JavaScript-URL injection.</li>
      * </ul>
      */
     public static void writeAttribute(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] text, int start, int length,
             boolean isScriptInAttributeValueEnabled, boolean forXml) throws IOException {
-        int end = start + length;
+        if (!isScriptInAttributeValueEnabled && isScriptURL(CharBuffer.wrap(text, start, length))) {
+            return;
+        }
+
+        writeAttribute(out, escapeUnicode, escapeIsocode, text, start, start, start + length, forXml);
+    }
+
+    /**
+     * The exact attribute loop. Characters in [start, from) are known not to need handling and form the initial run.
+     */
+    private static void writeAttribute(Writer out, boolean escapeUnicode, boolean escapeIsocode, char[] text, int start, int from, int end,
+            boolean forXml) throws IOException {
         int runStart = start;
 
-        for (int i = start; i < end; i++) {
+        for (int i = from; i < end; i++) {
             char ch = text[i];
 
-            // Fast path: ASCII printable except <>&" (writeAttribute escapes '"' but not "'").
-            // 's' is also fast-path; the script:-injection check happens in the slow path on
-            // any hit, since the security check needs to fire BEFORE flushing the safe run.
-            if (ch >= 0x20 && ch < 0x7f && ch != '<' && ch != '>' && ch != '&' && ch != '"') {
-                // Special case: 's' may begin the literal "script:". Check inline so we can
-                // abort BEFORE flushing the safe run (matching the legacy buffer-discard behavior
-                // when the script:-disabled path returns mid-method).
-                if (ch == 's' && !isScriptInAttributeValueEnabled && i + 6 < end
-                        && text[i + 1] == 'c' && text[i + 2] == 'r' && text[i + 3] == 'i'
-                        && text[i + 4] == 'p' && text[i + 5] == 't' && text[i + 6] == ':') {
-                    return;
-                }
+            if (classOf(ch, ATTRIBUTE_CLASS, escapeUnicode, escapeIsocode, forXml) != NEEDS_HANDLING) {
                 continue;
             }
 
-            // Flush the pending safe run before handling this character.
+            // Flush the pending run before handling this character.
             if (i > runStart) {
                 out.write(text, runStart, i - runStart);
             }
@@ -223,24 +340,12 @@ public final class HtmlUtils {
                 }
             } else if (ch == '"') {
                 out.write(QUOT_CHARS);
-            } else if (ch < 0xA0) {
-                // 0x7F (DEL) and 0x80-0x9F: pass through as-is, matching legacy behavior.
-                out.write(ch);
             } else if (ch <= 0xff) {
-                if (escapeIsocode) {
-                    out.write(sISO8859_1_Entities[ch - 0xA0]);
-                } else {
-                    out.write(ch);
-                }
+                // only reached with escapeIsocode (otherwise UNCHANGED)
+                out.write(sISO8859_1_Entities[ch - 0xA0]);
             } else {
-                // ch > 0xff
-                if (escapeUnicode) {
-                    writeDecRefDirect(out, ch);
-                } else if (forXml && !(isAllowedXmlCharacter(ch) || isAllowedSurrogateCharacter(ch, i, text))) {
-                    // drop (runStart already advanced)
-                } else {
-                    out.write(ch);
-                }
+                i = writeAboveLatin1(out, escapeUnicode, text, i, end, forXml);
+                runStart = i + 1;
             }
         }
 
@@ -250,46 +355,113 @@ public final class HtmlUtils {
     }
 
     /**
-     * Emits a numeric character reference {@code &#NNN;} for the given character directly via
+     * Writes the character above U+00FF at {@code text[i]}: dropped when {@code forXml} and XML does not allow it, else as
+     * a numeric character reference when {@code escapeUnicode}, else as is. A surrogate pair is one character.
+     *
+     * @return the index of the last char written or dropped, which is {@code i + 1} for an escaped surrogate pair
+     */
+    private static int writeAboveLatin1(Writer out, boolean escapeUnicode, char[] text, int i, int end, boolean forXml) throws IOException {
+        char ch = text[i];
+
+        if (forXml && !(isAllowedXmlCharacter(ch) || isAllowedSurrogateCharacter(ch, i, text))) {
+            return i;
+        }
+
+        if (!escapeUnicode) {
+            out.write(ch);
+            return i;
+        }
+
+        if (isHighSurrogate(ch) && i + 1 < end && isLowSurrogate(text[i + 1])) {
+            writeDecRefDirect(out, toCodePoint(ch, text[i + 1]));
+            return i + 1;
+        }
+
+        if (forXml && isSurrogate(ch)) {
+            return i;
+        }
+
+        writeDecRefDirect(out, ch);
+        return i;
+    }
+
+    /**
+     * Emits a numeric character reference {@code &#NNN;} for the given code point directly via
      * {@link Writer#write(int)} calls -- no intermediate buffer. Always uses the numeric form,
      * which is universally valid across HTML 4, HTML5, XHTML and XML (whereas named entities
      * like {@code &euro;} are invalid in XHTML/XML without a DTD declaration).
      */
-    private static void writeDecRefDirect(Writer out, char ch) throws IOException {
+    private static void writeDecRefDirect(Writer out, int codePoint) throws IOException {
         out.write(DEC_REF_START);
-        int v = ch;
-        if (v >= 10000) {
-            out.write('0' + v / 10000);
-            v %= 10000;
-            out.write('0' + v / 1000);
-            v %= 1000;
-            out.write('0' + v / 100);
-            v %= 100;
-            out.write('0' + v / 10);
-            v %= 10;
-            out.write('0' + v);
-        } else if (v >= 1000) {
-            out.write('0' + v / 1000);
-            v %= 1000;
-            out.write('0' + v / 100);
-            v %= 100;
-            out.write('0' + v / 10);
-            v %= 10;
-            out.write('0' + v);
-        } else if (v >= 100) {
-            out.write('0' + v / 100);
-            v %= 100;
-            out.write('0' + v / 10);
-            v %= 10;
-            out.write('0' + v);
-        } else if (v >= 10) {
-            out.write('0' + v / 10);
-            v %= 10;
-            out.write('0' + v);
-        } else {
-            out.write('0' + v);
-        }
+        writeDecimal(out, codePoint);
         out.write(';');
+    }
+
+    private static void writeDecimal(Writer out, int value) throws IOException {
+        if (value >= 10) {
+            writeDecimal(out, value / 10);
+        }
+        out.write('0' + value % 10);
+    }
+
+    /**
+     * Returns whether the given attribute value is a URL whose scheme runs script, the way a browser parses the scheme:
+     * leading whitespace and control characters are ignored, tabs and line breaks are ignored anywhere, and the scheme
+     * is case-insensitive. So {@code " JAVA\tSCRIPT:alert(1)"} is one, and {@code "Transcript: page 1"} is not. The
+     * characters which {@code writeAttribute} drops are ignored anywhere too, because the browser never sees them.
+     *
+     * @param value the attribute value
+     * @return whether the scheme of the value is one of {@code javascript} and {@code vbscript}
+     */
+    public static boolean isScriptURL(CharSequence value) {
+        int start = 0;
+
+        while (start < value.length() && (value.charAt(start) == ' ' || isIgnoredInScheme(value.charAt(start)))) {
+            start++;
+        }
+
+        for (String scheme : SCRIPT_SCHEMES) {
+            if (hasScheme(value, start, scheme)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean hasScheme(CharSequence value, int start, String scheme) {
+        int matched = 0;
+
+        for (int i = start; i < value.length(); i++) {
+            char ch = value.charAt(i);
+
+            if (isIgnoredInScheme(ch)) {
+                continue;
+            }
+
+            if (matched == scheme.length()) {
+                return ch == ':';
+            }
+
+            if (toLowerAscii(ch) != scheme.charAt(matched++)) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether a browser ignores the given char in a scheme, or {@code writeAttribute} may drop it. This covers the
+     * {@code forXml} drops in HTML mode too, and surrogate pairs, which only makes the guard drop a few more harmless
+     * values.
+     */
+    private static boolean isIgnoredInScheme(char ch) {
+        return ch < ' ' || !isAllowedXmlCharacter(ch);
+    }
+
+    private static char toLowerAscii(char ch) {
+        return ch >= 'A' && ch <= 'Z' ? (char) (ch + ('a' - 'A')) : ch;
     }
 
     private static boolean isPrintableControlChar(char ch, boolean forXml) {
@@ -584,6 +756,7 @@ public final class HtmlUtils {
     private static final char[] GT_CHARS = "&gt;".toCharArray();
     private static final char[] LT_CHARS = "&lt;".toCharArray();
     private static final char[] DEC_REF_START = "&#".toCharArray();
+    private static final String[] SCRIPT_SCHEMES = { "javascript", "vbscript" };
     private static final int MAX_BYTES_PER_CHAR = 10;
     private static final BitSet DONT_ENCODE_SET = new BitSet(256);
 

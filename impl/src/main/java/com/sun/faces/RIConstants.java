@@ -76,6 +76,7 @@ public class RIConstants {
     public static final Charset CHARSET_ENCODING = StandardCharsets.UTF_8;
     public static final String CHAR_ENCODING = CHARSET_ENCODING.name();
     public static final String FACELETS_ENCODING_KEY = "facelets.Encoding";
+    public static final String FACELETS_ENCODING_DYNAMIC_KEY = "facelets.EncodingDynamic";
     public static final String DEFAULT_LIFECYCLE = FACES_PREFIX + "DefaultLifecycle";
     public static final String DEFAULT_STATEMANAGER = FACES_PREFIX + "DefaultStateManager";
 

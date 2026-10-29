@@ -108,8 +108,16 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
             "Context param ''{0}'' must represent a number of milliseconds of 0 or greater, but was: ''{1}''.";
     private static final String ERROR_INVALID_WEBSOCKET_MAX_SESSIONS_PER_CHANNEL =
             "Context param ''{0}'' must represent a number of 1 or greater, but was: ''{1}''.";
+    private static final String WARNING_DUPLICATE_LISTENER =
+            "{0} is registered more than once for context ''{1}''. Mojarra registers it by itself;"
+            + " the <listener> declaration can be removed from web.xml, if any.";
 
     private ScheduledThreadPoolExecutor webResourcePool;
+    /**
+     * Whether this instance initialized the application. Only that instance may destroy it, because the application
+     * may register this listener more than once.
+     */
+    private volatile boolean ownsInitialization;
 
     protected WebappLifecycleListener webAppListener;
     protected WebConfiguration webConfig;
@@ -131,8 +139,11 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
         }
 
         if (configManager.hasBeenInitialized(servletContext)) {
+            LOGGER.log(WARNING, WARNING_DUPLICATE_LISTENER, new Object[] { ConfigureListener.class.getName(), servletContext.getContextPath() });
             return;
         }
+
+        ownsInitialization = true;
 
         InitFacesContext initFacesContext = new InitFacesContext(servletContext);
         Util.getCdiBeanManager(initFacesContext); // #5232 Fail fast when CDI is really not available.
@@ -319,6 +330,10 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
+        if (!ownsInitialization) {
+            return;
+        }
+
         ServletContext context = sce.getServletContext();
 
         ConfigManager configManager = ConfigManager.getInstance(context);
@@ -493,7 +508,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
             // Release any allocated application resources
             FactoryFinder.releaseFactories();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(SEVERE, e, () -> format("Tearing down Faces configuration for context {0} failed", servletContext.getContextPath()));
         } finally {
             FacesContext initContext = new InitFacesContext(servletContext);
             ApplicationAssociate.clearInstance(initContext.getExternalContext());
@@ -542,7 +557,7 @@ public class ConfigureListener implements ServletRequestListener, HttpSessionLis
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(SEVERE, e, () -> format("Reloading Faces configuration for context {0} failed", servletContext.getContextPath()));
         } finally {
             initContext.release();
         }
