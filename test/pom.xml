@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.glassfish</groupId>
         <artifactId>mojarra-parent</artifactId>
-        <version>4.1.20-SNAPSHOT</version>
+        <version>4.2.19-SNAPSHOT</version>
     </parent>
 
     <groupId>org.eclipse.mojarra.test</groupId>
@@ -92,7 +92,7 @@
         <tomee.version>10.2.0</tomee.version> <!-- https://mvnrepository.com/artifact/org.apache.tomee/apache-tomee -->
         <payara.version>7.2026.8</payara.version> <!-- https://mvnrepository.com/artifact/fish.payara.distributions/payara-web -->
         <liberty.version>26.0.0.8</liberty.version> <!-- https://mvnrepository.com/artifact/io.openliberty/openliberty-runtime -->
-        <tomcat.version>11.0.25</tomcat.version> <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat -->
+        <tomcat.version>11.0.27</tomcat.version> <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat -->
 
         <!-- Extra raw <context-param> XML filtered into perf web.xml; default empty. Here (not perf) so server profiles can inject server-specific params (e.g. wildfly-myfaces sets WAR_BUNDLES_JSF_IMPL). -->
         <webapp.additionalContextParams></webapp.additionalContextParams>
