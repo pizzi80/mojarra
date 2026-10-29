@@ -73,11 +73,6 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
     public static final String ACTIVE_VIEW_MAPS = "com.sun.faces.application.view.activeViewMaps";
 
     /**
-     * Stores the constant for the maximum active view map size.
-     */
-    public static final String ACTIVE_VIEW_MAPS_SIZE = "com.sun.faces.application.view.activeViewMapsSize";
-
-    /**
      * Stores the view map.
      */
     public static final String VIEW_MAP = "com.sun.faces.application.view.viewMap";
@@ -106,7 +101,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
     private final ViewScopeContextManager contextManager;
 
     private final boolean distributable;
-    private final int numberOfActiveViewMapsInWebXml;
+    private final int maxNumberOfActiveViewMaps;
 
     /**
      * Constructor.
@@ -116,7 +111,7 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
         final WebConfiguration config = WebConfiguration.getInstance(context.getExternalContext());
         distributable = config.isOptionEnabled(EnableDistributable);
         contextManager = new ViewScopeContextManager(context, distributable);
-        numberOfActiveViewMapsInWebXml = WebConfiguration.getOptionIntValueOrDefault(config, NumberOfActiveViewMaps, 25);
+        maxNumberOfActiveViewMaps = WebConfiguration.getOptionIntValueOrDefault(config, NumberOfActiveViewMaps, 25);
     }
 
 //    /**
@@ -303,12 +298,13 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
 
             if (session != null) {
                 final Map<String, Object> sessionMap = context.getExternalContext().getSessionMap();
-                final int maxNumberOfViewMaps = getOrInitActiveViewMapsSize(sessionMap, numberOfActiveViewMapsInWebXml);
-                final ConcurrentLruMap<String,Object> viewMaps = getOrInitActiveViewMaps(session, sessionMap, numberOfActiveViewMapsInWebXml);
+                final ConcurrentLruMap<String,Object> viewMaps = getOrInitActiveViewMaps(session, sessionMap, maxNumberOfActiveViewMaps);
 
                 synchronized (viewMaps) {
 
-                    if (viewMaps.size() == maxNumberOfViewMaps) {
+                    // while, not if: a session restored after lowering numberOfActiveViewMaps may exceed the limit by more than one
+                    // !isEmpty(): guards against iterator().next() on an empty map when the limit is <= 0
+                    while (!viewMaps.isEmpty() && viewMaps.size() >= maxNumberOfActiveViewMaps) {
                         evictEldestViewMap(context, viewMaps);
                     }
 
@@ -395,7 +391,6 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
 
             activeViewMaps.clear();
             session.removeAttribute(ACTIVE_VIEW_MAPS);
-            session.removeAttribute(ACTIVE_VIEW_MAPS_SIZE);
         }
 
         session.removeAttribute(VIEW_MAP_USAGES);
@@ -651,15 +646,6 @@ public class ViewScopeManager implements HttpSessionListener, ViewMapListener {
     }
 
     // ------------------------------------------------------------------------- UTILS
-
-    private static int getOrInitActiveViewMapsSize(Map<String,Object> sessionMap, int initValue) {
-        Integer value = (Integer) sessionMap.get(ACTIVE_VIEW_MAPS_SIZE);
-        if (value == null) {
-            value = initValue;
-            sessionMap.put(ACTIVE_VIEW_MAPS_SIZE, initValue);
-        }
-        return value;
-    }
 
     @SuppressWarnings("unchecked")
     private static ConcurrentLruMap<String,Object> getOrInitActiveViewMaps(Object session, Map<String,Object> sessionMap, int maxCapacity) {
