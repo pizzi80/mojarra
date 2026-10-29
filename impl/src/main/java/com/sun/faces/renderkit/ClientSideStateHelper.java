@@ -62,8 +62,6 @@ public class ClientSideStateHelper extends StateHelper {
 
     private static final Logger LOGGER = FacesLogger.APPLICATION.getLogger();
 
-    public static final String STATELESS = "stateless";
-
     /**
      * <p>
      * Enabled encryption of view state. Encryption is disabled by default.
@@ -103,7 +101,7 @@ public class ClientSideStateHelper extends StateHelper {
      * </p>
      *
      * <p>
-     * The value specified must be divisable by two as the buffer is split between character and bytes (due to how client
+     * The value specified must be dividable by two as the buffer is split between character and bytes (due to how client
      * state is written). By default, the buffer size is 8192 (per request).
      * </p>
      *
